@@ -3,7 +3,7 @@
 
 ---
 
-## 📌 Project Overview
+## Project Overview
 This repository serves as the primary technical codebase and comprehensive documentation hub for our full-stack software engineering project. Designed to showcase a rigorous, test-driven application lifecycle, **ClaimFlow** addresses the inefficiencies of manual, paper-based, and fragmented corporate expense management environments.
 
 ### Problem Statements & Goals
@@ -11,7 +11,7 @@ SMEs frequently face administrative burdens due to lost physical receipts, opaqu
 
 ---
 
-## 👥 The Team & Technical Roles
+## The Team & Technical Roles
 To maintain accountability and clear technical boundaries throughout the development lifecycle, project responsibilities are designated as follows:
 
 * **Ang Bi Jun** - Lead Frontend Engineer
@@ -25,7 +25,7 @@ To maintain accountability and clear technical boundaries throughout the develop
 
 --- 
 
-## 🏗️ System Architecture & Logic
+## System Architecture & Logic
 
 ### Role-based Access Control (RBAC)
 To protect financial audit logs and enforce proper business boundaries, ClaimFlow establishes three distinct human actors with non-overlapping permission scopes:
@@ -43,7 +43,7 @@ To protect financial audit logs and enforce proper business boundaries, ClaimFlo
 
 ---
 
-## 🗄️ Relational Database Schema
+## Relational Database Schema
 
 To support our RBAC constraints and immutable tracking lifecycle, the backend schema isolates relational entities into three structurally sound tables linked via explicit foreign keys:
 
@@ -97,7 +97,7 @@ Maintains historical transparency to fulfill system accountability.
 
 ---
 
-## 🧪 Testing & Quality Assurance Plan
+## Testing & Quality Assurance Plan
 Quality Assurance operates in parallel with code assembly. Our testing framework targets validation vulnerablities directly before software configurations are pushed to production.
 
 ### 1. The Happy Path (Standard Operational Flow)
@@ -111,7 +111,7 @@ Ensures the system gracefully captures input failures and invalid traffic withou
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisities
 *(List required runtime engines, package managers, and software versions here—e.g. Node.js v18+, PostgreSQL v15, etc.)*
