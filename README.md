@@ -15,7 +15,7 @@ SMEs frequently face administrative burdens due to lost physical receipts, opaqu
 To maintain accountability and clear technical boundaries throughout the development lifecycle, project responsibilities are designated as follows:
 
 * **[Ang Bi Jun]** - Lead Frontend Engineer
-    * *Responsibilities:* Client-side state management, reponsive UI/UX implementation, and front-to-back API integration.
+    * *Responsibilities:* Client-side state management, responsive UI/UX implementation, and front-to-back API integration.
 * **[Wong Sin Yaw]** - Lead Backend Engineer
     * *Responsibilties:* RESTful API design, database normalisation, relational mapping, and core server-side business logic.
 * **[Travis Thio]** - Lead Infrastructure Engineer
