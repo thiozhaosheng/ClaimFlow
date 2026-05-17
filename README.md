@@ -40,3 +40,42 @@ To protect financial audit logs and enforce proper business boundaries, ClaimFlo
 * **System Logging:** Operational actions performed by managerial or administrative personnel are logged to ensure system transparency. 
 
 ---
+
+## 🧪 Testing & Quality Assurance Plan
+Quality Assurance operates in parallel with code assembly. Our testing framework targets validation vulnerablities directly before software configurations are pushed to production.
+
+### 1. The Happy Path (Standard Operational Flow)
+Verifies that expected, valid user behaviors yield successful database transactions.
+* *Scenario:* An Employee provides an authenticated session, inputs a valid decimal value into the `Amount` field, attaches an image receipt format, and receives a sucessful `201 Created` status code while the claim status initializes to `Pending Review`.
+
+### 2. Edge-Case Mitigation (Defensive Software Design)
+Ensures the system gracefully captures input failures and invalid traffic without throwing application breaks or crashing active server routes.
+* *Scenerio 1 (Invalid Inputs):* An Employee inputs an alphabetical string, symbols, or a negative integer inside a numeric field.
+* *Scenario 2 (File Validation Bypass):* A user attempts to upload a corrupted text file, an unapproved format, or an excessively large binary object in place of a standard receipt image.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisities
+*(List required runtime engines, package managers, and software versions here—e.g. Node.js v18+, PostgreSQL v15, etc.)*
+* Requirement A
+* Requirement B
+* Requirement C
+
+### Installation & Local Setup
+```bash
+# 1. Clone the project repository 
+git clone [https://github.com/](http://github.com/)[thiozhaosheng]/ClaimFlow.git
+
+# 2. Enter workspace directory
+cd 
+
+# 3. Install core dependencies
+npm install
+
+# 4. Initialize local environment variables (.env)
+cp .env.example .env
+
+#5. Boot local development instances
+npm run dev
