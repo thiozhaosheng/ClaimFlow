@@ -39,6 +39,56 @@ To protect financial audit logs and enforce proper business boundaries, ClaimFlo
 * **Claim Lifecycle Automation:** Claims move predictably along an explicit linear state path: `Submitted` —> `Pending Review` —> `Approved/Rejected`—> `Reimbursed`.
 * **System Logging:** Operational actions performed by managerial or administrative personnel are logged to ensure system transparency. 
 
+<details>
+<summary><b>📐 Click to Expand: System Use Case Diagram (Mermaid)</b></summary>
+
+```mermaid
+graph LR
+    %% Actors
+    Emp[Employee]
+    Mgr[Manager]
+    Fin[Finance Admin]
+
+    subgraph ClaimFlow Web Portal
+        UC_Login(Login / Authenticate)
+        
+        %% Employee Use Cases
+        UC_Submit(Submit Claim)
+        UC_Upload(Upload Digital Receipt)
+        UC_View[View Personal Claim Status]
+        
+        %% Manager Use Cases
+        UC_Review(Review Departmental Claims)
+        UC_Decide(Approve / Reject Claim)
+        
+        %% Finance Use Cases
+        UC_Process(Process Final Reimbursement)
+        UC_Config(Manage System Configuration)
+        UC_Audit(View System Audit Logs)
+    end
+
+    %% Security Linkages
+    UC_Submit -.-> |include| UC_Login
+    UC_Upload -.-> |include| UC_Login
+    UC_View -.-> |include| UC_Login
+    UC_Review -.-> |include| UC_Login
+    UC_Decide -.-> |include| UC_Login
+    UC_Process -.-> |include| UC_Login
+    UC_Config -.-> |include| UC_Login
+    UC_Audit -.-> |include| UC_Login
+
+    %% Actor Connections
+    Emp --> UC_Submit
+    Emp --> UC_Upload
+    Emp --> UC_View
+    
+    Mgr --> UC_Review
+    Mgr --> UC_Decide
+    
+    Fin --> UC_Process
+    Fin --> UC_Config
+    Fin --> UC_Audit
+
 ---
 
 ## 🧪 Testing & Quality Assurance Plan
