@@ -183,7 +183,7 @@ Ensures the system gracefully captures input failures and invalid traffic withou
 git clone https://github.com/thiozhaosheng/ClaimFlow.git
 
 # 2. Enter workspace directory
-cd 
+cd ClaimFlow
 
 # 3. Install core dependencies
 npm install
