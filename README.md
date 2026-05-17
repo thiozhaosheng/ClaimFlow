@@ -94,6 +94,60 @@ graph LR
 
 ---
 
+## 🗄️ Relational Database Schema
+
+To support our RBAC constraints and immutable tracking lifecycle, the backend schema isolates relational entities into three structurally sound tables linked via explicit foreign keys:
+
+---
+
+### 1. `users` Table
+Stores user data and system roles to handle application authentication blocks.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `INT` | Primary Key |
+| `name` | `VARCHAR` | Full user name |
+| `email` | `VARCHAR` | Unique system identity login |
+| `password_hash` | `VARCHAR` | Securely hashed password storage string |
+| `role` | `ENUM` | Permissions assignment tier (`Employee`, `Manager`, `Finance Admin`) |
+| `department` | `VARCHAR` | Scopes claims visibility for functional unit reviews |
+| `created_at` | `TIMESTAMP` | Initial user generation time block |
+
+---
+
+### 2. `claims` Table
+Tracks data entities representing corporate expenses submitted by operational staff.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `INT` | Primary Key |
+| `user_id` | `INT` | Foreign Key → `users.id` |
+| `amount` | `DECIMAL(10,2)` | Monetary value field |
+| `category` | `VARCHAR` | Type of expense (e.g., Transport, Medical, Software) |
+| `expense_date` | `DATE` | The exact calendar day the expense took place |
+| `receipt_url` | `VARCHAR` | Target location path of the uploaded image element |
+| `status` | `ENUM` | Linear tracking sequence (`Submitted`, `Pending Review`, `Approved`, `Rejected`, `Reimbursed`) |
+| `created_at` | `TIMESTAMP` | Record creation timestamp |
+| `updated_at` | `TIMESTAMP` | Last modification timestamp |
+
+---
+
+### 3. `audit_logs` Table
+Maintains historical transparency to fulfill system accountability.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `INT` | Primary Key |
+| `claim_id` | `INT` | Foreign Key → `claims.id` |
+| `action` | `VARCHAR` | Specific state modification performed (e.g., `MANAGER_REJECTION`) |
+| `performed_by` | `INT` | Foreign Key → `users.id` |
+| `old_status` | `ENUM` | Status before the transaction |
+| `new_status` | `ENUM` | Status after the transaction |
+| `remarks` | `TEXT` | Mandatory textual context explaining approval or rejection criteria |
+| `created_at` | `TIMESTAMP` | Log entry creation timestamp |
+
+---
+
 ## 🧪 Testing & Quality Assurance Plan
 Quality Assurance operates in parallel with code assembly. Our testing framework targets validation vulnerablities directly before software configurations are pushed to production.
 
