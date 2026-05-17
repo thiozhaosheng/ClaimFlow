@@ -39,7 +39,7 @@ To protect financial audit logs and enforce proper business boundaries, ClaimFlo
 * **Claim Lifecycle Automation:** Claims move predictably along an explicit linear state path: `Submitted` —> `Pending Review` —> `Endorsed/Rejected`—> `Reimbursed`.
 * **System Logging:** Operational actions performed by managerial or administrative personnel are logged to ensure system transparency. 
 
-![ClaimFlow Use Case Diagram](./docs/ClaimFlow Web Portal.jpg)
+![ClaimFlow Use Case Diagram](./docs/ClaimFlowUCD.jpg)
 
 ---
 
