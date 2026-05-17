@@ -14,13 +14,13 @@ SMEs frequently face administrative burdens due to lost physical receipts, opaqu
 ## 👥 The Team & Technical Roles
 To maintain accountability and clear technical boundaries throughout the development lifecycle, project responsibilities are designated as follows:
 
-* **[Ang Bi Jun]** - Lead Frontend Engineer
+* **Ang Bi Jun** - Lead Frontend Engineer
     * *Responsibilities:* Client-side state management, responsive UI/UX implementation, and front-to-back API integration.
-* **[Wong Sin Yaw]** - Lead Backend Engineer
-    * *Responsibilties:* RESTful API design, database normalisation, relational mapping, and core server-side business logic.
-* **[Travis Thio]** - Lead Infrastructure Engineer
+* **Wong Sin Yaw** - Lead Backend Engineer
+    * *Responsibilities:* RESTful API design, database normalisation, relational mapping, and core server-side business logic.
+* **Travis Thio** - Lead Infrastructure Engineer
     * *Responsibilities:* Repository access control, environment configuration management (`.env`), deployment orchestration, hosting environment stability, and uptime monitoring.
-* **[Wong Lian Yi Daniel]** - Lead Quality Assurance (QA) & Technical Writer
+* **Wong Lian Yi Daniel** - Lead Quality Assurance (QA) & Technical Writer
     * *Responsibilities:* Technical documentation mapping, user scenario drafting, edge-case testing verification, defect triage, and system validation.
 
 --- 
@@ -173,7 +173,7 @@ Ensures the system gracefully captures input failures and invalid traffic withou
 ### Installation & Local Setup
 ```bash
 # 1. Clone the project repository 
-git clone [https://github.com/](http://github.com/)[thiozhaosheng]/ClaimFlow.git
+git clone https://github.com/thiozhaosheng/ClaimFlow.git
 
 # 2. Enter workspace directory
 cd 
