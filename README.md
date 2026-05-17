@@ -51,42 +51,49 @@ graph LR
 
     subgraph ClaimFlow Web Portal
         UC_Login(Login / Authenticate)
-        
+
         %% Employee Use Cases
         UC_Submit(Submit Claim)
         UC_Upload(Upload Digital Receipt)
-        UC_View[View Personal Claim Status]
-        
+        UC_View(View Personal Claim Status)
+
         %% Manager Use Cases
-        UC_Review(Review Departmental Claims)
-        UC_Decide(Approve / Reject Claim)
-        
+        UC_Review(Review Departmental Pending Claims)
+        UC_Decide(Endorse / Reject Claim)
+        UC_Comment(Add Rejection Comment)
+
         %% Finance Use Cases
         UC_Process(Process Final Reimbursement)
-        UC_Config(Manage System Configuration)
-        UC_Audit(View System Audit Logs)
+        UC_Export(Export Transaction Log)
+        UC_Audit(View Audit Trail)
     end
 
-    %% Security Linkages
-    UC_Submit -.-> |include| UC_Login
-    UC_Upload -.-> |include| UC_Login
-    UC_View -.-> |include| UC_Login
-    UC_Review -.-> |include| UC_Login
-    UC_Decide -.-> |include| UC_Login
-    UC_Process -.-> |include| UC_Login
-    UC_Config -.-> |include| UC_Login
-    UC_Audit -.-> |include| UC_Login
+    %% <>: all primary actions include Login
+    UC_Submit --> |<>| UC_Login
+    UC_View --> |<>| UC_Login
+    UC_Review --> |<>| UC_Login
+    UC_Decide --> |<>| UC_Login
+    UC_Process --> |<>| UC_Login
+    UC_Audit --> |<>| UC_Login
+
+    %% <>: Upload extends Submit
+    UC_Upload -.-> |<>| UC_Submit
+
+    %% <>: Rejection Comment extends Endorse/Reject decision
+    UC_Comment -.-> |<>| UC_Decide
+
+    %% <>: Export extends Audit
+    UC_Export -.-> |<>| UC_Audit
 
     %% Actor Connections
     Emp --> UC_Submit
     Emp --> UC_Upload
     Emp --> UC_View
-    
+
     Mgr --> UC_Review
     Mgr --> UC_Decide
-    
+
     Fin --> UC_Process
-    Fin --> UC_Config
     Fin --> UC_Audit
 ```
 
