@@ -88,7 +88,8 @@ graph LR
     Fin --> UC_Process
     Fin --> UC_Config
     Fin --> UC_Audit
-    
+```
+
 </details>
 
 ---
