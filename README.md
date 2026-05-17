@@ -31,12 +31,12 @@ To maintain accountability and clear technical boundaries throughout the develop
 To protect financial audit logs and enforce proper business boundaries, ClaimFlow establishes three distinct human actors with non-overlapping permission scopes:
 
 1. **Employee:** The transactional actor who submits claim line-items, inputs monetary values, and uploads digital receipt evidence. 
-2. **Manager:** The department oversight actor responsible for examining claims originating within their unit, holding the authority to either `Approve` or `Reject` requests.
+2. **Manager:** The department oversight actor responsible for examining claims originating within their unit, holding the authority to either `Endorse` or `Reject` requests.
 3. **Finance Admin:** The root administrative processor responsible for authorizing final monetary disbursements and reviewing comprehensive, immutable audit histories.
 
 ### Core Functional Use Case
 * **Session Authentication:** All system entry points command an authentication barrier to safeguard data integrity and protect corporate records.
-* **Claim Lifecycle Automation:** Claims move predictably along an explicit linear state path: `Submitted` —> `Pending Review` —> `Approved/Rejected`—> `Reimbursed`.
+* **Claim Lifecycle Automation:** Claims move predictably along an explicit linear state path: `Submitted` —> `Pending Review` —> `Endorsed/Rejected`—> `Reimbursed`.
 * **System Logging:** Operational actions performed by managerial or administrative personnel are logged to ensure system transparency. 
 
 <details>
