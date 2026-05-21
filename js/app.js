@@ -131,21 +131,32 @@ const DEFAULT_INITIAL_RECORDS = [
     action: "Claim submitted",
     bank: "**** 5521",
   },
-];git add css/style.css
+];
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadDatabaseState();
+  syncAuthenticationSession();
+  initializeDragAndDropSupport();
+  executePageSpecificInitialization();
+});
 
 // attach core listeners on initial page compilation loop
 document.addEventListener("DOMContentLoaded", () => {
   loadDatabaseState();
   syncAuthenticationSession();
-  setupRoleSwitcherTabs();
 
-  // specific runtime loader condition for employee workflow elements
+  // initialize view specific layout scripts if corresponding containers exist
   if (document.getElementById("view-employee")) {
-    initEmployeeWorkspace();
+    renderEmployeeDashboard();
+    setupDropzoneHandlers();
+  }
+
+  if (document.getElementById("view-approving")) {
+    renderManagerDashboard();
   }
 });
 
-/* handles database instantiation from persistent localStorage */
+/* handles database instantiation from persistent storage cache environments */
 function loadDatabaseState() {
   const savedDb = localStorage.getItem("claimflow_db");
   if (savedDb) {
@@ -156,50 +167,33 @@ function loadDatabaseState() {
   }
 }
 
-/* evaluates valid session configurations across the browser path lifecycle */
+/* evaluates operational authentication parameters and intercepts route entries */
 function syncAuthenticationSession() {
   const savedSession = localStorage.getItem("claimflow_session");
   const currentPath = window.location.pathname;
 
   if (savedSession) {
     CURRENT_SESSION = JSON.parse(savedSession);
+
+    // populate user signature element across workspaces if present
     const userEmailEl = document.getElementById("current-user-email");
-    if (userEmailEl) userEmailEl.textContent = CURRENT_SESSION.email;
+    if (userEmailEl) {
+      userEmailEl.textContent = CURRENT_SESSION.email;
+    }
+
+    // auto-redirect if an active session tries to navigate back to the sign-in page
+    if (currentPath.endsWith("index.html") || currentPath.endsWith("/")) {
+      redirectToPage(CURRENT_SESSION.currentView);
+    }
   } else {
-    // session escape mechanism if route tracking detects unauthenticated entries
+    // escape layout intercept if user accesses secured internal branches unauthenticated
     if (!currentPath.endsWith("index.html") && !currentPath.endsWith("/")) {
       window.location.href = "index.html";
     }
   }
 }
 
-/* Synchronizes the visibility and active tab properties of the multi-role navigation bar */
-function setupRoleSwitcherTabs() {
-  if (!CURRENT_SESSION) return;
-
-  const currentPath = window.location.pathname;
-
-  // Highlight active link depending on layout page
-  if (currentPath.endsWith("employee.html")) {
-    setActiveNavTab("nav-btn-employee");
-  } else if (currentPath.endsWith("approving.html")) {
-    setActiveNavTab("nav-btn-approving");
-  } else if (currentPath.endsWith("finance.html")) {
-    setActiveNavTab("nav-btn-finance");
-  }
-}
-
-function setActiveNavTab(activeId) {
-  ["nav-btn-employee", "nav-btn-approving", "nav-btn-finance"].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) {
-      if (id === activeId) el.classList.add("active");
-      else el.classList.remove("active");
-    }
-  });
-}
-
-/* build current application session state footprint */
+/* executes login authentication checks, resolves roles & configures active contexts */
 function handleSignIn(event) {
   event.preventDefault();
 
@@ -209,6 +203,7 @@ function handleSignIn(event) {
     .toLowerCase();
   let resolvedRole = "employee";
 
+  // role resolution filter ruleset matching corporate structural profiles
   if (
     emailInput.includes("manager") ||
     emailInput.includes("approving") ||
@@ -219,6 +214,7 @@ function handleSignIn(event) {
     resolvedRole = "finance";
   }
 
+  // build current application session state footprint
   CURRENT_SESSION = {
     email: emailInput,
     role: resolvedRole,
@@ -230,170 +226,46 @@ function handleSignIn(event) {
   redirectToPage(resolvedRole);
 }
 
-/* populates form inputs instantly when sandbox shortcuts are clicked */
-function quickFill(email) {
-  const emailField = document.getElementById("input-email");
-  const passwordField = document.getElementById("input-password");
-
-  if (emailField && passwordField) {
-    emailField.value = email;
-    passwordField.value = "securedPassword123";
-  }
-}
-
-/* directs global route location state updates */
+/* handles application redirection paths uniformly across all system engines */
 function redirectToPage(role) {
   if (role === "employee") window.location.href = "employee.html";
   else if (role === "approving") window.location.href = "approving.html";
   else if (role === "finance") window.location.href = "finance.html";
 }
 
-/* destroys session profiles safely during exit triggers */
+/* clears active tracking signatures during session logout sequences */
 function handleLogout() {
   localStorage.removeItem("claimflow_session");
   CURRENT_SESSION = null;
   window.location.href = "index.html";
 }
 
-// employee module workspace - claims processing operations
-let SELECTED_FILE_REF = null;
-
-function initEmployeeWorkspace() {
-  renderEmployeeClaimsList();
-  setupDropzoneHandlers();
+/* standard security helper to clean dynamic strings during template injection rendering loops */
+function escapeHtml(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-/* sets up drag-and-drop animation hooks for receipt file drops */
-function setupDropzoneHandlers() {
-  const dropzone = document.getElementById("receipt-dropzone");
-  if (!dropzone) return;
+/* new employee core execution subroutines & workspace managers */
 
-  ["dragenter", "dragover"].forEach((eventName) => {
-    dropzone.addEventListener(
-      eventName,
-      (e) => {
-        e.preventDefault();
-        dropzone.classList.add("dragover");
-      },
-      false,
-    );
-  });
-
-  ["dragleave", "drop"].forEach((eventName) => {
-    dropzone.addEventListener(
-      eventName,
-      (e) => {
-        e.preventDefault();
-        dropzone.classList.remove("dragover");
-      },
-      false,
-    );
-  });
-
-  dropzone.addEventListener(
-    "drop",
-    (e) => {
-      const dt = e.dataTransfer;
-      const files = dt.files;
-      if (files.length > 0) {
-        processSelectedFile(files[0]);
-      }
-    },
-    false,
-  );
-}
-
-function triggerFileBrowser() {
-  const nativeInput = document.getElementById("receipt-native-file");
-  if (nativeInput) nativeInput.click();
-}
-
-function handleFileSelected(event) {
-  const files = event.target.files;
-  if (files.length > 0) {
-    processSelectedFile(files[0]);
-  }
-}
-
-function processSelectedFile(file) {
-  SELECTED_FILE_REF = file;
-  const textContainer = document.getElementById("dropzone-text");
-  if (textContainer) {
-    textContainer.innerHTML = `<strong class="text-success"><i class="fa-solid fa-file-circle-check me-1"></i> Loaded: ${escapeHtml(file.name)}</strong>`;
-  }
-}
-
-/* intercepts employee claim submissions & inserts records into the database local registry */
-function handleClaimSubmission(event) {
-  event.preventDefault();
-
-  const titleInput = document.getElementById("emp-claim-title").value.trim();
-  const dateInput = document.getElementById("emp-claim-date").value;
-  const categoryInput = document.getElementById("emp-claim-category").value;
-  const amountInput = parseFloat(
-    document.getElementById("emp-claim-amount").value,
-  );
-
-  // generate unique sequential claim ID block
-  const nextId = `CLM-00${CLAIMS_DB.length + 1}`;
-  const now = new Date();
-  const currentTimeString = now.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  const newClaimRecord = {
-    id: nextId,
-    employee: CURRENT_SESSION
-      ? CURRENT_SESSION.email.split("@")[0].replace(".", " ")
-      : "Employee Account",
-    email: CURRENT_SESSION ? CURRENT_SESSION.email : "employee@company.com",
-    title: titleInput,
-    date: dateInput,
-    time: currentTimeString,
-    type: categoryInput,
-    department: "Operations",
-    amount: amountInput,
-    status: "Pending",
-    actor: CURRENT_SESSION
-      ? CURRENT_SESSION.email.split("@")[0].replace(".", " ")
-      : "Employee",
-    role: "Employee",
-    action: "Claim submitted",
-    bank: "**** 9911",
-    receiptName: SELECTED_FILE_REF
-      ? SELECTED_FILE_REF.name
-      : "not_provided.pdf",
-  };
-
-  CLAIMS_DB.unshift(newClaimRecord);
-  localStorage.setItem("claimflow_db", JSON.stringify(CLAIMS_DB));
-
-  // reset form status and update listing panel
-  document.getElementById("claim-submission-form").reset();
-  SELECTED_FILE_REF = null;
-  const textContainer = document.getElementById("dropzone-text");
-  if (textContainer)
-    textContainer.textContent =
-      "Drag and drop your receipt here, or click to browse";
-
-  renderEmployeeClaimsList();
-  alert(`Claim request ${nextId} submitted successfully!`);
-}
-
-/* renders claims belonging to the active user in the side column */
-function renderEmployeeClaimsList() {
+/* compiles & renders historical records matching the active employee session context */
+function renderEmployeeDashboard() {
   const listingWrapper = document.getElementById("employee-recent-claims-list");
   if (!listingWrapper) return;
 
   listingWrapper.innerHTML = "";
 
-  // filter down to records that match the currently authenticated profile
-  const activeUserEmail = CURRENT_SESSION
-    ? CURRENT_SESSION.email
-    : "sarah.employee@company.com";
+  const activeUserEmail = CURRENT_SESSION ? CURRENT_SESSION.email : "";
+
   const userClaims = CLAIMS_DB.filter(
-    (claim) => claim.email === activeUserEmail,
+    (claim) =>
+      claim.email?.toLowerCase() === activeUserEmail.toLowerCase() ||
+      activeUserEmail.includes("employee"),
   );
 
   if (userClaims.length === 0) {
@@ -401,18 +273,19 @@ function renderEmployeeClaimsList() {
     return;
   }
 
-  userClaims.forEach((claim) => {
+  userClaims.reverse().forEach((claim) => {
     let statusClass = "badge-pending";
     if (claim.status === "Endorsed") statusClass = "badge-endorsed";
     else if (claim.status === "Approved") statusClass = "badge-approved";
     else if (claim.status === "Rejected") statusClass = "badge-rejected";
+    else if (claim.status === "Paid") statusClass = "badge-paid";
 
     const itemCard = document.createElement("div");
     itemCard.className =
       "claim-item-card d-flex justify-content-between align-items-center";
     itemCard.innerHTML = `
       <div>
-        <div class="claim-meta-title">${escapeHtml(claim.title || claim.type)}</div>
+        <div class="claim-meta-title">${escapeHtml(claim.title || claim.type + " Claim")}</div>
         <div class="claim-meta-sub">
           <span class="me-2"><i class="fa-regular fa-calendar me-1"></i>${claim.date}</span>
           <span class="badge ${statusClass}">${claim.status}</span>
@@ -424,13 +297,239 @@ function renderEmployeeClaimsList() {
   });
 }
 
-/* encapsulates dynamic layout rendering string sanitization */
-function escapeHtml(str) {
-  if (!str) return "";
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+/* processes claim form inputs, registers unique parameters, & saves states inside storage */
+function handleClaimSubmission(event) {
+  event.preventDefault();
+
+  const titleInput = document.getElementById("emp-claim-title").value.trim();
+  const dateInput = document.getElementById("emp-claim-date").value;
+  const categoryInput = document.getElementById("emp-claim-category").value;
+  const amountInput = parseFloat(
+    document.getElementById("emp-claim-amount").value,
+  );
+
+  const generatedId = `CLM-${String(CLAIMS_DB.length + 1).padStart(3, "0")}`;
+  const currentTime = new Date().toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const newClaimRecord = {
+    id: generatedId,
+    employee: CURRENT_SESSION
+      ? CURRENT_SESSION.email.split("@")[0].replace(".", " ")
+      : "Employee Profile",
+    email: CURRENT_SESSION ? CURRENT_SESSION.email : "employee@company.com",
+    title: titleInput,
+    date: dateInput,
+    time: currentTime,
+    type: categoryInput,
+    department: "Sales",
+    amount: amountInput,
+    status: "Pending",
+    actor: CURRENT_SESSION ? CURRENT_SESSION.email : "Employee",
+    role: "Employee",
+    action: "Claim submitted",
+    bank: "**** 9999",
+  };
+
+  CLAIMS_DB.push(newClaimRecord);
+  localStorage.setItem("claimflow_db", JSON.stringify(CLAIMS_DB));
+
+  document.getElementById("claim-submission-form").reset();
+  resetDropzoneUI();
+
+  renderEmployeeDashboard();
+}
+
+/* programmatically routes element touch triggers directly to native browser file system pickers */
+function triggerFileBrowser() {
+  const nativeFileInput = document.getElementById("receipt-native-file");
+  if (nativeFileInput) nativeFileInput.click();
+}
+
+/* captures file selections executed via internal system prompt selections */
+function handleFileSelected(event) {
+  const fileArray = event.target.files;
+  if (fileArray.length > 0) {
+    updateDropzoneFeedback(fileArray[0].name);
+  }
+}
+
+/* binds active event listeners to handle layout visualization & custom drag-drop captures */
+function setupDropzoneHandlers() {
+  const dropzoneEl = document.getElementById("receipt-dropzone");
+  if (!dropzoneEl) return;
+
+  ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+    dropzoneEl.addEventListener(
+      eventName,
+      (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      },
+      false,
+    );
+  });
+
+  ["dragenter", "dragover"].forEach((eventName) => {
+    dropzoneEl.addEventListener(
+      eventName,
+      () => dropzoneEl.classList.add("dragover"),
+      false,
+    );
+  });
+
+  ["dragleave", "drop"].forEach((eventName) => {
+    dropzoneEl.addEventListener(
+      eventName,
+      () => dropzoneEl.classList.remove("dragover"),
+      false,
+    );
+  });
+
+  dropzoneEl.addEventListener("drop", (e) => {
+    const dataTransferObj = e.dataTransfer;
+    const fileArray = dataTransferObj.files;
+
+    if (fileArray.length > 0) {
+      const nativeFileInput = document.getElementById("receipt-native-file");
+      if (nativeFileInput) nativeFileInput.files = fileArray;
+      updateDropzoneFeedback(fileArray[0].name);
+    }
+  });
+}
+
+function updateDropzoneFeedback(fileName) {
+  const textualFeedback = document.getElementById("dropzone-text");
+  if (textualFeedback) {
+    textualFeedback.innerHTML = `<strong class="text-success"><i class="fa-solid fa-circle-check me-1"></i> Attached:</strong> ${escapeHtml(fileName)}`;
+  }
+}
+
+function resetDropzoneUI() {
+  const textualFeedback = document.getElementById("dropzone-text");
+  if (textualFeedback) {
+    textualFeedback.textContent =
+      "Drag and drop your receipt here, or click to browse";
+  }
+}
+
+/* approving officer execution subroutines & workflow dashboard engine */
+
+/* filters rows dynamically, triggers metrics counting checks, and draws the table grid */
+function renderManagerDashboard() {
+  const tbody = document.getElementById("manager-claims-tbody");
+  if (!tbody) return;
+
+  // retrieve matching configuration selectors
+  const statusFilter = document.getElementById("filter-manager-status").value;
+  const deptFilter = document.getElementById("filter-manager-dept").value;
+  const searchQuery = document
+    .getElementById("search-manager-claims")
+    .value.toLowerCase()
+    .trim();
+
+  tbody.innerHTML = "";
+
+  // filter records matching selected rulesets
+  const filteredClaims = CLAIMS_DB.filter((claim) => {
+    // 1. status Filter interception logic
+    if (statusFilter !== "All Status" && claim.status !== statusFilter)
+      return false;
+
+    // 2. department filter interception logic
+    if (deptFilter !== "All" && claim.department !== deptFilter) return false;
+
+    // 3. structural text keyword exploration lookup filter bounds
+    if (searchQuery) {
+      const employeeMatch = claim.employee.toLowerCase().includes(searchQuery);
+      const titleMatch = (claim.title || "")
+        .toLowerCase()
+        .includes(searchQuery);
+      const categoryMatch = claim.type.toLowerCase().includes(searchQuery);
+      if (!employeeMatch && !titleMatch && !categoryMatch) return false;
+    }
+
+    return true;
+  });
+
+  // execute secondary stats aggregation loop cycle pass over records matching constraints
+  updateManagerWidgetCounts();
+
+  if (filteredClaims.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-secondary">No rows match your current filter parameters.</td></tr>`;
+    return;
+  }
+
+  // map array components out directly into layout compilation strings
+  filteredClaims.forEach((claim) => {
+    let statusBadgeClass = "badge-pending";
+    if (claim.status === "Endorsed") statusBadgeClass = "badge-endorsed";
+    else if (claim.status === "Approved") statusBadgeClass = "badge-approved";
+    else if (claim.status === "Rejected") statusBadgeClass = "badge-rejected";
+    else if (claim.status === "Paid") statusBadgeClass = "badge-paid";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="font-semibold">${escapeHtml(claim.employee)}</td>
+      <td>${claim.date} <span class="text-secondary small block-span">${claim.time || ""}</span></td>
+      <td>
+        <span class="font-medium">${escapeHtml(claim.type)}</span>
+        <span class="text-secondary small block-span">${escapeHtml(claim.title || "No description given")}</span>
+      </td>
+      <td><span class="badge bg-light text-dark border">${escapeHtml(claim.department)}</span></td>
+      <td class="text-end font-bold">$${claim.amount.toFixed(2)}</td>
+      <td class="text-center">
+        ${
+          claim.status === "Pending"
+            ? `<div class="d-flex gap-1 justify-content-center">
+                <button class="btn btn-action-endorse" onclick="updateClaimStatus('${claim.id}', 'Endorsed')">
+                  <i class="fa-solid fa-check me-1"></i>Endorse
+                </button>
+                <button class="btn btn-action-reject" onclick="updateClaimStatus('${claim.id}', 'Rejected')">
+                  <i class="fa-solid fa-xmark me-1"></i>Reject
+                </button>
+               </div>`
+            : `<span class="badge ${statusBadgeClass}">${claim.status}</span>`
+        }
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* aggregates summary tracking values across runtime storage states */
+function updateManagerWidgetCounts() {
+  const pendingCounterEl = document.getElementById("badge-pending-count");
+  if (!pendingCounterEl) return;
+
+  // aggregate global records whose processing lifecycle states match "Pending"
+  const pendingCount = CLAIMS_DB.filter(
+    (claim) => claim.status === "Pending",
+  ).length;
+  pendingCounterEl.textContent = pendingCount;
+}
+
+/* modifies target configuration indices & writes system profile logs inside records storage */
+function updateClaimStatus(claimId, targetStatus) {
+  const activeUserEmail = CURRENT_SESSION
+    ? CURRENT_SESSION.email
+    : "Approving Officer";
+
+  // find index pointer position matching requested signature mapping elements
+  const matchIndex = CLAIMS_DB.findIndex((claim) => claim.id === claimId);
+
+  if (matchIndex !== -1) {
+    CLAIMS_DB[matchIndex].status = targetStatus;
+    CLAIMS_DB[matchIndex].actor = activeUserEmail;
+    CLAIMS_DB[matchIndex].role = "Approving Officer";
+    CLAIMS_DB[matchIndex].action = `Claim ${targetStatus.toLowerCase()}`;
+
+    // update persistent runtime memory array caches immediately
+    localStorage.setItem("claimflow_db", JSON.stringify(CLAIMS_DB));
+
+    // re-render layout grid updates visually
+    renderManagerDashboard();
+  }
 }
