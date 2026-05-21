@@ -102,3 +102,221 @@ body {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
+
+/* scaffold navigation header & global components */
+header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.75rem 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.brand-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-box {
+  width: 40px;
+  height: 40px;
+  background-color: #2563eb;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+  color: #0f172a;
+}
+
+.user-meta {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-nav {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.btn-nav:hover {
+  background-color: #e2e8f0;
+  color: #1e293b;
+}
+
+.btn-nav.active {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.15);
+}
+
+.btn-logout {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-logout:hover {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+/* employee workspace & dashboard framework components */
+.workspace-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.workspace-card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+}
+
+.panel-subtitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.plus-icon-badge {
+  width: 28px;
+  height: 28px;
+  background-color: #eff6ff;
+  color: #2563eb;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+/* file upload drag-and-drop area component */
+.file-dropzone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  background-color: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.file-dropzone:hover,
+.file-dropzone.dragover {
+  border-color: #2563eb;
+  background-color: #eff6ff;
+}
+
+.dropzone-icon {
+  font-size: 2rem;
+  color: #94a3b8;
+  transition: color 0.2s ease;
+}
+
+.file-dropzone:hover .dropzone-icon {
+  color: #2563eb;
+}
+
+.dropzone-subtext {
+  display: block;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+/* card & claims entry rendering system */
+.claim-item-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.claim-item-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.claim-meta-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 0.25rem;
+}
+
+.claim-meta-sub {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.claim-amount-display {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* status Badging Color Matrix */
+.badge-pending {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.badge-endorsed {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.badge-approved {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.badge-rejected {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
