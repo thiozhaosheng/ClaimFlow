@@ -1,6 +1,4 @@
-/* ==========================================================================
-   ClaimFlow Portal Design System - Core Setup
-   ========================================================================== */
+/* custom ClaimFlow Portal Design Ruleset */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 * {
@@ -22,7 +20,7 @@ body {
   min-height: 100vh;
 }
 
-/* Typography Helper Classes */
+/* typography */
 .font-medium {
   font-weight: 500;
 }
@@ -35,10 +33,13 @@ body {
 .block-span {
   display: block;
 }
+.font-mono {
+  font-family:
+    SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+}
 
-/* ==========================================================================
-   Authentication & Login View Layout Components
-   ========================================================================== */
+/* authentication & login view layout components */
 .auth-wrapper {
   padding-top: 4rem;
   max-width: 100%;
@@ -63,22 +64,21 @@ body {
 }
 
 .auth-card {
-  background: #ffffff;
+  background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 2.25rem;
+  border-radius: 16px;
+  padding: 2.5rem;
   max-width: 440px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
 }
 
 .auth-card-title {
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  margin-bottom: 1.5rem;
   color: #0f172a;
+  margin-bottom: 1.5rem;
 }
 
-/* Input Group Decoration Utilities */
 .input-icon-container {
   position: relative;
 }
@@ -89,43 +89,20 @@ body {
   top: 50%;
   transform: translateY(-50%);
   color: #94a3b8;
-  font-size: 0.95rem;
 }
 
 .padded-input {
   padding-left: 42px !important;
   height: 46px;
   border-color: #cbd5e1;
-  font-size: 0.95rem;
 }
 
 .padded-input:focus {
   border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
 
-/* Quick-Fill Sandbox Display Component */
-.demo-credentials-box {
-  background-color: #f8fafc;
-  border: 1px dashed #e2e8f0;
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.demo-title {
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #64748b;
-  margin-bottom: 0.6rem;
-  letter-spacing: 0.5px;
-}
-
-/* ==========================================================================
-   New Employee Portal Styles & Core Interface Design Ruleset
-   ========================================================================== */
-
-/* Header & Application Nav Styles */
+/* header navbar layout architecture */
 header {
   background-color: #ffffff;
   border-bottom: 1px solid #e2e8f0;
@@ -139,6 +116,8 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .brand-meta {
@@ -148,8 +127,8 @@ header {
 }
 
 .logo-box {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   background-color: #2563eb;
   border-radius: 8px;
   display: flex;
@@ -158,14 +137,15 @@ header {
 }
 
 .brand-title {
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #0f172a;
   margin: 0;
+  line-height: 1.2;
 }
 
 .user-meta {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #64748b;
   margin: 0;
 }
@@ -177,42 +157,49 @@ header {
 }
 
 .btn-nav {
-  border: 1px solid #e2e8f0;
   color: #475569;
   font-weight: 500;
   font-size: 0.875rem;
   padding: 0.5rem 1rem;
-  transition: all 0.2s ease;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  transition: all 0.15s ease;
 }
 
 .btn-nav:hover {
-  background-color: #f1f5f9;
-  color: #1e293b;
+  background-color: #f8fafc;
+  color: #0f172a;
 }
 
 .btn-nav.active {
-  background-color: #eff6ff !important;
-  border-color: #bfdbfe !important;
-  color: #2563eb !important;
+  background-color: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
 }
 
 .btn-logout {
-  border: 1px solid transparent;
-  color: #64748b;
-  font-weight: 500;
+  background-color: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #ffe4e6;
   font-size: 0.875rem;
+  font-weight: 500;
   padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
 }
 
 .btn-logout:hover {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border-color: #fee2e2;
+  background-color: #ffe4e6;
+  color: #be123c;
 }
 
-/* Workspace Panels & Form Layout Rules */
+/* workspace layout containers */
+.role-workspace {
+  margin-top: 0.5rem;
+}
+
 .workspace-card {
-  background: #ffffff;
+  background-color: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
@@ -226,45 +213,88 @@ header {
   align-items: center;
 }
 
-.panel-subtitle {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #0f172a;
-}
-
 .plus-icon-badge {
   width: 28px;
   height: 28px;
-  background-color: #e0f2fe;
-  color: #0369a1;
+  background-color: #eff6ff;
+  color: #2563eb;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
-}
-
-.form-label {
-  font-weight: 500;
   font-size: 0.875rem;
-  color: #334155;
-  margin-bottom: 0.5rem;
 }
 
-.form-control,
-.form-select {
-  border-color: #cbd5e1;
-  font-size: 0.95rem;
-  padding: 0.55rem 0.75rem;
+/* sidebar arrangement */
+.sidebar-layout-container {
+  display: flex;
+  gap: 1.5rem;
 }
 
-.form-control:focus,
-.form-select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+@media (max-width: 991.98px) {
+  .sidebar-layout-container {
+    flex-direction: column;
+  }
+  .sidebar-panel {
+    width: 100% !important;
+  }
 }
 
-/* File Dropzone Interactive Elements */
+.sidebar-panel {
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.sidebar-meta-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+}
+
+.stat-widget-box {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.widget-title {
+  display: block;
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.widget-value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.widget-value.highlight-blue {
+  color: #2563eb;
+}
+
+/* alert notification framework */
+.alert-custom-info {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.small-dot {
+  font-size: 0.45rem;
+  vertical-align: middle;
+}
+
+/* interactive component elements */
 .file-dropzone {
   border: 2px dashed #cbd5e1;
   border-radius: 8px;
@@ -298,7 +328,7 @@ header {
   margin-top: 0.25rem;
 }
 
-/* Claims Dynamic Card Template Rendering CSS */
+/* card entry rendering system */
 .claim-item-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -310,138 +340,29 @@ header {
 }
 
 .claim-item-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
-.claim-meta-title {
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: #0f172a;
-  margin-bottom: 0.25rem;
-}
-
-.claim-meta-sub {
-  font-size: 0.8rem;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.claim-amount-display {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: #0f172a;
-}
-
-/* Custom Workflow Badge States */
+/* status configuration matrix */
 .badge-pending {
   background-color: #fef3c7;
   color: #d97706;
-  font-weight: 500;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
 }
-
 .badge-endorsed {
   background-color: #e0f2fe;
   color: #0369a1;
-  font-weight: 500;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
 }
-
 .badge-approved {
   background-color: #dcfce7;
   color: #15803d;
-  font-weight: 500;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
 }
-
 .badge-rejected {
   background-color: #fee2e2;
   color: #b91c1c;
-  font-weight: 500;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
 }
 
-.badge-paid {
-  background-color: #f0fdf4;
-  color: #16a34a;
-  font-weight: 500;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #bbf7d0;
-}
-
-/* ==========================================================================
-   Approving Officer Workspace Enhancements
-   ========================================================================== */
-.sidebar-layout-container {
-  display: flex;
-  gap: 1.5rem;
-  align-items: flex-start;
-}
-
-.sidebar-panel {
-  width: 280px;
-  flex-shrink: 0;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 1.5rem;
-}
-
-.sidebar-meta-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #475569;
-  letter-spacing: 0.5px;
-  margin-bottom: 1rem;
-}
-
-.stat-widget-box {
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-}
-
-.widget-title {
-  font-size: 0.8rem;
-  color: #64748b;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-}
-
-.widget-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.widget-value.highlight-blue {
-  color: #2563eb;
-}
-
-.alert-custom-info {
-  background-color: #f0fdfa;
-  border: 1px solid #ccfbf1;
-  color: #0f766e;
-  font-size: 0.875rem;
-}
-
-.small-dot {
-  font-size: 0.5rem;
-  vertical-align: middle;
-}
-
-/* Search input wrapper tracking rules */
+/* search wrapper form fields */
 .search-input-wrapper {
   position: relative;
 }
@@ -459,7 +380,7 @@ header {
   height: 42px;
 }
 
-/* Data Tables & Management Actions */
+/* data tables & management actions */
 .data-table {
   width: 100%;
   margin-bottom: 0;
@@ -486,41 +407,123 @@ header {
   background-color: #e0f2fe;
   color: #0369a1;
   border: 1px solid #bae6fd;
-  font-weight: 600;
-  font-size: 0.775rem;
   padding: 0.35rem 0.75rem;
+  font-weight: 500;
+  font-size: 0.8rem;
   border-radius: 6px;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .btn-action-endorse:hover {
-  background-color: #0284c7;
-  color: #ffffff;
-  border-color: #0284c7;
+  background-color: #bae6fd;
 }
 
 .btn-action-reject {
   background-color: #fee2e2;
   color: #b91c1c;
   border: 1px solid #fecaca;
-  font-weight: 600;
-  font-size: 0.775rem;
   padding: 0.35rem 0.75rem;
+  font-weight: 500;
+  font-size: 0.8rem;
   border-radius: 6px;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .btn-action-reject:hover {
-  background-color: #dc2626;
-  color: #ffffff;
-  border-color: #dc2626;
+  background-color: #fecaca;
 }
 
-@media (max-width: 991.98px) {
-  .sidebar-layout-container {
-    flex-direction: column;
+/* sub navigation menu tabs */
+.sub-tabs-layer {
+  border-bottom: 1px solid #e2e8f0;
+  gap: 1.5rem;
+}
+
+.sub-tab-link {
+  color: #64748b;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.75rem 0.25rem;
+  border: none;
+  background: transparent;
+  position: relative;
+  border-bottom: 2px solid transparent;
+}
+
+.sub-tab-link:hover {
+  color: #1e293b;
+}
+
+.sub-tab-link.active {
+  color: #2563eb !important;
+  border-bottom-color: #2563eb !important;
+}
+
+/* button component extensions */
+.btn-mark-paid {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.btn-mark-paid:hover:not(:disabled) {
+  background-color: #1d4ed8;
+  color: white;
+}
+
+.btn-mark-paid.disabled,
+.btn-mark-paid:disabled {
+  background-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* segmented state group filters */
+.segmented-control {
+  background-color: #f1f5f9;
+  padding: 0.25rem;
+  border-radius: 8px;
+  display: flex;
+  gap: 0.125rem;
+}
+
+.segment-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.35rem 1rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.segment-btn:hover {
+  color: #0f172a;
+}
+
+.segment-btn.active {
+  background-color: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* css keyframe animations */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
-  .sidebar-panel {
-    width: 100%;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
