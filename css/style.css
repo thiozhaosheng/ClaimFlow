@@ -35,21 +35,3 @@ body {
 .block-span {
   display: block;
 }
-
-/* header layout styles */
-header {
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 0.75rem 1.5rem;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-}
-
-.header-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1400px;
-  margin: 0 auto;
-}
