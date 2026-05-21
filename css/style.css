@@ -1,4 +1,6 @@
-/* custom ClaimFlow Portal Design Ruleset */
+/* ==========================================================================
+   ClaimFlow Portal Design System - Core Setup
+   ========================================================================== */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 * {
@@ -20,24 +22,23 @@ body {
   min-height: 100vh;
 }
 
-/* typography */
+/* Typography Helper Classes */
 .font-medium {
   font-weight: 500;
 }
-
 .font-semibold {
   font-weight: 600;
 }
-
 .font-bold {
-  font-weight: 70;
+  font-weight: 700;
 }
-
 .block-span {
   display: block;
 }
 
-/* authentication & login view */
+/* ==========================================================================
+   Authentication & Login View Layout Components
+   ========================================================================== */
 .auth-wrapper {
   padding-top: 4rem;
   max-width: 100%;
@@ -77,7 +78,7 @@ body {
   color: #0f172a;
 }
 
-/* input group decoration utilities */
+/* Input Group Decoration Utilities */
 .input-icon-container {
   position: relative;
 }
@@ -103,7 +104,28 @@ body {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
-/* scaffold navigation header & global components */
+/* Quick-Fill Sandbox Display Component */
+.demo-credentials-box {
+  background-color: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.demo-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 0.6rem;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   New Employee Portal Styles & Core Interface Design Ruleset
+   ========================================================================== */
+
+/* Header & Application Nav Styles */
 header {
   background-color: #ffffff;
   border-bottom: 1px solid #e2e8f0;
@@ -117,8 +139,6 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1400px;
-  margin: 0 auto;
 }
 
 .brand-meta {
@@ -140,8 +160,8 @@ header {
 .brand-title {
   font-size: 1.15rem;
   font-weight: 700;
-  margin: 0;
   color: #0f172a;
+  margin: 0;
 }
 
 .user-meta {
@@ -157,48 +177,40 @@ header {
 }
 
 .btn-nav {
-  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
   color: #475569;
-  border: 1px solid transparent;
-  font-size: 0.875rem;
   font-weight: 500;
+  font-size: 0.875rem;
   padding: 0.5rem 1rem;
-  border-radius: 6px;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
   transition: all 0.2s ease;
 }
 
 .btn-nav:hover {
-  background-color: #e2e8f0;
+  background-color: #f1f5f9;
   color: #1e293b;
 }
 
 .btn-nav.active {
-  background-color: #2563eb !important;
-  color: #ffffff !important;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.15);
+  background-color: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #2563eb !important;
 }
 
 .btn-logout {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #475569;
-  font-size: 0.875rem;
+  border: 1px solid transparent;
+  color: #64748b;
   font-weight: 500;
+  font-size: 0.875rem;
   padding: 0.5rem 1rem;
-  border-radius: 6px;
-  transition: all 0.2s ease;
 }
 
 .btn-logout:hover {
   background-color: #fef2f2;
   color: #dc2626;
-  border-color: #fecaca;
+  border-color: #fee2e2;
 }
 
-/* employee workspace & dashboard framework components */
+/* Workspace Panels & Form Layout Rules */
 .workspace-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -223,8 +235,8 @@ header {
 .plus-icon-badge {
   width: 28px;
   height: 28px;
-  background-color: #eff6ff;
-  color: #2563eb;
+  background-color: #e0f2fe;
+  color: #0369a1;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
@@ -232,7 +244,27 @@ header {
   font-size: 0.85rem;
 }
 
-/* file upload drag-and-drop area component */
+.form-label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #334155;
+  margin-bottom: 0.5rem;
+}
+
+.form-control,
+.form-select {
+  border-color: #cbd5e1;
+  font-size: 0.95rem;
+  padding: 0.55rem 0.75rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* File Dropzone Interactive Elements */
 .file-dropzone {
   border: 2px dashed #cbd5e1;
   border-radius: 8px;
@@ -266,7 +298,7 @@ header {
   margin-top: 0.25rem;
 }
 
-/* card & claims entry rendering system */
+/* Claims Dynamic Card Template Rendering CSS */
 .claim-item-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -278,13 +310,13 @@ header {
 }
 
 .claim-item-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .claim-meta-title {
-  font-size: 0.95rem;
   font-weight: 600;
+  font-size: 0.95rem;
   color: #0f172a;
   margin-bottom: 0.25rem;
 }
@@ -292,31 +324,203 @@ header {
 .claim-meta-sub {
   font-size: 0.8rem;
   color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .claim-amount-display {
-  font-size: 1rem;
   font-weight: 700;
+  font-size: 1.1rem;
   color: #0f172a;
 }
 
-/* status Badging Color Matrix */
+/* Custom Workflow Badge States */
 .badge-pending {
   background-color: #fef3c7;
   color: #d97706;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
 }
 
 .badge-endorsed {
   background-color: #e0f2fe;
   color: #0369a1;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
 }
 
 .badge-approved {
   background-color: #dcfce7;
   color: #15803d;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
 }
 
 .badge-rejected {
   background-color: #fee2e2;
-  color: #991b1b;
+  color: #b91c1c;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.badge-paid {
+  background-color: #f0fdf4;
+  color: #16a34a;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #bbf7d0;
+}
+
+/* ==========================================================================
+   Approving Officer Workspace Enhancements
+   ========================================================================== */
+.sidebar-layout-container {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.sidebar-panel {
+  width: 280px;
+  flex-shrink: 0;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.sidebar-meta-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #475569;
+  letter-spacing: 0.5px;
+  margin-bottom: 1rem;
+}
+
+.stat-widget-box {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-title {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.widget-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.widget-value.highlight-blue {
+  color: #2563eb;
+}
+
+.alert-custom-info {
+  background-color: #f0fdfa;
+  border: 1px solid #ccfbf1;
+  color: #0f766e;
+  font-size: 0.875rem;
+}
+
+.small-dot {
+  font-size: 0.5rem;
+  vertical-align: middle;
+}
+
+/* Search input wrapper tracking rules */
+.search-input-wrapper {
+  position: relative;
+}
+
+.search-leading-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.search-input-wrapper .form-control {
+  padding-left: 40px;
+  height: 42px;
+}
+
+/* Data Tables & Management Actions */
+.data-table {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.data-table thead th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.data-table tbody td {
+  padding: 1rem;
+  color: #334155;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.btn-action-endorse {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  font-weight: 600;
+  font-size: 0.775rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.btn-action-endorse:hover {
+  background-color: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+.btn-action-reject {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  font-weight: 600;
+  font-size: 0.775rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.btn-action-reject:hover {
+  background-color: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+@media (max-width: 991.98px) {
+  .sidebar-layout-container {
+    flex-direction: column;
+  }
+  .sidebar-panel {
+    width: 100%;
+  }
 }
