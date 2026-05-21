@@ -1,9 +1,9 @@
-/** ClaimFlow Portal - core engine architecture & lifecycle manager **/
+/* ClaimFlow Portal - core engine architecture & lifecycle manager */
 
 let CLAIMS_DB = [];
 let CURRENT_SESSION = null;
 
-// Baseline testing data matrix to seed the system runtime environment
+// baseline testing data matrix to seed the system runtime environment
 const DEFAULT_INITIAL_RECORDS = [
   {
     id: "CLM-001",
@@ -35,13 +35,13 @@ const DEFAULT_INITIAL_RECORDS = [
   },
 ];
 
-// Attach core listeners on initial page compilation loop
+// attach core listeners on initial page compilation loop
 document.addEventListener("DOMContentLoaded", () => {
   loadDatabaseState();
   syncAuthenticationSession();
 });
 
-/* Handles database instantiation from persistent storage cache environments */
+/* handles database instantiation from persistent localStorage */
 function loadDatabaseState() {
   const savedDb = localStorage.getItem("claimflow_db");
   if (savedDb) {
@@ -52,7 +52,7 @@ function loadDatabaseState() {
   }
 }
 
-/* Evaluates operational authentication parameters and intercepts route entries */
+/* evaluates valid session configurations across the browser path lifecycle */
 function syncAuthenticationSession() {
   const savedSession = localStorage.getItem("claimflow_session");
   const currentPath = window.location.pathname;
@@ -60,19 +60,19 @@ function syncAuthenticationSession() {
   if (savedSession) {
     CURRENT_SESSION = JSON.parse(savedSession);
 
-    // Auto-redirect if an active session tries to navigate back to the sign-in page
+    // auto-redirect if an active session tries to navigate back to the sign-in page
     if (currentPath.endsWith("index.html") || currentPath.endsWith("/")) {
       redirectToPage(CURRENT_SESSION.currentView);
     }
   } else {
-    // Escape layout intercept if user accesses secured internal branches unauthenticated
+    // session escape mechanism if route tracking detects unauthenticated entries
     if (!currentPath.endsWith("index.html") && !currentPath.endsWith("/")) {
       window.location.href = "index.html";
     }
   }
 }
 
-/* Executes login authentication checks, resolves roles, and configures active contexts */
+/* executes login authentication checks, resolves roles, and configures active contexts */
 function handleSignIn(event) {
   event.preventDefault();
 
@@ -82,7 +82,7 @@ function handleSignIn(event) {
     .toLowerCase();
   let resolvedRole = "employee";
 
-  // Role resolution filter ruleset matching corporate structural profiles
+  // role resolution filter ruleset matching corporate structural profiles
   if (
     emailInput.includes("manager") ||
     emailInput.includes("approving") ||
@@ -93,7 +93,7 @@ function handleSignIn(event) {
     resolvedRole = "finance";
   }
 
-  // Build current application session state footprint
+  // build current application session state footprint
   CURRENT_SESSION = {
     email: emailInput,
     role: resolvedRole,
@@ -105,7 +105,7 @@ function handleSignIn(event) {
   redirectToPage(resolvedRole);
 }
 
-/* Populates form inputs instantly when sandbox shortcuts are clicked */
+/* populates form inputs instantly when sandbox shortcuts are clicked */
 function quickFill(email) {
   const emailField = document.getElementById("input-email");
   const passwordField = document.getElementById("input-password");
@@ -116,21 +116,21 @@ function quickFill(email) {
   }
 }
 
-/* Handles application redirection paths uniformly across all system engines */
+/* directs global route location state updates */
 function redirectToPage(role) {
   if (role === "employee") window.location.href = "employee.html";
   else if (role === "approving") window.location.href = "approving.html";
   else if (role === "finance") window.location.href = "finance.html";
 }
 
-/* Clears active tracking signatures during session logout sequences */
+/* destroys session profiles safely during exit triggers */
 function handleLogout() {
   localStorage.removeItem("claimflow_session");
   CURRENT_SESSION = null;
   window.location.href = "index.html";
 }
 
-/* Standard security helper to clean dynamic strings during template injection rendering loops */
+/* encapsulates dynamic layout rendering string sanitization */
 function escapeHtml(str) {
   if (!str) return "";
   return str
