@@ -16,12 +16,13 @@ model User {
   department   String?
   createdAt    DateTime @default(now()) @map("created_at")
   claims       Claim[]  @relation("UserClaims")
+  auditActions AuditLog[] @relation("UserAudits")
 }
 
 model Claim {
   id         Int       @id @default(autoincrement())
   user       User      @relation(fields: [userId], references: [id], name: "UserClaims")
-  userId     Int
+  userId     Int       @map("user_id")
   amount     Decimal   @db.Decimal(10, 2)
   category   String
   expenseDate DateTime @map("expense_date")
@@ -37,6 +38,7 @@ model AuditLog {
   claim       Claim    @relation(fields: [claimId], references: [id])
   claimId     Int      @map("claim_id")
   action      String
+  executor    User     @relation(fields: [performedBy], references: [id], name: "UserAudits")
   performedBy Int      @map("performed_by")
   oldStatus   ClaimStatus @map("old_status")
   newStatus   ClaimStatus @map("new_status")
@@ -56,4 +58,5 @@ enum ClaimStatus {
   Approved
   Rejected
   Reimbursed
+  Paid
 }

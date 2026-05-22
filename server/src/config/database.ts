@@ -1,9 +1,11 @@
 import { PrismaClient } from '@prisma/client';
-import dotenv from 'dotenv';
+import { DATABASE_URL } from './constants';
 
-dotenv.config();
-
-export const db = new PrismaClient();
+export const db = new PrismaClient({
+  datasources: {
+    db: { url: DATABASE_URL },
+  },
+});
 
 export async function connectDatabase() {
   try {
@@ -15,7 +17,6 @@ export async function connectDatabase() {
   }
 }
 
-// Optional: Disconnect on application shutdown
 process.on('beforeExit', async () => {
   await db.$disconnect();
 });

@@ -1,8 +1,8 @@
 import express from 'express';
 import { connectDatabase } from './src/config/database';
+import { PORT } from './src/config/constants';
 
 const app = express();
-const PORT = 3000;
 
 app.get('/', (req, res) => {
   res.send('Hello World!');
