@@ -1,0 +1,59 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role
+  department   String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  claims       Claim[]  @relation("UserClaims")
+}
+
+model Claim {
+  id         Int       @id @default(autoincrement())
+  user       User      @relation(fields: [userId], references: [id], name: "UserClaims")
+  userId     Int
+  amount     Decimal   @db.Decimal(10, 2)
+  category   String
+  expenseDate DateTime @map("expense_date")
+  receiptUrl String?   @map("receipt_url")
+  status     ClaimStatus @default(Submitted)
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  auditLogs  AuditLog[]
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  claim       Claim    @relation(fields: [claimId], references: [id])
+  claimId     Int      @map("claim_id")
+  action      String
+  performedBy Int      @map("performed_by")
+  oldStatus   ClaimStatus @map("old_status")
+  newStatus   ClaimStatus @map("new_status")
+  remarks     String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+}
+
+enum Role {
+  Employee
+  Manager
+  FinanceAdmin @map("Finance Admin")
+}
+
+enum ClaimStatus {
+  Submitted
+  PendingReview @map("Pending Review")
+  Approved
+  Rejected
+  Reimbursed
+}

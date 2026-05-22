@@ -1,11 +1,13 @@
 import express from 'express';
-import { connectDatabase } from './src/config/database';
+import { connectDatabase } from './config/database';
 
 const app = express();
 const PORT = 3000;
 
+app.use(express.json());
+
 app.get('/', (req, res) => {
-  res.send('Hello World!');
+  res.json({ message: 'ClaimFlow backend is running' });
 });
 
 const startServer = async () => {
@@ -15,4 +17,7 @@ const startServer = async () => {
   });
 };
 
-startServer();
+startServer().catch((err) => {
+  console.error('Failed to start the ClaimFlow server:', err);
+  process.exit(1);
+});
