@@ -1,137 +1,147 @@
 # ClaimFlow Web Portal
-> A digital claims management application tailored for SMEs to eliminate data loss and automate reimbursement tracking
+> A digital claims management application built for SMEs to replace receipt-by-WhatsApp with a proper approval workflow.
 
 ---
 
-## 📌 Project Overview
-This repository serves as the primary technical codebase and comprehensive documentation hub for our full-stack software engineering project. Designed to showcase a rigorous, test-driven application lifecycle, **ClaimFlow** addresses the inefficiencies of manual, paper-based, and fragmented corporate expense management environments.
+## Project Overview
 
-### Problem Statements & Goals
-SMEs frequently face administrative burdens due to lost physical receipts, opaque approval structures, and disjointed payment tracking. ClaimFlow eliminates manual data entry errors, shortens processing turnaround times, secures financial records using robust access rules, and ensures web system stability through a strict quality assurance workflow.
+This repository contains the full codebase and technical documentation for ClaimFlow, a full-stack web application developed as part of our diploma capstone project. ClaimFlow was built to solve a real operational problem: most SMEs manage employee expense claims through informal channels — receipt photos sent over WhatsApp, approvals tracked in someone's head, and finance teams spending hours chasing confirmations that should be automatic.
+
+The application replaces that with a structured, role-based portal where claims are submitted digitally, routed through a defined approval workflow, and tracked from submission to reimbursement.
 
 ---
 
-## 👥 The Team & Technical Roles
-To maintain accountability and clear technical boundaries throughout the development lifecycle, project responsibilities are designated as follows:
+## The Team
 
-* **Ang Bi Jun** - Lead Frontend Engineer
-    * *Responsibilities:* Client-side state management, responsive UI/UX implementation, and front-to-back API integration.
-* **Wong Sin Yaw** - Lead Backend Engineer
-    * *Responsibilities:* RESTful API design, database normalisation, relational mapping, and core server-side business logic.
-* **Travis Thio** - Lead Infrastructure Engineer
-    * *Responsibilities:* Repository access control, environment configuration management (`.env`), deployment orchestration, hosting environment stability, and uptime monitoring.
-* **Wong Lian Yi Daniel** - Lead Quality Assurance (QA) & Technical Writer
-    * *Responsibilities:* Technical documentation mapping, user scenario drafting, edge-case testing verification, defect triage, and system validation.
+| Name | Role | Responsibilities |
+|---|---|---|
+| **Ang Bi Jun** | Lead Frontend Engineer | Client-side state management, responsive UI/UX, and frontend-to-API integration |
+| **Wong Sin Yaw** | Lead Backend Engineer | RESTful API design, database schema, and server-side business logic |
+| **Travis Thio** | Lead Infrastructure Engineer | Environment configuration, deployment, and uptime monitoring |
+| **Wong Lian Yi Daniel** | Lead QA & Technical Writer | Documentation, test case design, edge-case testing, and defect tracking |
 
---- 
+---
 
-## 🏗️ System Architecture & Logic
+## System Architecture
 
-### Role-based Access Control (RBAC)
-To protect financial audit logs and enforce proper business boundaries, ClaimFlow establishes three distinct human actors with non-overlapping permission scopes:
+### Role-Based Access Control (RBAC)
 
-1. **Employee:** The transactional actor who submits claim line-items, inputs monetary values, and uploads digital receipt evidence. 
-2. **Manager:** The department oversight actor responsible for examining claims originating within their unit, holding the authority to either `Endorse` or `Reject` requests.
-3. **Finance Admin:** The root administrative processor responsible for authorizing final monetary disbursements and reviewing comprehensive, immutable audit histories.
+ClaimFlow defines three user roles with non-overlapping permissions. Each role sees and does only what their position in the approval chain requires.
 
-### Core Functional Use Case
-* **Session Authentication:** All system entry points command an authentication barrier to safeguard data integrity and protect corporate records.
-* **Claim Lifecycle Automation:** Claims move predictably along an explicit linear state path: `Submitted` —> `Pending Review` —> `Endorsed/Rejected`—> `Reimbursed`.
-* **System Logging:** Operational actions performed by managerial or administrative personnel are logged to ensure system transparency. 
+1. **Employee** — Submits expense claims, enters amounts, and uploads receipt images.
+2. **Manager** — Reviews claims submitted within their department and either endorses or rejects them.
+3. **Finance Admin** — Processes final disbursements and reviews the full audit history.
+
+### Claim Lifecycle
+
+Every claim moves through a fixed sequence of states:
+
+```
+Submitted → Pending Review → Endorsed / Rejected → Reimbursed
+```
+
+All actions taken by managers and finance admins are logged automatically, giving the organization a complete, tamper-proof record of every decision.
+
+All system entry points require authentication. No claim data is accessible without a valid session.
 
 ![ClaimFlow Use Case Diagram](./docs/ClaimFlowUCD.jpg)
 
 ---
 
-## 🗄️ Relational Database Schema
+## Database Schema
 
-To support our RBAC constraints and immutable tracking lifecycle, the backend schema isolates relational entities into three structurally sound tables linked via explicit foreign keys:
+The database is structured around three tables linked by foreign keys. The design reflects the RBAC constraints directly — each table maps to a distinct part of the claim lifecycle.
 
 ---
 
-### 1. `users` Table
-Stores user data and system roles to handle application authentication blocks.
+### `users`
+Stores credentials and role assignments for all system users.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | `INT` | Primary Key |
-| `name` | `VARCHAR` | Full user name |
-| `email` | `VARCHAR` | Unique system identity login |
-| `password_hash` | `VARCHAR` | Securely hashed password storage string |
-| `role` | `ENUM` | Permissions assignment tier (`Employee`, `Manager`, `Finance Admin`) |
-| `department` | `VARCHAR` | Scopes claims visibility for functional unit reviews |
-| `created_at` | `TIMESTAMP` | Initial user generation time block |
+| `id` | `INT` | Primary key |
+| `name` | `VARCHAR` | Full name |
+| `email` | `VARCHAR` | Login email (unique) |
+| `password_hash` | `VARCHAR` | Bcrypt-hashed password |
+| `role` | `ENUM` | `Employee`, `Manager`, or `Finance Admin` |
+| `department` | `VARCHAR` | Used to scope claim visibility for managers |
+| `created_at` | `TIMESTAMP` | Account creation time |
 
 ---
 
-### 2. `claims` Table
-Tracks data entities representing corporate expenses submitted by operational staff.
+### `claims`
+Records each expense claim submitted by an employee.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | `INT` | Primary Key |
-| `user_id` | `INT` | Foreign Key → `users.id` |
-| `amount` | `DECIMAL(10,2)` | Monetary value field |
-| `category` | `VARCHAR` | Type of expense (e.g., Transport, Medical, Software) |
-| `expense_date` | `DATE` | The exact calendar day the expense took place |
-| `receipt_url` | `VARCHAR` | Target location path of the uploaded image element |
-| `status` | `ENUM` | Linear tracking sequence (`Submitted`, `Pending Review`, `Approved`, `Rejected`, `Reimbursed`) |
-| `created_at` | `TIMESTAMP` | Record creation timestamp |
-| `updated_at` | `TIMESTAMP` | Last modification timestamp |
+| `id` | `INT` | Primary key |
+| `user_id` | `INT` | Foreign key → `users.id` |
+| `amount` | `DECIMAL(10,2)` | Claimed expense amount |
+| `category` | `VARCHAR` | Expense type (e.g. Transport, Medical, Software) |
+| `expense_date` | `DATE` | Date the expense occurred |
+| `receipt_url` | `VARCHAR` | Path to the uploaded receipt image in object storage |
+| `status` | `ENUM` | `Submitted`, `Pending Review`, `Approved`, `Rejected`, `Reimbursed` |
+| `created_at` | `TIMESTAMP` | Submission timestamp |
+| `updated_at` | `TIMESTAMP` | Last status change timestamp |
 
 ---
 
-### 3. `audit_logs` Table
-Maintains historical transparency to fulfill system accountability.
+### `audit_logs`
+Records every status change made to a claim, with full context.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | `INT` | Primary Key |
-| `claim_id` | `INT` | Foreign Key → `claims.id` |
-| `action` | `VARCHAR` | Specific state modification performed (e.g., `MANAGER_REJECTION`) |
-| `performed_by` | `INT` | Foreign Key → `users.id` |
-| `old_status` | `ENUM` | Status before the transaction |
-| `new_status` | `ENUM` | Status after the transaction |
-| `remarks` | `TEXT` | Mandatory textual context explaining approval or rejection criteria |
-| `created_at` | `TIMESTAMP` | Log entry creation timestamp |
+| `id` | `INT` | Primary key |
+| `claim_id` | `INT` | Foreign key → `claims.id` |
+| `action` | `VARCHAR` | Action performed (e.g. `MANAGER_REJECTION`) |
+| `performed_by` | `INT` | Foreign key → `users.id` |
+| `old_status` | `ENUM` | Status before the change |
+| `new_status` | `ENUM` | Status after the change |
+| `remarks` | `TEXT` | Reason provided for approval or rejection |
+| `created_at` | `TIMESTAMP` | Log entry timestamp |
 
 ---
 
-## 🧪 Testing & Quality Assurance Plan
-Quality Assurance operates in parallel with code assembly. Our testing framework targets validation vulnerablities directly before software configurations are pushed to production.
+## Testing & QA
 
-### 1. The Happy Path (Standard Operational Flow)
-Verifies that expected, valid user behaviors yield successful database transactions.
-* *Scenario:* An Employee provides an authenticated session, inputs a valid decimal value into the `Amount` field, attaches an image receipt format, and receives a sucessful `201 Created` status code while the claim status initializes to `Pending Review`.
+Testing runs in parallel with development — not as an afterthought before submission. The QA plan covers two primary scenarios.
 
-### 2. Edge-Case Mitigation (Defensive Software Design)
-Ensures the system gracefully captures input failures and invalid traffic without throwing application breaks or crashing active server routes.
-* *Scenerio 1 (Invalid Inputs):* An Employee inputs an alphabetical string, symbols, or a negative integer inside a numeric field.
-* *Scenario 2 (File Validation Bypass):* A user attempts to upload a corrupted text file, an unapproved format, or an excessively large binary object in place of a standard receipt image.
+### Happy Path Testing
+Verifies that valid, expected inputs produce the correct outcomes.
+
+*Example:* An authenticated employee fills in a valid amount, attaches a JPEG receipt, and submits. The system returns a `201 Created` response and the claim status initializes to `Pending Review`.
+
+### Edge Case Testing
+Verifies that the system handles bad inputs gracefully — no crashes, no data corruption, clear error feedback.
+
+- *Invalid input:* An employee enters a non-numeric value (letters, symbols, or a negative number) in the amount field.
+- *Invalid file upload:* A user attempts to upload a corrupted file, an unsupported format, or an oversized image in place of a receipt.
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
-### Prerequisities
-*(List required runtime engines, package managers, and software versions here—e.g. Node.js v18+, PostgreSQL v15, etc.)*
-* Requirement A
-* Requirement B
-* Requirement C
+### Prerequisites
+*(List required runtime versions here — e.g. Node.js v18+, PostgreSQL v15)*
+- Requirement A
+- Requirement B
+- Requirement C
 
-### Installation & Local Setup
+### Installation
+
 ```bash
-# 1. Clone the project repository 
+# 1. Clone the repository
 git clone https://github.com/thiozhaosheng/ClaimFlow.git
 
-# 2. Enter workspace directory
+# 2. Navigate into the project directory
 cd ClaimFlow
 
-# 3. Install core dependencies
+# 3. Install dependencies
 npm install
 
-# 4. Initialize local environment variables (.env)
+# 4. Set up environment variables
 cp .env.example .env
 
-#5. Boot local development instances
+# 5. Start the development server
 npm run dev
+```
