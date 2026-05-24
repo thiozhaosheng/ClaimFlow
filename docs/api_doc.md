@@ -1,8 +1,14 @@
 # ClaimFlow API Documentation (Auth Gateway)
 
-This document outlines the API endpoints provided by the Auth Gateway (`port 3001`). The frontend should use the `authService.js` SDK to interact with these endpoints.
+This document outlines the API endpoints provided by the Auth Gateway. For frontend testing, the primary endpoint is currently the Vercel deployment. The frontend should use the `authService.js` SDK to interact with these endpoints.
 
-**Base URL:** `http://localhost:3001`
+**Branch:** `backend/auth-rbac`
+
+**Base URLs:**
+- **Primary (Vercel Test Env):** `https://auth-gate-seven.vercel.app`
+- **Local Development:** `http://localhost:3001`
+
+> **Note:** In the Vercel environment, the API runs in "Mock Mode" using JSON files. Changes are persistent in memory during the session but reset when the serverless function restarts.
 
 ---
 
@@ -22,8 +28,8 @@ This document outlines the API endpoints provided by the Auth Gateway (`port 300
   ```json
   {
     "status": "success",
-    "token": "jwt-token-string",
-    "data": { "user": { "id": 1, "name": "...", "role": "Employee", "department": "..." } }
+    "token": "mock-jwt-token-for-1",
+    "data": { "user": { "id": 1, "name": "...", "email": "...", "role": "...", "department": "..." } }
   }
   ```
 
@@ -94,12 +100,12 @@ This document outlines the API endpoints provided by the Auth Gateway (`port 300
 
 ### Review Claim (Endorse/Reject)
 - **URL:** `/api/workflow/review/:id`
-- **Method:** `PATCH`
-- **Headers:** `Authorization: Bearer <token>`
+**Body:**
   ```json
   {
-    "action": "approve", 
-    "remarks": "Valid receipt provided."
+    "status": "Approved", 
+    "remarks": "Valid receipt provided.",
+    "performedBy": 1
   }
   ```
 *Note: Valid statuses are `Approved`, `Rejected`, or `Reimbursed`.*
