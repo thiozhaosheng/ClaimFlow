@@ -8,3 +8,6 @@ node_modules/
 # Build output
 dist/
 build/
+
+# Vercel build output
+.vercel/
