@@ -7,7 +7,7 @@ if (result.error) {
 
 export const JWT_SECRET = process.env.JWT_SECRET || '***REDACTED***';
 export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
-export const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://user:password@localhost/dbname';
+export const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://claimflowadmin:***REDACTED***@claimflow-postgres-dev.postgres.database.azure.com:5432/claimflow?sslmode=require';
 export const PORT = process.env.PORT || 3000;
 export const HITPAY_API_KEY = process.env.HITPAY_API_KEY || '';
 export const HITPAY_SALT = process.env.HITPAY_SALT || '';
