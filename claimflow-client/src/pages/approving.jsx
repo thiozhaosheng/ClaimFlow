@@ -1,0 +1,195 @@
+import { useState } from "react";
+import { useClaims } from "../hooks/useclaims.js";
+import { escapeHtml } from "../utils/helpers.js";
+
+export default function Approving() {
+  const { latestMap, updateClaimStatus } = useClaims();
+  const [filterStatus, setFilterStatus] = useState("Pending");
+  const [filterDept, setFilterDept] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const matchingClaims = Object.values(latestMap).filter((item) => {
+    if (item.department !== "Sales") return false;
+    if (filterStatus !== "All Status" && item.status !== filterStatus)
+      return false;
+    if (filterDept !== "All" && item.department !== filterDept) return false;
+    if (
+      searchQuery &&
+      !item.employee.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !item.type.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+      return false;
+    return true;
+  });
+
+  const pendingCount = Object.values(latestMap).filter(
+    (i) => i.department === "Sales" && i.status === "Pending",
+  ).length;
+
+  return (
+    <section id="view-approving" className="role-workspace">
+      <div className="sidebar-layout-container">
+        <aside className="sidebar-panel">
+          <div className="mb-4">
+            <p className="sidebar-meta-label">
+              <i className="fa-solid fa-filter me-1"></i> Filters
+            </p>
+            <div className="mb-3">
+              <label className="form-label small text-secondary">Status</label>
+              <select
+                className="form-select form-select-sm"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="All Status">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Endorsed">Endorsed</option>
+                <option value="Rejected">Rejected</option>
+                <option value="Paid">Paid</option>
+              </select>
+            </div>
+            <div className="mb-3">
+              <label className="form-label small text-secondary">
+                Department
+              </label>
+              <select
+                className="form-select form-select-sm"
+                value={filterDept}
+                onChange={(e) => setFilterDept(e.target.value)}
+              >
+                <option value="All">All</option>
+                <option value="Sales">Sales</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="vstack gap-3">
+            <div className="stat-widget-box">
+              <span className="widget-title">Pending Review</span>
+              <span className="widget-value highlight-blue">
+                {pendingCount}
+              </span>
+            </div>
+            <div className="stat-widget-box">
+              <span className="widget-title">Your Department</span>
+              <span className="widget-value text-dark font-semibold">
+                Sales
+              </span>
+            </div>
+          </div>
+        </aside>
+
+        <div className="flex-grow-1">
+          <div className="workspace-card p-4">
+            <h2 className="workspace-card-title row-heading mb-1">
+              Pending Claims Dashboard
+            </h2>
+            <p className="text-secondary small mb-3">
+              Review and endorse claims from Sales department
+            </p>
+
+            <div className="alert alert-custom-info mb-4" role="alert">
+              <i className="fa-solid fa-circle text-primary small-dot me-2"></i>
+              <span>
+                <strong>Departmental View:</strong> You can only view and
+                approve claims from the Sales department
+              </span>
+            </div>
+
+            <div className="search-input-wrapper mb-4">
+              <i className="fa-solid fa-magnifying-glass search-leading-icon"></i>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search by employee name or claim type..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="table-responsive">
+              <table className="table data-table align-middle">
+                <thead>
+                  <tr>
+                    <th>EMPLOYEE NAME</th>
+                    <th>SUBMISSION DATE</th>
+                    <th>CLAIM TYPE</th>
+                    <th>DEPARTMENT</th>
+                    <th className="text-end">TOTAL AMOUNT</th>
+                    <th className="text-center">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matchingClaims.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="text-center text-muted py-4">
+                        No claims matching filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    matchingClaims.map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          <div className="d-flex align-items-center gap-2">
+                            <div className="avatar-dot">
+                              {item.employee.charAt(0)}
+                            </div>
+                            <span className="font-medium">
+                              {escapeHtml(item.employee)}
+                            </span>
+                          </div>
+                        </td>
+                        <td>{item.date}</td>
+                        <td>
+                          <span className="badge-custom badge-role">
+                            {escapeHtml(item.type)}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="text-secondary">
+                            {item.department}
+                          </span>
+                        </td>
+                        <td className="text-end font-bold">
+                          ${item.amount.toFixed(2)}
+                        </td>
+                        <td className="text-center">
+                          {item.status === "Pending" ? (
+                            <div className="d-flex justify-content-center gap-2">
+                              <button
+                                className="action-icon-btn btn-action-approve"
+                                onClick={() =>
+                                  updateClaimStatus(item.id, "Endorsed")
+                                }
+                              >
+                                <i className="fa-solid fa-check"></i>
+                              </button>
+                              <button
+                                className="action-icon-btn btn-action-reject"
+                                onClick={() =>
+                                  updateClaimStatus(item.id, "Rejected")
+                                }
+                              >
+                                <i className="fa-solid fa-xmark"></i>
+                              </button>
+                            </div>
+                          ) : (
+                            <span
+                              className={`badge-custom badge-${item.status.toLowerCase()}`}
+                            >
+                              {item.status}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
