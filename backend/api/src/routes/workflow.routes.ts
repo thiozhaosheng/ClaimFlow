@@ -5,6 +5,24 @@ import { Role } from '@prisma/client';
 
 const router = Router();
 
-router.patch('/review/:id', protect, restrictTo(Role.Manager, Role.FinanceAdmin), workflowController.reviewClaim);
+router.use(protect);
+
+router.patch(
+  '/review/:id',
+  restrictTo(Role.Manager, Role.FinanceAdmin),
+  workflowController.reviewClaim,
+);
+
+router.patch(
+  '/pay/:id',
+  restrictTo(Role.FinanceAdmin),
+  workflowController.markAsPaid,
+);
+
+router.get(
+  '/audit',
+  restrictTo(Role.FinanceAdmin),
+  workflowController.getAuditTrail,
+);
 
 export default router;

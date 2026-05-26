@@ -5,6 +5,102 @@ import { ClaimStatus } from '@prisma/client';
 
 /**
  * @swagger
+ * /api/workflow/pay/{id}:
+ *   patch:
+ *     summary: Mark an approved claim as reimbursed (Finance Admin only)
+ *     tags: [Workflow]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               remarks:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Claim marked as Reimbursed and audited
+ *       400:
+ *         description: Claim is not in an Approved state
+ *       404:
+ *         description: Claim not found
+ */
+export const markAsPaid = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { remarks } = req.body ?? {};
+
+  try {
+    const claim = await claimModel.findById(Number(id));
+    if (!claim) return res.status(404).json({ message: 'Claim not found' });
+
+    if (claim.status !== ClaimStatus.Approved) {
+      return res
+        .status(400)
+        .json({ message: 'Only Approved claims can be marked as Reimbursed' });
+    }
+
+    const oldStatus = claim.status;
+    const newStatus = ClaimStatus.Reimbursed;
+
+    const updatedClaim = await claimModel.updateClaimStatus(Number(id), newStatus);
+
+    await auditModel.createAuditLog({
+      claimId: Number(id),
+      action: 'FINANCE_REIMBURSEMENT',
+      performedBy: req.user!.id,
+      oldStatus,
+      newStatus,
+      remarks: remarks || '',
+    });
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'Claim marked as Reimbursed',
+      data: { claim: updatedClaim },
+    });
+  } catch (error: any) {
+    console.error('[workflow.markAsPaid]', error?.message ?? error);
+    return res.status(500).json({ status: 'error', message: 'Failed to mark claim as paid' });
+  }
+};
+
+/**
+ * @swagger
+ * /api/workflow/audit:
+ *   get:
+ *     summary: Get full audit trail (Finance Admin only)
+ *     tags: [Workflow]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all audit log entries with executor metadata
+ */
+export const getAuditTrail = async (_req: Request, res: Response) => {
+  try {
+    const logs = await auditModel.getAllAuditLogs();
+    return res.status(200).json({
+      status: 'success',
+      results: logs.length,
+      data: { logs },
+    });
+  } catch (error: any) {
+    console.error('[workflow.getAuditTrail]', error?.message ?? error);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch audit trail' });
+  }
+};
+
+/**
+ * @swagger
  * /api/workflow/review/{id}:
  *   patch:
  *     summary: Approve or Reject a claim

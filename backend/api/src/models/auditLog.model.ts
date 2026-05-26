@@ -11,3 +11,10 @@ export async function getAuditLogsByClaim(claimId: number): Promise<AuditLog[]> 
     orderBy: { createdAt: 'asc' },
   });
 }
+
+export async function getAllAuditLogs(): Promise<AuditLog[]> {
+  return db.auditLog.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: { executor: { select: { id: true, name: true, email: true, role: true } } },
+  });
+}
