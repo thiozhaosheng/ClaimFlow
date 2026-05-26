@@ -150,7 +150,18 @@
 }
 
 [data-theme="dark"] .text-muted {
-  color: var(--text-tertiary) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* dark theme: avatar circle had background = --text-primary which inverts to near-white
+   in dark mode, making the white initials disappear. Swap to the accent color. */
+[data-theme="dark"] .user-identity-avatar {
+  background-color: var(--accent);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .user-identity-presence {
+  box-shadow: 0 0 0 2px var(--bg-card);
 }
 
 [data-theme="dark"] .text-body {
