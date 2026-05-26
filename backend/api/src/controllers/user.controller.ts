@@ -18,7 +18,7 @@ import { logUtil } from '../utils/logUtil';
  *           type: string
  *         role:
  *           type: string
- *           enum: [Employee, Manager, Finance Admin]
+ *           enum: [Employee, Manager, FinanceAdmin]
  *         department:
  *           type: string
  *           nullable: true

@@ -29,7 +29,7 @@ model Claim {
   category    String
   expenseDate DateTime  @map("expense_date")
   receiptUrl  String?   @map("receipt_url")
-  status      ClaimStatus @default(Submitted)
+  status      ClaimStatus @default(Pending)
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   auditLogs   AuditLog[]
@@ -51,14 +51,12 @@ model AuditLog {
 enum Role {
   Employee
   Manager
-  FinanceAdmin @map("Finance Admin")
+  FinanceAdmin
 }
 
 enum ClaimStatus {
-  Submitted
-  PendingReview @map("Pending Review")
-  Approved
+  Pending
+  Endorsed
   Rejected
-  Reimbursed
   Paid
 }
