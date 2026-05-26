@@ -11,7 +11,7 @@ import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 export default function Finance() {
   const { session, setFinanceTab } = useAuth();
   const { addToast } = useToast();
-  const { claimsDb, latestMap, batchMarkAsPaid } = useClaims();
+  const { claimsDb, latestMap, batchMarkAsPaid, error } = useClaims();
   const [activeTab, setActiveTab] = useState(session?.financeTab || "audit");
   const [searchQueue, setSearchQueue] = useState("");
   const [searchAudit, setSearchAudit] = useState("");
@@ -19,6 +19,7 @@ export default function Finance() {
   const [selectedClaims, setSelectedClaims] = useState(new Set());
   const [selectAll, setSelectAll] = useState(false);
   const [activeClaim, setActiveClaim] = useState(null);
+  const [paying, setPaying] = useState(false);
 
   const switchTab = (tabKey) => {
     setActiveTab(tabKey);
@@ -61,17 +62,29 @@ export default function Finance() {
     return claim ? sum + claim.amount : sum;
   }, 0);
 
-  const handleMarkAsPaid = () => {
-    if (selectedClaims.size === 0) return;
+  const handleMarkAsPaid = async () => {
+    if (selectedClaims.size === 0 || paying) return;
     const count = selectedClaims.size;
-    batchMarkAsPaid(selectedClaims);
-    addToast({
-      variant: "success",
-      title: `${count} claim${count === 1 ? "" : "s"} marked as paid`,
-      message: `Total $${selectedTotal.toFixed(2)} disbursed.`,
-    });
-    setSelectedClaims(new Set());
-    setSelectAll(false);
+    const totalAtClick = selectedTotal;
+    setPaying(true);
+    try {
+      await batchMarkAsPaid(selectedClaims);
+      addToast({
+        variant: "success",
+        title: `${count} claim${count === 1 ? "" : "s"} marked as paid`,
+        message: `Total $${totalAtClick.toFixed(2)} disbursed.`,
+      });
+      setSelectedClaims(new Set());
+      setSelectAll(false);
+    } catch (err) {
+      addToast({
+        variant: "error",
+        title: "Payment failed",
+        message: err?.message || "Could not mark these claims as paid.",
+      });
+    } finally {
+      setPaying(false);
+    }
   };
 
   const filteredLogs = claimsDb.filter((log) => {
@@ -124,6 +137,17 @@ export default function Finance() {
         subtitle="Mark approved claims as paid once disbursed — every action is recorded in the audit trail."
         activeStage={activeTab === "audit" ? "reimbursed" : "endorsed"}
       />
+
+      {error && (
+        <div className="data-error" role="alert">
+          <i className="fa-solid fa-triangle-exclamation"></i>
+          <div>
+            <strong>Could not load claims</strong>
+            <span>{error.message}</span>
+          </div>
+        </div>
+      )}
+
       <ul className="nav sub-tabs-layer mb-4">
         <li className="nav-item">
           <button
@@ -183,8 +207,8 @@ export default function Finance() {
               </span>
             </div>
             <button
-              className={`btn btn-mark-paid ${selectedClaims.size === 0 ? "disabled" : ""}`}
-              disabled={selectedClaims.size === 0}
+              className={`btn btn-mark-paid ${selectedClaims.size === 0 || paying ? "disabled" : ""}`}
+              disabled={selectedClaims.size === 0 || paying}
               onClick={handleMarkAsPaid}
             >
               <i className="fa-regular fa-circle-check me-2"></i>Mark as Paid (

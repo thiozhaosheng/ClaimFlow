@@ -838,6 +838,36 @@ header {
   flex-shrink: 0;
 }
 
+/* page-level data error banner (used by role pages when api fetch fails) */
+.data-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  border-radius: var(--radius-md);
+  padding: 0.95rem 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.data-error i {
+  font-size: 1.1rem;
+  margin-top: 1px;
+}
+
+.data-error strong {
+  display: block;
+  font-size: 0.92rem;
+  letter-spacing: -0.005em;
+  margin-bottom: 2px;
+}
+
+.data-error span {
+  font-size: 0.84rem;
+  opacity: 0.9;
+}
+
 .form-group-modern {
   margin-bottom: 1.1rem;
 }

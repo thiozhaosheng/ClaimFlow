@@ -8,7 +8,7 @@ import RejectionModal from "../components/rejectionmodal.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 
 export default function Approving() {
-  const { latestMap, updateClaimStatus, claimsDb } = useClaims();
+  const { latestMap, updateClaimStatus, claimsDb, error } = useClaims();
   const { addToast } = useToast();
   const [activeClaim, setActiveClaim] = useState(null);
   const [filterStatus, setFilterStatus] = useState("Pending");
@@ -16,24 +16,41 @@ export default function Approving() {
   const [searchQuery, setSearchQuery] = useState("");
   const [rejectingClaim, setRejectingClaim] = useState(null);
 
-  const handleRejectConfirm = (reason) => {
+  const handleRejectConfirm = async (reason) => {
     if (!rejectingClaim) return;
-    updateClaimStatus(rejectingClaim.id, "Rejected", "Lisa Wang", reason);
-    addToast({
-      variant: "error",
-      title: "Claim rejected",
-      message: `${rejectingClaim.id} returned to ${rejectingClaim.employee}.`,
-    });
-    setRejectingClaim(null);
+    try {
+      await updateClaimStatus(rejectingClaim.id, "Rejected", "Lisa Wang", reason);
+      addToast({
+        variant: "error",
+        title: "Claim rejected",
+        message: `${rejectingClaim.id} returned to ${rejectingClaim.employee}.`,
+      });
+    } catch (err) {
+      addToast({
+        variant: "error",
+        title: "Reject failed",
+        message: err?.message || "Could not reject this claim.",
+      });
+    } finally {
+      setRejectingClaim(null);
+    }
   };
 
-  const handleEndorse = (claim) => {
-    updateClaimStatus(claim.id, "Endorsed");
-    addToast({
-      variant: "success",
-      title: "Claim endorsed",
-      message: `${claim.id} forwarded to Finance for disbursement.`,
-    });
+  const handleEndorse = async (claim) => {
+    try {
+      await updateClaimStatus(claim.id, "Endorsed");
+      addToast({
+        variant: "success",
+        title: "Claim endorsed",
+        message: `${claim.id} forwarded to Finance for disbursement.`,
+      });
+    } catch (err) {
+      addToast({
+        variant: "error",
+        title: "Endorse failed",
+        message: err?.message || "Could not endorse this claim.",
+      });
+    }
   };
 
   const matchingClaims = Object.values(latestMap).filter((item) => {
@@ -61,6 +78,17 @@ export default function Approving() {
         subtitle="Review the receipt and endorse or reject — comments help the claimant if you reject."
         activeStage="pending"
       />
+
+      {error && (
+        <div className="data-error" role="alert">
+          <i className="fa-solid fa-triangle-exclamation"></i>
+          <div>
+            <strong>Could not load claims</strong>
+            <span>{error.message}</span>
+          </div>
+        </div>
+      )}
+
       <div className="sidebar-layout-container">
         <aside className="sidebar-panel">
           <div className="mb-4">

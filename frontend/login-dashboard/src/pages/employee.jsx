@@ -9,9 +9,10 @@ import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 
 export default function Employee() {
   const { session } = useAuth();
-  const { latestMap, submitClaim, claimsDb } = useClaims();
+  const { latestMap, submitClaim, claimsDb, loading, error } = useClaims();
   const { addToast } = useToast();
   const [activeClaim, setActiveClaim] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [category, setCategory] = useState("Travel");
@@ -20,29 +21,40 @@ export default function Employee() {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title || !date || !amount) return;
+    if (!title || !date || !amount || submitting) return;
 
-    const created = submitClaim({
-      title,
-      date,
-      category,
-      amount: parseFloat(amount),
-      email: session?.email || "",
-    });
-
-    addToast({
-      variant: "success",
-      title: "Claim submitted",
-      message: `${created.id} (${created.type} · $${created.amount.toFixed(2)}) is now pending review.`,
-    });
-
-    setTitle("");
-    setDate("");
-    setCategory("Travel");
-    setAmount("");
-    setFileName("");
+    setSubmitting(true);
+    try {
+      const created = await submitClaim({
+        title,
+        date,
+        category,
+        amount: parseFloat(amount),
+        email: session?.email || "",
+      });
+      addToast({
+        variant: "success",
+        title: "Claim submitted",
+        message: created
+          ? `${created.id} (${created.type} · $${created.amount.toFixed(2)}) is now pending review.`
+          : "Your claim is now pending review.",
+      });
+      setTitle("");
+      setDate("");
+      setCategory("Travel");
+      setAmount("");
+      setFileName("");
+    } catch (err) {
+      addToast({
+        variant: "error",
+        title: "Could not submit claim",
+        message: err?.message || "Please try again.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDragOver = (e) => {
@@ -77,6 +89,16 @@ export default function Employee() {
         subtitle="Upload your receipt and route it for approval — track every status in real time."
         activeStage="submitted"
       />
+
+      {error && (
+        <div className="data-error" role="alert">
+          <i className="fa-solid fa-triangle-exclamation"></i>
+          <div>
+            <strong>Could not load claims</strong>
+            <span>{error.message}</span>
+          </div>
+        </div>
+      )}
       <div className="row g-4">
         <div className="col-lg-8">
           <div className="workspace-card p-4">
@@ -181,8 +203,9 @@ export default function Employee() {
               <button
                 type="submit"
                 className="btn btn-primary w-100 py-2 font-medium"
+                disabled={submitting}
               >
-                Submit Claim
+                {submitting ? "Submitting..." : "Submit Claim"}
               </button>
             </form>
           </div>
