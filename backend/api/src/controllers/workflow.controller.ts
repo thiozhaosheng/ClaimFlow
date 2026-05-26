@@ -7,7 +7,7 @@ import { ClaimStatus } from '@prisma/client';
  * @swagger
  * /api/workflow/pay/{id}:
  *   patch:
- *     summary: Mark an approved claim as reimbursed (Finance Admin only)
+ *     summary: Mark an endorsed claim as paid (Finance Admin only)
  *     tags: [Workflow]
  *     security:
  *       - bearerAuth: []
@@ -28,9 +28,9 @@ import { ClaimStatus } from '@prisma/client';
  *                 type: string
  *     responses:
  *       200:
- *         description: Claim marked as Reimbursed and audited
+ *         description: Claim marked as Paid and audited
  *       400:
- *         description: Claim is not in an Approved state
+ *         description: Claim is not in an Endorsed state
  *       404:
  *         description: Claim not found
  */
@@ -42,14 +42,14 @@ export const markAsPaid = async (req: Request, res: Response) => {
     const claim = await claimModel.findById(Number(id));
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
 
-    if (claim.status !== ClaimStatus.Approved) {
+    if (claim.status !== ClaimStatus.Endorsed) {
       return res
         .status(400)
-        .json({ message: 'Only Approved claims can be marked as Reimbursed' });
+        .json({ message: 'Only Endorsed claims can be marked as Paid' });
     }
 
     const oldStatus = claim.status;
-    const newStatus = ClaimStatus.Reimbursed;
+    const newStatus = ClaimStatus.Paid;
 
     const updatedClaim = await claimModel.updateClaimStatus(Number(id), newStatus);
 
@@ -64,7 +64,7 @@ export const markAsPaid = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       status: 'success',
-      message: 'Claim marked as Reimbursed',
+      message: 'Claim marked as Paid',
       data: { claim: updatedClaim },
     });
   } catch (error: any) {
@@ -103,7 +103,7 @@ export const getAuditTrail = async (_req: Request, res: Response) => {
  * @swagger
  * /api/workflow/review/{id}:
  *   patch:
- *     summary: Approve or Reject a claim
+ *     summary: Endorse or Reject a claim
  *     description: Updates claim status and records an entry in the audit_logs table.
  *     tags: [Workflow]
  *     security:
@@ -143,7 +143,7 @@ export const reviewClaim = async (req: Request, res: Response) => {
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
 
     const oldStatus = claim.status;
-    const newStatus = action === 'approve' ? ClaimStatus.Approved : ClaimStatus.Rejected;
+    const newStatus = action === 'approve' ? ClaimStatus.Endorsed : ClaimStatus.Rejected;
 
     const updatedClaim = await claimModel.updateClaimStatus(Number(id), newStatus);
 

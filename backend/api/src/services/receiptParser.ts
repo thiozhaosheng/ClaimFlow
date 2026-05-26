@@ -127,5 +127,5 @@ function guessCategoryFromMerchant(merchant: string | null): string | null {
   if (/coursera|udemy|workshop|conference|seminar/.test(m)) {
     return 'Training';
   }
-  return 'F&B';
+  return 'Meal';
 }

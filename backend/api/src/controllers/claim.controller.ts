@@ -26,7 +26,7 @@ import { parseReceipt } from '../services/receiptParser';
  *           nullable: true
  *         status:
  *           type: string
- *           enum: [Submitted, Pending Review, Approved, Rejected, Reimbursed]
+ *           enum: [Pending, Endorsed, Rejected, Paid]
  *         createdAt:
  *           type: string
  *           format: date-time
@@ -119,7 +119,7 @@ export const createClaim = async (req: Request, res: Response) => {
       expenseDate: new Date(expenseDate),
       receiptUrl,
       userId: req.user!.id,
-      status: ClaimStatus.Submitted,
+      status: ClaimStatus.Pending,
     });
 
     res.status(201).json({ status: 'success', data: { claim: newClaim } });
