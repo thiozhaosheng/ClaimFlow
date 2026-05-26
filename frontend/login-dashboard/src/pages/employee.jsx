@@ -1,16 +1,51 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
 import { useClaims } from "../hooks/useclaims.js";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
 import { api } from "../utils/api.js";
+import policies from "../data/policies.json";
 import WelcomeStrip from "../components/welcomestrip.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 
+const DISALLOWED_CATEGORIES = (() => {
+  const rule = policies.rules.find((r) => r.id === "block-disallowed-category");
+  return rule?.when?.[0]?.value ?? [];
+})();
+
+const CATEGORY_OPTIONS = [
+  { value: "Transport", label: "Transport (Grab / Taxi / MRT)" },
+  { value: "Meal", label: "Meal" },
+  { value: "Client Entertainment", label: "Client Entertainment" },
+  { value: "Office Supplies", label: "Office Supplies" },
+  { value: "Travel", label: "Overseas Travel" },
+  { value: "Training", label: "Training" },
+  { value: "Medical (statutory)", label: "Medical — statutory (WICA, etc.)" },
+  { value: "Medical (non-statutory)", label: "Medical — non-statutory", disallowed: true },
+  { value: "Club Subscription", label: "Club Subscription", disallowed: true },
+  { value: "Family Benefit", label: "Family Benefit", disallowed: true },
+  { value: "Motor Car (non-commercial)", label: "Motor Car — non-commercial", disallowed: true },
+];
+
+const RECEIPT_REQUIRED_OVER = 50;
+const FULL_TAX_INVOICE_OVER = 1000;
+const MAX_AGE_DAYS = 90;
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function minDateIso() {
+  const d = new Date();
+  d.setDate(d.getDate() - MAX_AGE_DAYS);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function Employee() {
   const { session } = useAuth();
-  const { latestMap, submitClaim, claimsDb, loading, error } = useClaims();
+  const { latestMap, submitClaim, claimsDb, error } = useClaims();
   const { addToast } = useToast();
   const [activeClaim, setActiveClaim] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -21,14 +56,29 @@ export default function Employee() {
   const [gstAmount, setGstAmount] = useState("");
   const [merchant, setMerchant] = useState("");
   const [fileName, setFileName] = useState("");
+  const [hasFile, setHasFile] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [extracted, setExtracted] = useState(null);
   const fileInputRef = useRef(null);
 
+  const numericAmount = useMemo(() => {
+    const n = parseFloat(amount);
+    return Number.isFinite(n) ? n : 0;
+  }, [amount]);
+
+  const categoryDisallowed = DISALLOWED_CATEGORIES.includes(category);
+  const receiptRequired = numericAmount > RECEIPT_REQUIRED_OVER;
+  const receiptMissing = receiptRequired && !hasFile;
+  const fullTaxInvoiceRequired = numericAmount > FULL_TAX_INVOICE_OVER;
+  const formInvalid = categoryDisallowed || receiptMissing;
+  const today = todayIso();
+  const minDate = minDateIso();
+
   const parseFile = async (file) => {
     if (!file) return;
     setFileName(file.name);
+    setHasFile(true);
     setParsing(true);
     setExtracted(null);
     try {
@@ -41,7 +91,9 @@ export default function Employee() {
       if (data.gstAmount != null) setGstAmount(String(data.gstAmount));
       if (data.merchant) setMerchant(data.merchant);
       if (data.expenseDate) setDate(data.expenseDate);
-      if (data.category) setCategory(data.category);
+      if (data.category && CATEGORY_OPTIONS.find((o) => o.value === data.category)) {
+        setCategory(data.category);
+      }
       if (data.merchant && !title) {
         setTitle(`${data.merchant} - ${data.category || "claim"}`);
       }
@@ -68,6 +120,19 @@ export default function Employee() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title || !date || !amount || submitting) return;
+    if (categoryDisallowed) {
+      const rule = policies.rules.find((r) => r.id === "block-disallowed-category");
+      addToast({ variant: "error", title: "Category not allowed", message: rule?.message ?? "" });
+      return;
+    }
+    if (receiptMissing) {
+      addToast({
+        variant: "error",
+        title: "Receipt required",
+        message: `Receipt image required for claims above ${formatSGD(RECEIPT_REQUIRED_OVER)}.`,
+      });
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -94,6 +159,7 @@ export default function Employee() {
       setGstAmount("");
       setMerchant("");
       setFileName("");
+      setHasFile(false);
       setExtracted(null);
     } catch (err) {
       addToast({
@@ -110,20 +176,13 @@ export default function Employee() {
     e.preventDefault();
     setIsDragOver(true);
   };
-
-  const handleDragLeave = () => {
-    setIsDragOver(false);
-  };
-
+  const handleDragLeave = () => setIsDragOver(false);
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragOver(false);
     const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      parseFile(files[0]);
-    }
+    if (files && files.length > 0) parseFile(files[0]);
   };
-
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) parseFile(file);
@@ -178,6 +237,41 @@ export default function Employee() {
                 </div>
               )}
 
+              {categoryDisallowed && (
+                <div className="alert alert-danger d-flex gap-2 align-items-start" role="alert">
+                  <i className="fa-solid fa-ban mt-1"></i>
+                  <div>
+                    <strong>This category cannot be claimed.</strong>
+                    <div className="small">
+                      {policies.rules.find((r) => r.id === "block-disallowed-category")?.message}
+                    </div>
+                    <div className="small text-muted mt-1">
+                      Rule: <code>block-disallowed-category</code> — see{" "}
+                      <Link to="/policies">approval policy</Link>.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {fullTaxInvoiceRequired && !categoryDisallowed && (
+                <div className="alert alert-warning d-flex gap-2 align-items-start" role="alert">
+                  <i className="fa-solid fa-circle-exclamation mt-1"></i>
+                  <div>
+                    <strong>Full tax invoice required.</strong>
+                    <div className="small">
+                      Claims above {formatSGD(FULL_TAX_INVOICE_OVER)} need the supplier's GST
+                      registration number and tax invoice serial number per IRAS rules. Please
+                      attach the full tax invoice as your receipt — finance will verify the fields
+                      before approval.
+                    </div>
+                    <div className="small text-muted mt-1">
+                      Rule: <code>route-tax-invoice-required</code> — see{" "}
+                      <Link to="/policies">approval policy</Link>.
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="mb-3">
                 <label className="form-label">Claim Title</label>
                 <input
@@ -208,33 +302,35 @@ export default function Employee() {
                     type="date"
                     className="form-control"
                     value={date}
+                    min={minDate}
+                    max={today}
                     onChange={(e) => setDate(e.target.value)}
                     required
                   />
+                  <div className="form-text">
+                    Claims must be within the last {MAX_AGE_DAYS} days. Future dates are not accepted.
+                  </div>
                 </div>
                 <div className="col-md-6 mb-3">
                   <label className="form-label">Category</label>
                   <select
-                    className="form-select"
+                    className={`form-select ${categoryDisallowed ? "is-invalid" : ""}`}
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                   >
-                    <option value="Transport">Transport (Grab/Taxi/MRT)</option>
-                    <option value="F&B">F&B / Hawker</option>
-                    <option value="Client Entertainment">Client Entertainment</option>
-                    <option value="Office Supplies">Office Supplies</option>
-                    <option value="Medical">Medical / Clinic</option>
-                    <option value="Training">Training</option>
-                    <option value="Travel">Overseas Travel</option>
+                    {CATEGORY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                        {opt.disallowed ? " — not claimable" : ""}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
 
               <div className="row">
                 <div className="col-md-7 mb-4">
-                  <label className="form-label">
-                    Total amount (incl. GST)
-                  </label>
+                  <label className="form-label">Total amount (incl. GST)</label>
                   <div className="input-group">
                     <span className="input-group-text bg-white border-end-0 text-secondary">
                       S$
@@ -242,6 +338,7 @@ export default function Employee() {
                     <input
                       type="number"
                       step="0.01"
+                      min="0"
                       className="form-control border-start-0 ps-1"
                       placeholder="0.00"
                       value={amount}
@@ -261,6 +358,7 @@ export default function Employee() {
                     <input
                       type="number"
                       step="0.01"
+                      min="0"
                       className="form-control border-start-0 ps-1"
                       placeholder="0.00"
                       value={gstAmount}
@@ -270,9 +368,14 @@ export default function Employee() {
                 </div>
               </div>
 
-              <div className="mb-4">
+              <div className="mb-3">
                 <label className="form-label">
-                  Receipt <span className="form-label-hint">we auto-fill the form from this</span>
+                  Receipt{" "}
+                  {receiptRequired ? (
+                    <span className="text-danger small">required for this amount</span>
+                  ) : (
+                    <span className="form-label-hint">we auto-fill the form from this</span>
+                  )}
                 </label>
                 <input
                   type="file"
@@ -282,7 +385,9 @@ export default function Employee() {
                   onChange={handleFileChange}
                 />
                 <div
-                  className={`file-dropzone ${isDragOver ? "dragover" : ""} ${parsing ? "parsing" : ""}`}
+                  className={`file-dropzone ${isDragOver ? "dragover" : ""} ${parsing ? "parsing" : ""} ${
+                    receiptMissing ? "border border-danger" : ""
+                  }`}
                   onClick={() => !parsing && fileInputRef.current?.click()}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -298,28 +403,39 @@ export default function Employee() {
                       "Reading your receipt..."
                     ) : fileName ? (
                       <>
-                        <span className="text-primary">
-                          {escapeHtml(fileName)}
-                        </span>{" "}
-                        attached
+                        <span className="text-primary">{escapeHtml(fileName)}</span> attached
                       </>
                     ) : (
                       "Drop a receipt photo here or click to browse"
                     )}
                   </p>
                   <span className="dropzone-subtext">
-                    Photos of physical receipts, screenshots of Grab / PayNow / SimplyGo receipts. JPG, PNG, PDF up to 10MB.
+                    Photos of physical receipts, screenshots of Grab / PayNow / SimplyGo receipts.
+                    JPG, PNG, PDF up to 10MB.
                   </span>
                 </div>
+                {receiptMissing && (
+                  <div className="text-danger small mt-2">
+                    <i className="fa-solid fa-circle-exclamation me-1"></i>
+                    A receipt is required for claims above {formatSGD(RECEIPT_REQUIRED_OVER)}.
+                    Rule: <code>block-missing-receipt-over-threshold</code>.
+                  </div>
+                )}
               </div>
 
               <button
                 type="submit"
                 className="btn btn-primary w-100 py-2 font-medium"
-                disabled={submitting}
+                disabled={submitting || formInvalid}
               >
                 {submitting ? "Submitting..." : "Submit Claim"}
               </button>
+
+              <p className="small text-muted mt-3 mb-0 text-center">
+                By submitting, you confirm the claim is accurate and consent to the{" "}
+                <Link to="/privacy">Privacy notice</Link> and the{" "}
+                <Link to="/policies">Approval policy</Link>.
+              </p>
             </form>
           </div>
         </div>
@@ -351,14 +467,10 @@ export default function Employee() {
                         <h4 className="font-semibold text-dark m-0 small mb-1">
                           {escapeHtml(item.type)} Claim
                         </h4>
-                        <span className="text-secondary block-span small">
-                          {item.date}
-                        </span>
+                        <span className="text-secondary block-span small">{item.date}</span>
                       </div>
                       <div className="text-end">
-                        <span
-                          className={`badge-custom badge-${item.status.toLowerCase()} mb-1`}
-                        >
+                        <span className={`badge-custom badge-${item.status.toLowerCase()} mb-1`}>
                           {item.status}
                         </span>
                         <span className="block-span font-bold text-dark small">
