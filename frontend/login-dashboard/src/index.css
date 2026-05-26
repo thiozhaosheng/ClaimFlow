@@ -138,6 +138,40 @@
   background-color: var(--bg-subtle) !important;
 }
 
+[data-theme="dark"] .bg-white {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+/* dark theme: Bootstrap text utilities don't switch with [data-theme="dark"] —
+   override so secondary/muted/body text remain readable on dark surfaces */
+[data-theme="dark"] .text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .text-muted {
+  color: var(--text-tertiary) !important;
+}
+
+[data-theme="dark"] .text-body {
+  color: var(--text-primary) !important;
+}
+
+/* dark theme: data-table header was using --text-tertiary (#6e6e73) on
+   --bg-subtle (#2c2c2e) which fails contrast. Bump to secondary. */
+[data-theme="dark"] .data-table thead th {
+  color: var(--text-secondary);
+  background-color: var(--bg-subtle);
+}
+
+[data-theme="dark"] .data-table tbody td {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .data-table tbody tr:hover {
+  background-color: var(--bg-muted);
+}
+
 [data-theme="dark"] .bg-primary-subtle {
   background-color: var(--accent-subtle) !important;
 }
