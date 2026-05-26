@@ -20,17 +20,19 @@ model User {
 }
 
 model Claim {
-  id         Int       @id @default(autoincrement())
-  user       User      @relation(fields: [userId], references: [id], name: "UserClaims")
-  userId     Int       @map("user_id")
-  amount     Decimal   @db.Decimal(10, 2)
-  category   String
-  expenseDate DateTime @map("expense_date")
-  receiptUrl String?   @map("receipt_url")
-  status     ClaimStatus @default(Submitted)
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  auditLogs  AuditLog[]
+  id          Int       @id @default(autoincrement())
+  user        User      @relation(fields: [userId], references: [id], name: "UserClaims")
+  userId      Int       @map("user_id")
+  amount      Decimal   @db.Decimal(10, 2)
+  gstAmount   Decimal?  @db.Decimal(10, 2) @map("gst_amount")
+  merchant    String?
+  category    String
+  expenseDate DateTime  @map("expense_date")
+  receiptUrl  String?   @map("receipt_url")
+  status      ClaimStatus @default(Submitted)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  auditLogs   AuditLog[]
 }
 
 model AuditLog {
