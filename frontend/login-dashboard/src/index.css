@@ -1126,6 +1126,301 @@ header {
   }
 }
 
+/* ========== MOBILE RESPONSIVE OVERHAUL ========== */
+
+/* tablet and below */
+@media (max-width: 768px) {
+  /* header: collapse user identity text, keep avatar + theme + logout icon */
+  header {
+    padding: 0.6rem 1rem;
+  }
+
+  .user-identity {
+    gap: 0.4rem;
+  }
+
+  .user-identity-text {
+    display: none;
+  }
+
+  .btn-logout span {
+    display: none;
+  }
+
+  .btn-logout {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+    margin-left: 0.25rem;
+  }
+
+  .btn-theme-toggle {
+    margin-left: 0.25rem;
+  }
+
+  .brand-title {
+    font-size: 0.95rem;
+  }
+
+  /* welcome strip: pills become horizontally scrollable */
+  .welcome-strip {
+    padding: 1.1rem 1.25rem;
+    gap: 1rem;
+  }
+
+  .welcome-strip-title {
+    font-size: 1.15rem;
+  }
+
+  .lifecycle-flow {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .lifecycle-flow::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* tables become stacked cards on mobile */
+  .data-table {
+    border: none;
+  }
+
+  .data-table thead {
+    display: none;
+  }
+
+  .data-table tbody {
+    display: block;
+  }
+
+  .data-table tbody tr {
+    display: block;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.75rem;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .data-table tbody tr:hover {
+    background-color: var(--bg-card);
+  }
+
+  .data-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--border-subtle);
+    text-align: right;
+    gap: 1rem;
+    min-height: 36px;
+  }
+
+  .data-table tbody td:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .data-table tbody td:first-child {
+    padding-top: 0;
+  }
+
+  .data-table tbody td[data-label]::before {
+    content: attr(data-label);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* center alignment overrides don't apply on mobile cards */
+  .data-table tbody td.text-center,
+  .data-table tbody td.text-end {
+    text-align: right;
+    justify-content: space-between;
+  }
+
+  /* forms: larger touch targets */
+  .form-control,
+  .form-select,
+  .padded-input {
+    height: 46px;
+    font-size: 1rem;
+  }
+
+  .form-group-modern input {
+    height: 48px;
+    font-size: 1rem;
+  }
+
+  .btn-primary,
+  .btn-primary-modern,
+  .btn-mark-paid {
+    height: 46px;
+    font-size: 0.95rem;
+  }
+
+  /* role workspace padding */
+  .role-workspace {
+    padding: 0 0.25rem;
+  }
+
+  main.container-fluid {
+    padding: 1rem 0.85rem !important;
+  }
+
+  /* sidebar inputs full width */
+  .sidebar-panel .form-select-sm,
+  .sidebar-panel .form-control-sm {
+    height: 42px;
+    font-size: 0.95rem;
+  }
+
+  /* finance: stat row goes full-width */
+  .stat-widget-box {
+    padding: 0.95rem;
+  }
+
+  /* claim mini-card on mobile */
+  .claim-mini-card {
+    padding: 0.85rem;
+  }
+
+  /* modal: full-screen on mobile */
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal-sheet {
+    max-width: 100%;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modal-rise-mobile 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes modal-rise-mobile {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .claim-detail-meta {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  /* toasts: full-width band on mobile */
+  .toast-container {
+    bottom: 0.85rem;
+    right: 0.85rem;
+    left: 0.85rem;
+    max-width: none;
+  }
+
+  .toast-card {
+    min-width: 0;
+  }
+
+  /* sub-tabs wrap and scroll */
+  .sub-tabs-layer {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+
+  .sub-tabs-layer::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* auth panel: shift padding on small screens (already covered but tighten) */
+  .auth-form-panel {
+    padding: 2rem 1.25rem;
+  }
+
+  .auth-brand-panel {
+    padding: 2rem 1.5rem;
+  }
+
+  .auth-headline {
+    font-size: 2rem;
+  }
+
+  .auth-subheadline {
+    font-size: 0.95rem;
+  }
+
+  .auth-topbar {
+    padding: 1rem 1.25rem;
+  }
+
+  .auth-topbar-help {
+    display: none;
+  }
+}
+
+/* small phone */
+@media (max-width: 480px) {
+  .header-container {
+    gap: 0.5rem;
+  }
+
+  .user-identity-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.78rem;
+  }
+
+  .btn-theme-toggle,
+  .btn-logout {
+    width: 34px;
+    height: 34px;
+  }
+
+  .welcome-strip {
+    padding: 1rem;
+  }
+
+  .auth-card-modern-title {
+    font-size: 1.4rem;
+  }
+
+  .modal-detail-header {
+    padding: 1.1rem 1.1rem 0.85rem;
+    grid-template-columns: 1fr auto;
+  }
+
+  .modal-detail-header .badge-custom {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .modal-close {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .modal-detail-body {
+    padding: 1rem 1.1rem 1.25rem;
+  }
+}
+
 /* loading screen */
 .loading-screen {
   position: fixed;

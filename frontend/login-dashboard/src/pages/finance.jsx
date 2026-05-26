@@ -230,6 +230,7 @@ export default function Finance() {
                     onClick={() => setActiveClaim(item)}
                   >
                     <td
+                      data-label="Select"
                       className="text-center"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -242,17 +243,12 @@ export default function Finance() {
                         }
                       />
                     </td>
-                    <td>
+                    <td data-label="Claim">
                       <strong className="text-dark">{item.id}</strong>
                       <br />
-                      <span
-                        className="text-secondary"
-                        style={{ fontSize: "0.75rem" }}
-                      >
-                        {item.date}
-                      </span>
+                      <span className="text-secondary small">{item.date}</span>
                     </td>
-                    <td>
+                    <td data-label="Employee">
                       <span className="font-semibold">
                         {escapeHtml(item.employee)}
                       </span>
@@ -261,13 +257,16 @@ export default function Finance() {
                         {item.department}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Bank">
                       <span className="badge badge-role text-dark py-1 px-2">
                         <i className="fa-solid fa-building-columns me-1 text-secondary"></i>
                         BANK {item.bank}
                       </span>
                     </td>
-                    <td className="text-end font-bold text-dark">
+                    <td
+                      data-label="Amount"
+                      className="text-end font-bold text-dark"
+                    >
                       ${item.amount.toFixed(2)}
                     </td>
                   </tr>
@@ -374,16 +373,16 @@ export default function Finance() {
                       className="row-clickable"
                       onClick={() => setActiveClaim(log)}
                     >
-                      <td className="text-nowrap text-secondary font-medium">
+                      <td
+                        data-label="Timestamp"
+                        className="text-nowrap text-secondary font-medium"
+                      >
                         {log.date}{" "}
-                        <span
-                          className="ms-1 text-muted fw-normal"
-                          style={{ fontSize: "0.8rem" }}
-                        >
+                        <span className="ms-1 text-muted small fw-normal">
                           {log.time}
                         </span>
                       </td>
-                      <td>
+                      <td data-label="Claim">
                         <span className="text-primary font-semibold">
                           {log.id}
                         </span>
@@ -392,19 +391,24 @@ export default function Finance() {
                           {escapeHtml(log.type)}
                         </span>
                       </td>
-                      <td className="font-medium">
+                      <td data-label="Employee" className="font-medium">
                         {escapeHtml(log.employee)}
                       </td>
-                      <td className="text-end font-bold text-dark">
+                      <td
+                        data-label="Amount"
+                        className="text-end font-bold text-dark"
+                      >
                         ${log.amount.toFixed(2)}
                       </td>
-                      <td>
+                      <td data-label="Action">
                         <span className="text-dark font-medium">
                           {escapeHtml(log.action)}
                         </span>
                       </td>
-                      <td className="font-semibold">{escapeHtml(log.actor)}</td>
-                      <td>
+                      <td data-label="Actor" className="font-semibold">
+                        {escapeHtml(log.actor)}
+                      </td>
+                      <td data-label="Role">
                         <span
                           className={`badge ${roleBadgeClass}`}
                           style={{ fontSize: "0.75rem", fontWeight: 500 }}

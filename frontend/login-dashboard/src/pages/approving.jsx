@@ -170,7 +170,7 @@ export default function Approving() {
                         className="row-clickable"
                         onClick={() => setActiveClaim(item)}
                       >
-                        <td>
+                        <td data-label="Employee">
                           <div className="d-flex align-items-center gap-2">
                             <div className="avatar-dot">
                               {item.employee.charAt(0)}
@@ -180,21 +180,22 @@ export default function Approving() {
                             </span>
                           </div>
                         </td>
-                        <td>{item.date}</td>
-                        <td>
+                        <td data-label="Date">{item.date}</td>
+                        <td data-label="Category">
                           <span className="badge-custom badge-role">
                             {escapeHtml(item.type)}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Department">
                           <span className="text-secondary">
                             {item.department}
                           </span>
                         </td>
-                        <td className="text-end font-bold">
+                        <td data-label="Amount" className="text-end font-bold">
                           ${item.amount.toFixed(2)}
                         </td>
                         <td
+                          data-label="Action"
                           className="text-center"
                           onClick={(e) => e.stopPropagation()}
                         >
