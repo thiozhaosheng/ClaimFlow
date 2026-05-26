@@ -16,8 +16,8 @@ The application replaces that with a structured, role-based portal where claims 
 | Name | Role | Responsibilities |
 |---|---|---|
 | **Ang Bi Jun** | Lead Frontend Engineer | Client-side state management, responsive UI/UX, and frontend-to-API integration |
-| **Wong Sin Yaw** | Lead Backend Engineer | RESTful API design, database schema, and server-side business logic |
-| **Travis Thio** | Lead Infrastructure Engineer | Environment configuration, deployment, and uptime monitoring |
+| **Wong Sin Yaw** | Lead Backend Engineer | RESTful API development, server-side logic, and database integration  |
+| **Travis Thio** | Lead Infrastructure Engineer | Azure cloud setup, environment configuration, database deployment, and DevSecOps planning |
 | **Wong Lian Yi Daniel** | Lead QA & Technical Writer | Documentation, test case design, edge-case testing, and defect tracking |
 
 ---
