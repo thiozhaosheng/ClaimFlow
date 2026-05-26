@@ -40,21 +40,30 @@ export function useClaims() {
   );
 
   const updateClaimStatus = useCallback(
-    (claimId, newStatus, actorName = "Lisa Wang") => {
+    (claimId, newStatus, actorName = "Lisa Wang", reason = null) => {
       const match = claimsDb.find((c) => c.id === claimId);
       if (!match) return;
+
+      let action;
+      if (newStatus === "Endorsed") {
+        action = "Endorsed by approving officer";
+      } else if (newStatus === "Rejected") {
+        action = reason
+          ? `Rejected by approving officer: ${reason}`
+          : "Rejected by approving officer";
+      } else {
+        action = `Status changed to ${newStatus}`;
+      }
 
       const historyRecord = {
         ...match,
         date: getIsoDate(),
         time: getTimeString(),
         status: newStatus,
-        action:
-          newStatus === "Endorsed"
-            ? "Endorsed by approving officer"
-            : "Rejected by approving officer",
+        action,
         actor: actorName,
         role: "Approving Officer",
+        reason: reason || undefined,
       };
 
       const updated = claimsDb.map((c) =>

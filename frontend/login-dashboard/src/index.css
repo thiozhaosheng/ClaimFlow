@@ -1633,6 +1633,127 @@ main.container-fluid {
   height: auto;
 }
 
+/* ========== MODAL ========== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 15, 15, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: modal-fade 0.18s ease-out;
+}
+
+.modal-sheet {
+  background-color: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 480px;
+  overflow: hidden;
+  animation: modal-rise 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-rise {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-header {
+  padding: 1.5rem 1.5rem 1rem;
+}
+
+.modal-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem;
+}
+
+.modal-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.modal-body {
+  padding: 0.5rem 1.5rem 1.25rem;
+}
+
+.modal-body .form-control {
+  resize: vertical;
+  min-height: 96px;
+  padding: 0.7rem 0.85rem;
+  height: auto;
+}
+
+.form-hint {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  margin: 0.5rem 0 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem 1.25rem;
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--bg-app);
+}
+
+.btn-secondary-modern {
+  background-color: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: var(--transition-base);
+  font-family: inherit;
+}
+
+.btn-secondary-modern:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-strong);
+}
+
+.btn-danger-modern {
+  background-color: var(--danger);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: var(--transition-base);
+  font-family: inherit;
+}
+
+.btn-danger-modern:hover:not(:disabled) {
+  background-color: #b8281f;
+}
+
+.btn-danger-modern:disabled {
+  background-color: var(--bg-muted);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
 .empty-state-title {
   font-size: 0.95rem;
   font-weight: 600;

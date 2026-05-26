@@ -3,12 +3,20 @@ import { useClaims } from "../hooks/useclaims.js";
 import { escapeHtml } from "../utils/helpers.js";
 import WelcomeStrip from "../components/welcomestrip.jsx";
 import EmptyState from "../components/emptystate.jsx";
+import RejectionModal from "../components/rejectionmodal.jsx";
 
 export default function Approving() {
   const { latestMap, updateClaimStatus } = useClaims();
   const [filterStatus, setFilterStatus] = useState("Pending");
   const [filterDept, setFilterDept] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [rejectingClaim, setRejectingClaim] = useState(null);
+
+  const handleRejectConfirm = (reason) => {
+    if (!rejectingClaim) return;
+    updateClaimStatus(rejectingClaim.id, "Rejected", "Lisa Wang", reason);
+    setRejectingClaim(null);
+  };
 
   const matchingClaims = Object.values(latestMap).filter((item) => {
     if (item.department !== "Sales") return false;
@@ -177,9 +185,8 @@ export default function Approving() {
                               </button>
                               <button
                                 className="action-icon-btn btn-action-reject"
-                                onClick={() =>
-                                  updateClaimStatus(item.id, "Rejected")
-                                }
+                                onClick={() => setRejectingClaim(item)}
+                                aria-label="Reject claim"
                               >
                                 <i className="fa-solid fa-xmark"></i>
                               </button>
@@ -201,6 +208,13 @@ export default function Approving() {
           </div>
         </div>
       </div>
+
+      <RejectionModal
+        open={!!rejectingClaim}
+        claim={rejectingClaim}
+        onConfirm={handleRejectConfirm}
+        onCancel={() => setRejectingClaim(null)}
+      />
     </section>
   );
 }
