@@ -1,4 +1,14 @@
+# Dependency directories
+node_modules/
+
+# Local environment files
 .env
 backend/.env
 .env.local
-node_modules/
+
+# Build output
+dist/
+build/
+
+# Vercel build output
+.vercel/
