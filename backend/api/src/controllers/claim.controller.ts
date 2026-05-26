@@ -2,6 +2,11 @@ import { Request, Response } from 'express';
 import * as claimModel from '../models/claim.model';
 import { ClaimStatus, Role } from '@prisma/client';
 import { parseReceipt } from '../services/receiptParser';
+import {
+  isBlobStorageConfigured,
+  uploadReceipt,
+  generateViewUrl,
+} from '../services/blobStorage';
 
 /**
  * @swagger
@@ -187,13 +192,72 @@ export const parseReceiptUpload = async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'No receipt file uploaded' });
   }
   try {
-    const result = await parseReceipt(file.buffer, file.mimetype);
-    return res.json({ status: 'success', data: result });
+    // Run upload and OCR in parallel — they share the same buffer and don't depend on each other.
+    const [parseResult, uploadResult] = await Promise.all([
+      parseReceipt(file.buffer, file.mimetype),
+      isBlobStorageConfigured
+        ? uploadReceipt(file.buffer, file.mimetype, file.originalname).catch((err) => {
+            console.warn('[parseReceiptUpload] blob upload failed:', err?.message);
+            return null;
+          })
+        : Promise.resolve(null),
+    ]);
+
+    return res.json({
+      status: 'success',
+      data: {
+        ...parseResult,
+        receiptUrl: uploadResult?.blobName ?? null,
+        viewUrl: uploadResult?.viewUrl ?? null,
+      },
+    });
   } catch (err: any) {
     console.error('[parseReceiptUpload]', err?.message ?? err);
     return res
       .status(500)
       .json({ status: 'error', message: 'Receipt parsing failed' });
+  }
+};
+
+/**
+ * @swagger
+ * /api/claims/{id}/receipt:
+ *   get:
+ *     summary: Mint a short-lived SAS URL for viewing the claim's receipt image
+ *     description: Returns a 15-minute signed URL pointing at the blob. Employees can only view their own claims' receipts; Manager/FinanceAdmin can view any.
+ *     tags: [Claims]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Signed view URL
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Claim not found or has no receipt
+ */
+export const getReceiptViewUrl = async (req: Request, res: Response) => {
+  try {
+    const claim = await claimModel.findById(Number(req.params.id));
+    if (!claim) return res.status(404).json({ message: 'Claim not found' });
+
+    if (req.user!.role === Role.Employee && claim.userId !== req.user!.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    if (!claim.receiptUrl) {
+      return res.status(404).json({ message: 'No receipt attached to this claim' });
+    }
+    const viewUrl = generateViewUrl(claim.receiptUrl, 15);
+    return res.status(200).json({ status: 'success', data: { viewUrl } });
+  } catch (err: any) {
+    console.error('[getReceiptViewUrl]', err?.message ?? err);
+    return res.status(500).json({ status: 'error', message: 'Could not generate receipt URL' });
   }
 };
 
