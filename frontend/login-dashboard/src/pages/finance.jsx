@@ -4,6 +4,7 @@ import { useClaims } from "../hooks/useclaims.js";
 import { escapeHtml } from "../utils/helpers.js";
 import WelcomeStrip from "../components/welcomestrip.jsx";
 import EmptyState from "../components/emptystate.jsx";
+import { exportAuditLogToCsv } from "../utils/export.js";
 
 export default function Finance() {
   const { session, setFinanceTab } = useAuth();
@@ -85,35 +86,12 @@ export default function Finance() {
   const uniqueClaimIds = new Set(claimsDb.map((c) => c.id));
 
   const exportCsv = () => {
-    if (claimsDb.length === 0) return;
-    let csvContent =
-      "data:text/csv;charset=utf-8,Timestamp Date,Timestamp Time,Claim ID,Category,Employee Name,Amount,Action log,Executed By Actor,System Role\n";
-
-    claimsDb.forEach((log) => {
-      const row = [
-        `"${log.date}"`,
-        `"${log.time}"`,
-        `"${log.id}"`,
-        `"${log.type}"`,
-        `"${log.employee.replace(/"/g, '""')}"`,
-        `"${log.amount.toFixed(2)}"`,
-        `"${log.action.replace(/"/g, '""')}"`,
-        `"${log.actor.replace(/"/g, '""')}"`,
-        `"${log.role}"`,
-      ];
-      csvContent += row.join(",") + "\n";
+    const hasActiveFilter =
+      auditFilter !== "All" || searchAudit.trim().length > 0;
+    const logsToExport = hasActiveFilter ? filteredLogs : claimsDb;
+    exportAuditLogToCsv(logsToExport, {
+      filenameSuffix: hasActiveFilter ? "filtered" : "full",
     });
-
-    const encodedUri = encodeURI(csvContent);
-    const anchor = document.createElement("a");
-    anchor.setAttribute("href", encodedUri);
-    anchor.setAttribute(
-      "download",
-      `ClaimFlow_AuditTrail_Export_${new Date().toISOString().split("T")[0]}.csv`,
-    );
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
   };
 
   return (
