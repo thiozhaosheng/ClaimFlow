@@ -57,6 +57,8 @@ export default function Employee() {
   const [merchant, setMerchant] = useState("");
   const [fileName, setFileName] = useState("");
   const [hasFile, setHasFile] = useState(false);
+  const [receiptUrl, setReceiptUrl] = useState(null);
+  const [viewUrl, setViewUrl] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [extracted, setExtracted] = useState(null);
@@ -97,6 +99,8 @@ export default function Employee() {
       if (data.merchant && !title) {
         setTitle(`${data.merchant} - ${data.category || "claim"}`);
       }
+      if (data.receiptUrl) setReceiptUrl(data.receiptUrl);
+      if (data.viewUrl) setViewUrl(data.viewUrl);
       setExtracted(data);
       addToast({
         variant: "info",
@@ -143,6 +147,7 @@ export default function Employee() {
         amount: parseFloat(amount),
         gstAmount: gstAmount === "" ? null : parseFloat(gstAmount),
         merchant: merchant || null,
+        receiptUrl,
         email: session?.email || "",
       });
       addToast({
@@ -160,6 +165,8 @@ export default function Employee() {
       setMerchant("");
       setFileName("");
       setHasFile(false);
+      setReceiptUrl(null);
+      setViewUrl(null);
       setExtracted(null);
     } catch (err) {
       addToast({
@@ -419,6 +426,16 @@ export default function Employee() {
                     <i className="fa-solid fa-circle-exclamation me-1"></i>
                     A receipt is required for claims above {formatSGD(RECEIPT_REQUIRED_OVER)}.
                     Rule: <code>block-missing-receipt-over-threshold</code>.
+                  </div>
+                )}
+                {viewUrl && (
+                  <div className="text-success small mt-2">
+                    <i className="fa-solid fa-circle-check me-1"></i>
+                    Receipt stored.{" "}
+                    <a href={viewUrl} target="_blank" rel="noreferrer">
+                      View uploaded image
+                    </a>{" "}
+                    <span className="text-muted">(link valid 15 minutes)</span>
                   </div>
                 )}
               </div>

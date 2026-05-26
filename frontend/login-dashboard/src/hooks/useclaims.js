@@ -115,7 +115,7 @@ export function useClaims() {
   }, [claims]);
 
   const submitClaim = useCallback(
-    async ({ date, category, amount, gstAmount, merchant }) => {
+    async ({ date, category, amount, gstAmount, merchant, receiptUrl }) => {
       const created = await api.post("/api/claims", {
         amount: Number(amount),
         gstAmount:
@@ -125,6 +125,7 @@ export function useClaims() {
         merchant: merchant || null,
         category,
         expenseDate: date,
+        receiptUrl: receiptUrl || null,
       });
       await fetchClaimsForRole();
       return adaptClaim(created?.data?.claim);
