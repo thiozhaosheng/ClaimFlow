@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 import { useAuth } from "../context/authcontext.jsx";
 import { useClaims } from "../hooks/useclaims.js";
 import { escapeHtml } from "../utils/helpers.js";
+import WelcomeStrip from "../components/welcomestrip.jsx";
+import EmptyState from "../components/emptystate.jsx";
 
 export default function Employee() {
   const { session } = useAuth();
@@ -60,6 +62,11 @@ export default function Employee() {
 
   return (
     <section id="view-employee" className="role-workspace">
+      <WelcomeStrip
+        title="Submit a new claim"
+        subtitle="Upload your receipt and route it for approval — track every status in real time."
+        activeStage="submitted"
+      />
       <div className="row g-4">
         <div className="col-lg-8">
           <div className="workspace-card p-4">
@@ -176,9 +183,11 @@ export default function Employee() {
             <h3 className="panel-subtitle mb-4">Recent Claims</h3>
             <div className="vstack gap-3">
               {distinctClaims.length === 0 ? (
-                <p className="text-muted small text-center py-4">
-                  No recent claim logs found.
-                </p>
+                <EmptyState
+                  variant="documents"
+                  title="No claims yet"
+                  message="Submitted claims will appear here once you upload a receipt."
+                />
               ) : (
                 distinctClaims.map((item) => (
                   <div
@@ -190,10 +199,7 @@ export default function Employee() {
                         <h4 className="font-semibold text-dark m-0 small mb-1">
                           {escapeHtml(item.type)} Claim
                         </h4>
-                        <span
-                          className="text-secondary block-span"
-                          style={{ fontSize: "0.75rem" }}
-                        >
+                        <span className="text-secondary block-span small">
                           {item.date}
                         </span>
                       </div>

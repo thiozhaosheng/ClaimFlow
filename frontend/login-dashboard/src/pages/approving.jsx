@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useClaims } from "../hooks/useclaims.js";
 import { escapeHtml } from "../utils/helpers.js";
+import WelcomeStrip from "../components/welcomestrip.jsx";
+import EmptyState from "../components/emptystate.jsx";
 
 export default function Approving() {
   const { latestMap, updateClaimStatus } = useClaims();
@@ -28,6 +30,11 @@ export default function Approving() {
 
   return (
     <section id="view-approving" className="role-workspace">
+      <WelcomeStrip
+        title="Pending claims for your department"
+        subtitle="Review the receipt and endorse or reject — comments help the claimant if you reject."
+        activeStage="pending"
+      />
       <div className="sidebar-layout-container">
         <aside className="sidebar-panel">
           <div className="mb-4">
@@ -122,8 +129,12 @@ export default function Approving() {
                 <tbody>
                   {matchingClaims.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="text-center text-muted py-4">
-                        No claims matching filters.
+                      <td colSpan="6" className="py-3">
+                        <EmptyState
+                          variant="queue"
+                          title="All caught up"
+                          message="No claims match your filters right now. New submissions will appear here."
+                        />
                       </td>
                     </tr>
                   ) : (

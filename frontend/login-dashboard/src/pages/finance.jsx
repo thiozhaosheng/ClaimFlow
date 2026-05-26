@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useAuth } from "../context/authcontext.jsx";
 import { useClaims } from "../hooks/useclaims.js";
 import { escapeHtml } from "../utils/helpers.js";
+import WelcomeStrip from "../components/welcomestrip.jsx";
+import EmptyState from "../components/emptystate.jsx";
 
 export default function Finance() {
   const { session, setFinanceTab } = useAuth();
@@ -116,6 +118,11 @@ export default function Finance() {
 
   return (
     <section id="view-finance" className="role-workspace">
+      <WelcomeStrip
+        title="Process endorsed claims"
+        subtitle="Mark approved claims as paid once disbursed — every action is recorded in the audit trail."
+        activeStage={activeTab === "audit" ? "reimbursed" : "endorsed"}
+      />
       <ul className="nav sub-tabs-layer mb-4">
         <li className="nav-item">
           <button
@@ -206,8 +213,12 @@ export default function Finance() {
             <tbody>
               {endorsedClaims.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center text-muted py-4">
-                    No endorsed claims waiting.
+                  <td colSpan="5" className="py-3">
+                    <EmptyState
+                      variant="queue"
+                      title="Nothing pending payout"
+                      message="Endorsed claims from approvers will queue up here for disbursement."
+                    />
                   </td>
                 </tr>
               ) : (
@@ -331,8 +342,12 @@ export default function Finance() {
             <tbody>
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center text-muted py-4">
-                    No audit entry changes matched.
+                  <td colSpan="7" className="py-3">
+                    <EmptyState
+                      variant="audit"
+                      title="No matching audit entries"
+                      message="Try adjusting filters or search terms to see logged actions."
+                    />
                   </td>
                 </tr>
               ) : (
