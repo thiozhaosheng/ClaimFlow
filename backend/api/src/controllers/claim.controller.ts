@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import * as claimModel from '../models/claim.model';
 import { ClaimStatus, Role } from '@prisma/client';
+import { parseReceipt } from '../services/receiptParser';
 
 /**
  * @swagger
@@ -151,6 +152,48 @@ export const getClaimById = async (req: Request, res: Response) => {
     res.status(200).json({ status: 'success', data: { claim } });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+/**
+ * @swagger
+ * /api/claims/parse-receipt:
+ *   post:
+ *     summary: Extract structured fields from a receipt image
+ *     description: Accepts a receipt image (JPEG/PNG) and returns merchant, total, GST, date, and a category guess. Backed by Azure Document Intelligence when configured, falls back to a deterministic mock otherwise.
+ *     tags: [Claims]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               receipt:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Parsed receipt fields
+ *       400:
+ *         description: No file uploaded or file too large
+ */
+export const parseReceiptUpload = async (req: Request, res: Response) => {
+  const file = (req as any).file as
+    | { buffer: Buffer; mimetype: string; originalname: string }
+    | undefined;
+  if (!file) {
+    return res.status(400).json({ message: 'No receipt file uploaded' });
+  }
+  try {
+    const result = await parseReceipt(file.buffer, file.mimetype);
+    return res.json({ status: 'success', data: result });
+  } catch (err: any) {
+    console.error('[parseReceiptUpload]', err?.message ?? err);
+    return res
+      .status(500)
+      .json({ status: 'error', message: 'Receipt parsing failed' });
   }
 };
 
