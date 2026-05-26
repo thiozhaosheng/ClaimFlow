@@ -30,9 +30,18 @@ function adaptClaim(claim) {
     actor: user.name || "Unknown",
     role: mapRoleFromApi(user.role || "Employee"),
     action: "Claim submitted",
-    bank: "**** 0000",
+    bank: deriveBankLabel(claim.id),
     receiptUrl: claim.receiptUrl || null,
   };
+}
+
+// stable pseudo-bank label per claim id so the UI looks populated;
+// the real bank account will come from the user profile once that's wired up
+const SG_BANKS = ["DBS", "POSB", "OCBC", "UOB", "Standard Chartered"];
+function deriveBankLabel(id) {
+  const bank = SG_BANKS[id % SG_BANKS.length];
+  const last4 = String(1000 + (id * 1373) % 8999).slice(-4);
+  return `${bank} **** ${last4}`;
 }
 
 // Adapt a backend AuditLog (with executor include) into the frontend's log shape.

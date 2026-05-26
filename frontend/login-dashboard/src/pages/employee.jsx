@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
 import { useClaims } from "../hooks/useclaims.js";
-import { escapeHtml } from "../utils/helpers.js";
+import { escapeHtml, formatSGD } from "../utils/helpers.js";
 import WelcomeStrip from "../components/welcomestrip.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
@@ -15,7 +15,7 @@ export default function Employee() {
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
-  const [category, setCategory] = useState("Travel");
+  const [category, setCategory] = useState("Transport");
   const [amount, setAmount] = useState("");
   const [fileName, setFileName] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
@@ -38,12 +38,12 @@ export default function Employee() {
         variant: "success",
         title: "Claim submitted",
         message: created
-          ? `${created.id} (${created.type} · $${created.amount.toFixed(2)}) is now pending review.`
+          ? `${created.id} (${created.type} · ${formatSGD(created.amount)}) is now pending review.`
           : "Your claim is now pending review.",
       });
       setTitle("");
       setDate("");
-      setCategory("Travel");
+      setCategory("Transport");
       setAmount("");
       setFileName("");
     } catch (err) {
@@ -115,7 +115,7 @@ export default function Employee() {
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="e.g., Client Meeting Lunch"
+                  placeholder="e.g., Grab to client meeting"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
@@ -140,10 +140,13 @@ export default function Employee() {
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                   >
-                    <option value="Travel">Travel</option>
-                    <option value="Meal">Meal</option>
-                    <option value="Medical">Medical</option>
+                    <option value="Transport">Transport (Grab/Taxi/MRT)</option>
+                    <option value="F&B">F&B / Hawker</option>
+                    <option value="Client Entertainment">Client Entertainment</option>
+                    <option value="Office Supplies">Office Supplies</option>
+                    <option value="Medical">Medical / Clinic</option>
                     <option value="Training">Training</option>
+                    <option value="Travel">Overseas Travel</option>
                   </select>
                 </div>
               </div>
@@ -152,7 +155,7 @@ export default function Employee() {
                 <label className="form-label">Amount</label>
                 <div className="input-group">
                   <span className="input-group-text bg-white border-end-0 text-secondary">
-                    $
+                    S$
                   </span>
                   <input
                     type="number"
@@ -249,7 +252,7 @@ export default function Employee() {
                           {item.status}
                         </span>
                         <span className="block-span font-bold text-dark small">
-                          ${item.amount.toFixed(2)}
+                          {formatSGD(item.amount)}
                         </span>
                       </div>
                     </div>

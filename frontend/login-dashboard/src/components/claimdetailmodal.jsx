@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { formatSGD, formatSGDate } from "../utils/helpers.js";
 
 const STATUS_KEYS = {
   Pending: "pending",
@@ -59,7 +60,7 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
             <div className="claim-detail-meta-item">
               <span className="claim-detail-meta-label">Amount</span>
               <span className="claim-detail-meta-value">
-                ${claim.amount.toFixed(2)}
+                {formatSGD(claim.amount)}
               </span>
             </div>
             <div className="claim-detail-meta-item">
@@ -68,7 +69,9 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
             </div>
             <div className="claim-detail-meta-item">
               <span className="claim-detail-meta-label">Date</span>
-              <span className="claim-detail-meta-value">{claim.date}</span>
+              <span className="claim-detail-meta-value">
+                {formatSGDate(claim.date)}
+              </span>
             </div>
             <div className="claim-detail-meta-item">
               <span className="claim-detail-meta-label">Bank account</span>

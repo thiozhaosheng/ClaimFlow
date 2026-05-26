@@ -27,3 +27,27 @@ export function getTimeString() {
     minute: "2-digit",
   });
 }
+
+// Singapore dollar formatter — keeps tabular alignment on the dashboards
+const SGD_FORMATTER = new Intl.NumberFormat("en-SG", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+export function formatSGD(amount) {
+  const n = Number(amount);
+  if (!isFinite(n)) return "S$0.00";
+  return `S$${SGD_FORMATTER.format(n)}`;
+}
+
+// SG-style date (DD MMM YYYY, e.g. 26 May 2026)
+export function formatSGDate(value) {
+  if (!value) return "";
+  const d = value instanceof Date ? value : new Date(value);
+  if (isNaN(d.getTime())) return String(value);
+  return d.toLocaleDateString("en-SG", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}

@@ -19,7 +19,7 @@ async function main() {
   console.log('Creating demo users...');
   const employee = await db.user.create({
     data: {
-      name: 'Demo Employee',
+      name: 'Rachel Tan',
       email: 'demo.employee@claimflow.com',
       passwordHash,
       role: Role.Employee,
@@ -29,7 +29,7 @@ async function main() {
 
   await db.user.create({
     data: {
-      name: 'Demo Manager',
+      name: 'Lim Wei Ming',
       email: 'demo.manager@claimflow.com',
       passwordHash,
       role: Role.Manager,
@@ -39,7 +39,7 @@ async function main() {
 
   await db.user.create({
     data: {
-      name: 'Demo Finance',
+      name: 'Priya Kumar',
       email: 'demo.finance@claimflow.com',
       passwordHash,
       role: Role.FinanceAdmin,
@@ -51,15 +51,22 @@ async function main() {
     data: [
       {
         userId: employee.id,
-        amount: 145.5,
-        category: 'Meal',
+        amount: 28.5,
+        category: 'Transport',
+        expenseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
+        status: ClaimStatus.Submitted,
+      },
+      {
+        userId: employee.id,
+        amount: 145.9,
+        category: 'F&B',
         expenseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4),
         status: ClaimStatus.Submitted,
       },
       {
         userId: employee.id,
-        amount: 450.0,
-        category: 'Travel',
+        amount: 320.0,
+        category: 'Client Entertainment',
         expenseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
         status: ClaimStatus.Approved,
       },

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
 import { useClaims } from "../hooks/useclaims.js";
-import { escapeHtml } from "../utils/helpers.js";
+import { escapeHtml, formatSGD } from "../utils/helpers.js";
 import WelcomeStrip from "../components/welcomestrip.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import { exportAuditLogToCsv } from "../utils/export.js";
@@ -72,7 +72,7 @@ export default function Finance() {
       addToast({
         variant: "success",
         title: `${count} claim${count === 1 ? "" : "s"} marked as paid`,
-        message: `Total $${totalAtClick.toFixed(2)} disbursed.`,
+        message: `Total ${formatSGD(totalAtClick)} disbursed.`,
       });
       setSelectedClaims(new Set());
       setSelectAll(false);
@@ -203,7 +203,7 @@ export default function Finance() {
                 Selected Total
               </span>
               <span className="font-bold fs-5 text-dark">
-                ${selectedTotal.toFixed(2)}
+                {formatSGD(selectedTotal)}
               </span>
             </div>
             <button
@@ -284,14 +284,14 @@ export default function Finance() {
                     <td data-label="Bank">
                       <span className="badge badge-role text-dark py-1 px-2">
                         <i className="fa-solid fa-building-columns me-1 text-secondary"></i>
-                        BANK {item.bank}
+                        {item.bank}
                       </span>
                     </td>
                     <td
                       data-label="Amount"
                       className="text-end font-bold text-dark"
                     >
-                      ${item.amount.toFixed(2)}
+                      {formatSGD(item.amount)}
                     </td>
                   </tr>
                 ))
@@ -422,7 +422,7 @@ export default function Finance() {
                         data-label="Amount"
                         className="text-end font-bold text-dark"
                       >
-                        ${log.amount.toFixed(2)}
+                        {formatSGD(log.amount)}
                       </td>
                       <td data-label="Action">
                         <span className="text-dark font-medium">

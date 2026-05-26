@@ -64,7 +64,7 @@ export default function SignIn() {
         </div>
         <span className="auth-topbar-help">
           Need help?{" "}
-          <a href="mailto:support@claimflow.com">support@claimflow.com</a>
+          <a href="mailto:support@claimflow.sg">support@claimflow.sg</a>
         </span>
       </div>
 
@@ -184,7 +184,7 @@ export default function SignIn() {
 
             <p className="auth-card-modern-footer">
               Don't have an account?{" "}
-              <a href="mailto:admin@claimflow.com">Contact your admin</a>
+              <a href="mailto:admin@claimflow.sg">Contact your admin</a>
             </p>
           </div>
         </div>
