@@ -1,31 +1,26 @@
 import { PrismaClient, Role, ClaimStatus } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
-import { DATABASE_URL } from '../src/config/constants';
 
 dotenv.config();
 
-// Ensure the seed client uses the same hardcoded URL as the application
-const db = new PrismaClient({
-  datasources: {
-    db: { url: DATABASE_URL },
-  },
-});
+const db = new PrismaClient();
+
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'claimflow-demo';
 
 async function main() {
-  // 1. Cleanup existing data to allow re-running the seed script
-  console.log('Cleaning up database...');
+  console.log('Cleaning up existing data...');
   await db.auditLog.deleteMany({});
   await db.claim.deleteMany({});
   await db.user.deleteMany({});
 
-  const passwordHash = await bcrypt.hash('password123', 10);
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
-  console.log('Creating users...');
+  console.log('Creating demo users...');
   const employee = await db.user.create({
     data: {
-      name: 'Employee One',
-      email: 'employee@example.com',
+      name: 'Demo Employee',
+      email: 'demo.employee@claimflow.com',
       passwordHash,
       role: Role.Employee,
       department: 'Sales',
@@ -34,8 +29,8 @@ async function main() {
 
   await db.user.create({
     data: {
-      name: 'Manager One',
-      email: 'manager@example.com',
+      name: 'Demo Manager',
+      email: 'demo.manager@claimflow.com',
       passwordHash,
       role: Role.Manager,
       department: 'Sales',
@@ -44,30 +39,51 @@ async function main() {
 
   await db.user.create({
     data: {
-      name: 'Finance One',
-      email: 'finance@example.com',
+      name: 'Demo Finance',
+      email: 'demo.finance@claimflow.com',
       passwordHash,
       role: Role.FinanceAdmin,
     },
   });
 
-  console.log('Creating sample claim...');
-  await db.claim.create({
-    data: {
-      userId: employee.id,
-      amount: 34.50,
-      category: 'Transport',
-      expenseDate: new Date(),
-      status: ClaimStatus.Submitted,
-    },
+  console.log('Creating sample claims...');
+  await db.claim.createMany({
+    data: [
+      {
+        userId: employee.id,
+        amount: 145.5,
+        category: 'Meal',
+        expenseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4),
+        status: ClaimStatus.Submitted,
+      },
+      {
+        userId: employee.id,
+        amount: 450.0,
+        category: 'Travel',
+        expenseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
+        status: ClaimStatus.Approved,
+      },
+      {
+        userId: employee.id,
+        amount: 85.0,
+        category: 'Medical',
+        expenseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14),
+        status: ClaimStatus.Reimbursed,
+      },
+    ],
   });
 
-  console.log('Seed data created');
+  console.log('Seed complete.');
+  console.log('');
+  console.log('Demo accounts (password: ' + DEMO_PASSWORD + '):');
+  console.log('  Employee:  demo.employee@claimflow.com');
+  console.log('  Manager:   demo.manager@claimflow.com');
+  console.log('  Finance:   demo.finance@claimflow.com');
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('[seed] failed:', e);
     process.exit(1);
   })
   .finally(() => db.$disconnect());
