@@ -3,6 +3,8 @@ import { useAuth } from "../context/authcontext.jsx";
 import Logo from "../components/logo.jsx";
 import LoginIllustration from "../components/loginillustration.jsx";
 
+const DEMO_PASSWORD = "claimflow-demo";
+
 const DEMO_ACCOUNTS = [
   {
     role: "Employee",
@@ -28,16 +30,29 @@ export default function SignIn() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (email.trim()) {
-      signIn(email.trim().toLowerCase());
+  const runSignIn = async (emailValue, passwordValue) => {
+    setError(null);
+    setSubmitting(true);
+    try {
+      await signIn(emailValue, passwordValue);
+    } catch (err) {
+      setError(err?.message || "Sign in failed. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!email.trim() || !password) return;
+    runSignIn(email.trim().toLowerCase(), password);
+  };
+
   const handleDemoSignIn = (demoEmail) => {
-    signIn(demoEmail);
+    runSignIn(demoEmail, DEMO_PASSWORD);
   };
 
   return (
@@ -93,6 +108,14 @@ export default function SignIn() {
             <p className="auth-card-modern-subtitle">
               Enter your work email to access your portal.
             </p>
+
+            {error && (
+              <div className="auth-error" role="alert">
+                <i className="fa-solid fa-circle-exclamation"></i>
+                <span>{error}</span>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit}>
               <div className="form-group-modern">
                 <label htmlFor="signin-email">Email</label>
@@ -103,6 +126,8 @@ export default function SignIn() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={submitting}
+                  autoComplete="email"
                 />
               </div>
               <div className="form-group-modern">
@@ -114,15 +139,21 @@ export default function SignIn() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={submitting}
+                  autoComplete="current-password"
                 />
               </div>
               <div className="auth-row-meta">
                 <span></span>
                 <a href="#">Forgot password?</a>
               </div>
-              <button type="submit" className="btn-primary-modern">
-                Sign in
-                <i className="fa-solid fa-arrow-right"></i>
+              <button
+                type="submit"
+                className="btn-primary-modern"
+                disabled={submitting}
+              >
+                {submitting ? "Signing in..." : "Sign in"}
+                {!submitting && <i className="fa-solid fa-arrow-right"></i>}
               </button>
             </form>
 
@@ -137,6 +168,7 @@ export default function SignIn() {
                   type="button"
                   className="auth-demo-btn"
                   onClick={() => handleDemoSignIn(account.email)}
+                  disabled={submitting}
                 >
                   <span className="auth-demo-btn-icon">
                     <i className={`fa-solid ${account.icon}`}></i>

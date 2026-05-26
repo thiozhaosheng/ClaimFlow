@@ -818,6 +818,26 @@ header {
   margin-bottom: 2rem;
 }
 
+.auth-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0.85rem;
+  font-size: 0.86rem;
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.005em;
+}
+
+.auth-error i {
+  font-size: 0.95rem;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
 .form-group-modern {
   margin-bottom: 1.1rem;
 }
