@@ -3,6 +3,7 @@ node_modules/
 
 # Local environment files
 .env
+backend/.env
 .env.local
 
 # Build output
