@@ -32,6 +32,41 @@ export async function parseReceipt(
   return parseWithMock(buffer);
 }
 
+// Read a string field from an Azure DocumentField. The SDK's exact shape varies by
+// model + version: sometimes the string is on .value, sometimes .valueString,
+// sometimes only .content. Try each in order and trim whitespace.
+function readStringField(field: any): string | null {
+  if (!field) return null;
+  const candidates = [field.value, field.valueString, field.content];
+  for (const c of candidates) {
+    if (typeof c === 'string') {
+      const trimmed = c.trim();
+      if (trimmed) return trimmed;
+    }
+  }
+  return null;
+}
+
+// Read a currency/number field. Azure returns either a plain number or an object
+// like { amount, currencyCode } depending on the field type.
+function readMoneyField(field: any): { amount: number | null; currency: string | null } {
+  if (!field) return { amount: null, currency: null };
+  const v = field.value ?? field.valueCurrency ?? field.valueNumber;
+  if (typeof v === 'object' && v !== null) {
+    return {
+      amount: typeof v.amount === 'number' ? v.amount : null,
+      currency: typeof v.currencyCode === 'string' ? v.currencyCode : null,
+    };
+  }
+  if (typeof v === 'number') return { amount: v, currency: null };
+  // Last resort: try parsing .content like "S$36.50"
+  if (typeof field.content === 'string') {
+    const m = field.content.match(/[\d]+(?:\.[\d]+)?/);
+    if (m) return { amount: parseFloat(m[0]), currency: null };
+  }
+  return { amount: null, currency: null };
+}
+
 async function parseWithAzure(
   buffer: Buffer,
   _mimeType: string,
@@ -60,22 +95,25 @@ async function parseWithAzure(
   }
 
   const fields = doc.fields as any;
-  const merchant = fields?.MerchantName?.value ?? null;
-  const totalField = fields?.Total?.value;
-  const total = typeof totalField === 'object' ? totalField.amount : totalField ?? null;
-  const taxField = fields?.TotalTax?.value;
-  const tax = typeof taxField === 'object' ? taxField.amount : taxField ?? null;
-  const currency = typeof totalField === 'object' ? totalField.currencyCode ?? null : null;
-  const dateField = fields?.TransactionDate?.value;
-  const expenseDate = dateField
-    ? new Date(dateField).toISOString().slice(0, 10)
+
+  // Useful while iterating on Azure output: keep this off unless explicitly debugging.
+  if (process.env.RECEIPT_DEBUG === '1') {
+    console.log('[receiptParser] Azure raw fields:', JSON.stringify(fields, null, 2).slice(0, 2000));
+  }
+
+  const merchant = readStringField(fields?.MerchantName);
+  const totalMoney = readMoneyField(fields?.Total);
+  const taxMoney = readMoneyField(fields?.TotalTax);
+  const dateRaw = fields?.TransactionDate?.value ?? fields?.TransactionDate?.valueDate;
+  const expenseDate = dateRaw
+    ? new Date(dateRaw).toISOString().slice(0, 10)
     : null;
 
   return {
     merchant,
-    total,
-    gstAmount: tax,
-    currency,
+    total: totalMoney.amount,
+    gstAmount: taxMoney.amount,
+    currency: totalMoney.currency ?? taxMoney.currency ?? null,
     expenseDate,
     category: guessCategoryFromMerchant(merchant),
     source: 'azure',
