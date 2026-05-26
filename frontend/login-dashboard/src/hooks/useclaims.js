@@ -1,111 +1,157 @@
-import { useState, useCallback } from "react";
-import {
-  loadDatabaseState,
-  saveDatabaseState,
-  getLatestClaimsMap,
-  getNextClaimId,
-  getEmployeeNameFromEmail,
-} from "../utils/database.js";
-import { getIsoDate, getTimeString } from "../utils/helpers.js";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { api, mapStatusFromApi, mapRoleFromApi } from "../utils/api.js";
+import { useAuth } from "../context/authcontext.jsx";
+
+// Adapt a backend Claim (with user include) into the frontend's row shape.
+function adaptClaim(claim) {
+  if (!claim) return null;
+  const user = claim.user || {};
+  const expenseDate = claim.expenseDate
+    ? new Date(claim.expenseDate).toISOString().slice(0, 10)
+    : "";
+  const createdAt = claim.createdAt ? new Date(claim.createdAt) : new Date();
+  const time = createdAt.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  return {
+    id: `CLM-${String(claim.id).padStart(3, "0")}`,
+    rawId: claim.id,
+    employee: user.name || "Unknown",
+    employeeEmail: user.email || "",
+    date: expenseDate,
+    time,
+    type: claim.category,
+    department: user.department || "Sales",
+    amount: Number(claim.amount),
+    status: mapStatusFromApi(claim.status),
+    actor: user.name || "Unknown",
+    role: mapRoleFromApi(user.role || "Employee"),
+    action: "Claim submitted",
+    bank: "**** 0000",
+    receiptUrl: claim.receiptUrl || null,
+  };
+}
+
+// Adapt a backend AuditLog (with executor include) into the frontend's log shape.
+function adaptAuditLog(log) {
+  const executor = log.executor || {};
+  const createdAt = log.createdAt ? new Date(log.createdAt) : new Date();
+  return {
+    id: `CLM-${String(log.claimId).padStart(3, "0")}`,
+    rawId: log.claimId,
+    employee: executor.name || "Unknown",
+    date: createdAt.toISOString().slice(0, 10),
+    time: createdAt.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }),
+    type: log.action,
+    department: "—",
+    amount: 0,
+    status: mapStatusFromApi(log.newStatus),
+    actor: executor.name || "System",
+    role: mapRoleFromApi(executor.role || "FinanceAdmin"),
+    action: log.action.replace(/_/g, " ").toLowerCase(),
+    reason: log.remarks || undefined,
+    bank: "—",
+  };
+}
 
 export function useClaims() {
-  const [claimsDb, setClaimsDb] = useState(() => loadDatabaseState());
+  const { session } = useAuth();
+  const [claims, setClaims] = useState([]);
+  const [auditLog, setAuditLog] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const persist = useCallback((newDb) => {
-    setClaimsDb(newDb);
-    saveDatabaseState(newDb);
-  }, []);
+  const fetchClaimsForRole = useCallback(async () => {
+    if (!session) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const claimsEndpoint =
+        session.role === "employee" ? "/api/claims/my" : "/api/claims";
+      const result = await api.get(claimsEndpoint);
+      const list = result?.data?.claims || [];
+      setClaims(list.map(adaptClaim));
+
+      if (session.role === "finance") {
+        const auditResult = await api.get("/api/workflow/audit");
+        const logs = auditResult?.data?.logs || [];
+        setAuditLog(logs.map(adaptAuditLog));
+      }
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [session]);
+
+  useEffect(() => {
+    fetchClaimsForRole();
+  }, [fetchClaimsForRole]);
+
+  const latestMap = useMemo(() => {
+    const map = {};
+    for (const claim of claims) {
+      map[claim.id] = claim;
+    }
+    return map;
+  }, [claims]);
 
   const submitClaim = useCallback(
-    ({ title, date, category, amount, email }) => {
-      const newRecord = {
-        id: getNextClaimId(claimsDb),
-        employee: getEmployeeNameFromEmail(email),
-        date: date,
-        time: generateTimestamp(),
-        type: category,
-        department: "Sales",
-        amount: amount,
-        status: "Pending",
-        actor: getEmployeeNameFromEmail(email),
-        role: "Employee",
-        action: "Claim submitted",
-        bank: "**** " + Math.floor(1000 + Math.random() * 9000),
-      };
-      const updated = [newRecord, ...claimsDb];
-      persist(updated);
-      return newRecord;
+    async ({ date, category, amount }) => {
+      const created = await api.post("/api/claims", {
+        amount: Number(amount),
+        category,
+        expenseDate: date,
+      });
+      await fetchClaimsForRole();
+      return adaptClaim(created?.data?.claim);
     },
-    [claimsDb, persist],
+    [fetchClaimsForRole],
   );
 
   const updateClaimStatus = useCallback(
-    (claimId, newStatus, actorName = "Lisa Wang", reason = null) => {
-      const match = claimsDb.find((c) => c.id === claimId);
-      if (!match) return;
-
-      let action;
-      if (newStatus === "Endorsed") {
-        action = "Endorsed by approving officer";
-      } else if (newStatus === "Rejected") {
-        action = reason
-          ? `Rejected by approving officer: ${reason}`
-          : "Rejected by approving officer";
-      } else {
-        action = `Status changed to ${newStatus}`;
-      }
-
-      const historyRecord = {
-        ...match,
-        date: getIsoDate(),
-        time: getTimeString(),
-        status: newStatus,
+    async (claimId, newStatus, _actorName, reason = null) => {
+      const claim = claims.find((c) => c.id === claimId);
+      if (!claim) return;
+      const action = newStatus === "Endorsed" ? "approve" : "reject";
+      await api.patch(`/api/workflow/review/${claim.rawId}`, {
         action,
-        actor: actorName,
-        role: "Approving Officer",
-        reason: reason || undefined,
-      };
-
-      const updated = claimsDb.map((c) =>
-        c.id === claimId ? { ...c, status: newStatus } : c,
-      );
-      updated.unshift(historyRecord);
-      persist(updated);
+        remarks: reason || undefined,
+      });
+      await fetchClaimsForRole();
     },
-    [claimsDb, persist],
+    [claims, fetchClaimsForRole],
   );
 
   const batchMarkAsPaid = useCallback(
-    (selectedIds) => {
-      if (selectedIds.size === 0) return;
-
-      const updated = [...claimsDb];
-
-      selectedIds.forEach((id) => {
-        const match = updated.find((c) => c.id === id);
-        if (match) {
-          const auditLog = {
-            ...match,
-            date: getIsoDate(),
-            time: getTimeString(),
-            status: "Paid",
-            action: "Marked as paid",
-            actor: "Finance Admin",
-            role: "Finance Admin",
-          };
-          updated.forEach((c) => {
-            if (c.id === id) c.status = "Paid";
-          });
-          updated.unshift(auditLog);
+    async (selectedIds) => {
+      const ids = Array.from(selectedIds);
+      if (ids.length === 0) return;
+      for (const id of ids) {
+        const claim = claims.find((c) => c.id === id);
+        if (claim) {
+          await api.patch(`/api/workflow/pay/${claim.rawId}`, {});
         }
-      });
-
-      persist(updated);
+      }
+      await fetchClaimsForRole();
     },
-    [claimsDb, persist],
+    [claims, fetchClaimsForRole],
   );
 
-  const latestMap = getLatestClaimsMap(claimsDb);
+  // claimsDb shape: for finance, the audit log; otherwise, the claim list
+  const claimsDb = useMemo(() => {
+    if (session?.role === "finance") {
+      return auditLog;
+    }
+    return claims;
+  }, [auditLog, claims, session?.role]);
 
   return {
     claimsDb,
@@ -113,14 +159,8 @@ export function useClaims() {
     submitClaim,
     updateClaimStatus,
     batchMarkAsPaid,
+    loading,
+    error,
+    refetch: fetchClaimsForRole,
   };
-}
-
-function generateTimestamp() {
-  const rightNow = new Date();
-  let hr = rightNow.getHours();
-  const min = String(rightNow.getMinutes()).padStart(2, "0");
-  const period = hr >= 12 ? "PM" : "AM";
-  hr = hr % 12 || 12;
-  return `${String(hr).padStart(2, "0")}:${min} ${period}`;
 }
