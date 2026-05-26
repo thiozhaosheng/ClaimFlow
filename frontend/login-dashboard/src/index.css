@@ -133,6 +133,125 @@
   background-color: rgba(0, 0, 0, 0.6);
 }
 
+/* dark theme: override Bootstrap utility classes that have hardcoded colors */
+[data-theme="dark"] .bg-light {
+  background-color: var(--bg-subtle) !important;
+}
+
+[data-theme="dark"] .bg-primary-subtle {
+  background-color: var(--accent-subtle) !important;
+}
+
+[data-theme="dark"] .bg-info-subtle {
+  background-color: var(--info-bg) !important;
+}
+
+[data-theme="dark"] .bg-secondary-subtle {
+  background-color: var(--bg-muted) !important;
+}
+
+[data-theme="dark"] .text-info {
+  color: var(--info-text) !important;
+}
+
+[data-theme="dark"] .border-primary-subtle {
+  border-color: var(--accent-subtle) !important;
+}
+
+[data-theme="dark"] .border-info-subtle {
+  border-color: var(--info-bg) !important;
+}
+
+[data-theme="dark"] .border {
+  border-color: var(--border-default) !important;
+}
+
+[data-theme="dark"] .form-check-input {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-default);
+}
+
+[data-theme="dark"] .form-check-input:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+[data-theme="dark"] .form-control::placeholder {
+  color: var(--text-tertiary);
+}
+
+[data-theme="dark"] .form-control:disabled,
+[data-theme="dark"] .form-control[readonly] {
+  background-color: var(--bg-subtle);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .input-group-text {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+
+/* dark theme: bg-light strip on finance page */
+[data-theme="dark"] .action-bar-strip {
+  background-color: var(--bg-subtle) !important;
+  border-color: var(--border-default) !important;
+}
+
+/* dark theme: form-select arrow needs lighter color */
+[data-theme="dark"] .form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23a1a1a6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+/* dark theme: date input calendar icon */
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+}
+
+/* dark theme: receipt photo placeholder shimmer */
+[data-theme="dark"] .illus-receipt-photo::after {
+  background-image:
+    linear-gradient(90deg, transparent 30%, rgba(255, 255, 255, 0.06) 50%, transparent 70%);
+}
+
+/* dark theme: empty state graphic backdrop circles */
+[data-theme="dark"] .empty-graphic circle[fill="#eef7ff"] {
+  fill: rgba(10, 132, 255, 0.08);
+}
+
+[data-theme="dark"] .empty-graphic rect[fill="white"] {
+  fill: var(--bg-card);
+  stroke: var(--border-default);
+}
+
+[data-theme="dark"] .empty-graphic rect[fill="#d2d2d7"] {
+  fill: var(--border-default);
+}
+
+[data-theme="dark"] .empty-graphic line {
+  stroke: var(--border-default);
+}
+
+/* dark theme: claim mini card pending/endorsed/paid/rejected left borders stay vibrant */
+[data-theme="dark"] .claim-detail-meta-value,
+[data-theme="dark"] .timeline-action,
+[data-theme="dark"] .modal-title,
+[data-theme="dark"] .toast-title {
+  color: var(--text-primary);
+}
+
+/* dark theme: AOS-disabled-elements fix - ensure inline white backgrounds adapt */
+[data-theme="dark"] .auth-form-panel {
+  border-left-color: var(--border-subtle);
+}
+
 * {
   margin: 0;
   padding: 0;
