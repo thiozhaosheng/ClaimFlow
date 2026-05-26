@@ -43,6 +43,7 @@ export default function Header() {
           </div>
           <div className="user-identity-avatar" aria-hidden="true">
             {initials}
+            <span className="user-identity-presence" aria-hidden="true"></span>
           </div>
           <button
             className="btn-theme-toggle"

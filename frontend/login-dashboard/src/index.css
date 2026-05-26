@@ -252,6 +252,195 @@
   border-left-color: var(--border-subtle);
 }
 
+/* ========== 2026 MODERN POLISH ========== */
+
+/* gradient typography accent for headline emphasis */
+.auth-headline-accent {
+  background: linear-gradient(135deg, var(--accent) 0%, #5856d6 50%, #af52de 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* noise texture on auth brand panel - very subtle, adds depth */
+.auth-brand-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.4 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .auth-brand-panel::after {
+  opacity: 0.25;
+  mix-blend-mode: overlay;
+}
+
+/* primary button glow on hover */
+.btn-primary-modern {
+  box-shadow: 0 4px 14px -4px var(--accent-ring);
+}
+
+.btn-primary-modern:hover {
+  box-shadow:
+    0 8px 24px -4px var(--accent-ring),
+    0 0 0 1px var(--accent-ring);
+  transform: translateY(-1px);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  box-shadow: 0 6px 18px -4px var(--accent-ring);
+}
+
+.btn-mark-paid:hover:not(:disabled) {
+  box-shadow: 0 6px 18px -4px var(--accent-ring);
+}
+
+/* live presence dot on user avatar */
+.user-identity-avatar {
+  position: relative;
+}
+
+.user-identity-presence {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 10px;
+  height: 10px;
+  background-color: var(--success);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--bg-card);
+}
+
+.user-identity-presence::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-color: var(--success);
+  animation: pulse-ring 2.4s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  80%, 100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* pulse the active lifecycle step subtly */
+.lifecycle-step.active {
+  position: relative;
+}
+
+.lifecycle-step.active::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--accent);
+  margin-right: 0.4rem;
+  box-shadow: 0 0 0 0 var(--accent);
+  animation: pulse-dot 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.lifecycle-step.active i {
+  display: none;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(10, 132, 255, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(10, 132, 255, 0);
+  }
+}
+
+/* enhanced card hover lifts */
+.workspace-card,
+.stat-widget-box,
+.claim-mini-card {
+  transition:
+    var(--transition-base),
+    transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.illus-review {
+  transition: var(--transition-base);
+}
+
+.illus-review:hover {
+  transform: translateY(-4px) rotate(-0.3deg);
+}
+
+/* refined focus rings - more visible accent on inputs */
+.form-control:focus,
+.form-select:focus,
+.padded-input:focus,
+.form-group-modern input:focus {
+  box-shadow:
+    0 0 0 4px var(--accent-ring),
+    0 2px 8px -2px var(--accent-ring);
+}
+
+/* tighter, more dramatic typography on workspace titles */
+.workspace-card-title,
+.modal-title {
+  letter-spacing: -0.022em;
+}
+
+/* refined logo gradient on brand title hover (in auth topbar) */
+.auth-topbar-brand:hover .auth-topbar-name {
+  background: linear-gradient(90deg, var(--text-primary), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: var(--transition-base);
+}
+
+/* demo account buttons get richer hover affordance */
+.auth-demo-btn:hover {
+  transform: translateX(2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--accent-subtle);
+}
+
+.auth-demo-btn:hover .auth-demo-btn-icon {
+  background-color: var(--accent-subtle);
+  color: var(--accent);
+}
+
+/* subtle gradient border on the auth card form on focus-within */
+.auth-card-modern:focus-within .auth-card-modern-title {
+  color: var(--accent);
+  transition: var(--transition-base);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-headline-accent,
+  .user-identity-presence::before,
+  .lifecycle-step.active::before {
+    animation: none;
+  }
+}
+
 * {
   margin: 0;
   padding: 0;

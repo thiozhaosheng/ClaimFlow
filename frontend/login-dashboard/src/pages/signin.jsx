@@ -63,7 +63,7 @@ export default function SignIn() {
             <h1 className="auth-headline">
               Reimbursements,
               <br />
-              without the chaos.
+              <span className="auth-headline-accent">without the chaos.</span>
             </h1>
             <p className="auth-subheadline">
               Replace WhatsApp receipts and spreadsheet approvals with a
