@@ -31,6 +31,7 @@ router.post(
 
 router.post('/', claimController.createClaim);
 router.get('/my', claimController.getMyClaims);
+router.get('/:id/receipt', claimController.getReceiptViewUrl);
 router.get('/:id', claimController.getClaimById);
 
 router.get(
