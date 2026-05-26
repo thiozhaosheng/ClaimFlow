@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useAuth } from "../context/authcontext.jsx";
+import { useToast } from "../context/toastcontext.jsx";
 import { useClaims } from "../hooks/useclaims.js";
 import { escapeHtml } from "../utils/helpers.js";
 import WelcomeStrip from "../components/welcomestrip.jsx";
@@ -9,6 +10,7 @@ import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 export default function Employee() {
   const { session } = useAuth();
   const { latestMap, submitClaim, claimsDb } = useClaims();
+  const { addToast } = useToast();
   const [activeClaim, setActiveClaim] = useState(null);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
@@ -22,12 +24,18 @@ export default function Employee() {
     e.preventDefault();
     if (!title || !date || !amount) return;
 
-    submitClaim({
+    const created = submitClaim({
       title,
       date,
       category,
       amount: parseFloat(amount),
       email: session?.email || "",
+    });
+
+    addToast({
+      variant: "success",
+      title: "Claim submitted",
+      message: `${created.id} (${created.type} · $${created.amount.toFixed(2)}) is now pending review.`,
     });
 
     setTitle("");

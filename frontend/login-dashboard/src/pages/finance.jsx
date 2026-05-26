@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/authcontext.jsx";
+import { useToast } from "../context/toastcontext.jsx";
 import { useClaims } from "../hooks/useclaims.js";
 import { escapeHtml } from "../utils/helpers.js";
 import WelcomeStrip from "../components/welcomestrip.jsx";
@@ -9,6 +10,7 @@ import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 
 export default function Finance() {
   const { session, setFinanceTab } = useAuth();
+  const { addToast } = useToast();
   const { claimsDb, latestMap, batchMarkAsPaid } = useClaims();
   const [activeTab, setActiveTab] = useState(session?.financeTab || "audit");
   const [searchQueue, setSearchQueue] = useState("");
@@ -61,7 +63,13 @@ export default function Finance() {
 
   const handleMarkAsPaid = () => {
     if (selectedClaims.size === 0) return;
+    const count = selectedClaims.size;
     batchMarkAsPaid(selectedClaims);
+    addToast({
+      variant: "success",
+      title: `${count} claim${count === 1 ? "" : "s"} marked as paid`,
+      message: `Total $${selectedTotal.toFixed(2)} disbursed.`,
+    });
     setSelectedClaims(new Set());
     setSelectAll(false);
   };
@@ -91,9 +99,22 @@ export default function Finance() {
     const hasActiveFilter =
       auditFilter !== "All" || searchAudit.trim().length > 0;
     const logsToExport = hasActiveFilter ? filteredLogs : claimsDb;
-    exportAuditLogToCsv(logsToExport, {
+    const exported = exportAuditLogToCsv(logsToExport, {
       filenameSuffix: hasActiveFilter ? "filtered" : "full",
     });
+    if (exported) {
+      addToast({
+        variant: "success",
+        title: "Audit log exported",
+        message: `${logsToExport.length} ${hasActiveFilter ? "filtered " : ""}entries downloaded as CSV.`,
+      });
+    } else {
+      addToast({
+        variant: "info",
+        title: "Nothing to export",
+        message: "There are no log entries that match your current view.",
+      });
+    }
   };
 
   return (

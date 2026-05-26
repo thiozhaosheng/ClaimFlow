@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useClaims } from "../hooks/useclaims.js";
+import { useToast } from "../context/toastcontext.jsx";
 import { escapeHtml } from "../utils/helpers.js";
 import WelcomeStrip from "../components/welcomestrip.jsx";
 import EmptyState from "../components/emptystate.jsx";
@@ -8,6 +9,7 @@ import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 
 export default function Approving() {
   const { latestMap, updateClaimStatus, claimsDb } = useClaims();
+  const { addToast } = useToast();
   const [activeClaim, setActiveClaim] = useState(null);
   const [filterStatus, setFilterStatus] = useState("Pending");
   const [filterDept, setFilterDept] = useState("All");
@@ -17,7 +19,21 @@ export default function Approving() {
   const handleRejectConfirm = (reason) => {
     if (!rejectingClaim) return;
     updateClaimStatus(rejectingClaim.id, "Rejected", "Lisa Wang", reason);
+    addToast({
+      variant: "error",
+      title: "Claim rejected",
+      message: `${rejectingClaim.id} returned to ${rejectingClaim.employee}.`,
+    });
     setRejectingClaim(null);
+  };
+
+  const handleEndorse = (claim) => {
+    updateClaimStatus(claim.id, "Endorsed");
+    addToast({
+      variant: "success",
+      title: "Claim endorsed",
+      message: `${claim.id} forwarded to Finance for disbursement.`,
+    });
   };
 
   const matchingClaims = Object.values(latestMap).filter((item) => {
@@ -186,9 +202,7 @@ export default function Approving() {
                             <div className="d-flex justify-content-center gap-2">
                               <button
                                 className="action-icon-btn btn-action-approve"
-                                onClick={() =>
-                                  updateClaimStatus(item.id, "Endorsed")
-                                }
+                                onClick={() => handleEndorse(item)}
                                 aria-label="Endorse claim"
                               >
                                 <i className="fa-solid fa-check"></i>
