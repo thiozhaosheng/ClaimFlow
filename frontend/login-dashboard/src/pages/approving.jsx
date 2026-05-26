@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useClaims } from "../hooks/useclaims.js";
 import { useToast } from "../context/toastcontext.jsx";
-import { escapeHtml } from "../utils/helpers.js";
+import { escapeHtml, formatSGD } from "../utils/helpers.js";
 import WelcomeStrip from "../components/welcomestrip.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import RejectionModal from "../components/rejectionmodal.jsx";
@@ -220,7 +220,7 @@ export default function Approving() {
                           </span>
                         </td>
                         <td data-label="Amount" className="text-end font-bold">
-                          ${item.amount.toFixed(2)}
+                          {formatSGD(item.amount)}
                         </td>
                         <td
                           data-label="Action"

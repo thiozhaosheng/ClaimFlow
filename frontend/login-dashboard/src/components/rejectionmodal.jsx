@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatSGD } from "../utils/helpers.js";
 
 export default function RejectionModal({ open, claim, onConfirm, onCancel }) {
   const [reason, setReason] = useState("");
@@ -29,7 +30,7 @@ export default function RejectionModal({ open, claim, onConfirm, onCancel }) {
         <div className="modal-header">
           <h3 className="modal-title">Reject claim</h3>
           <p className="modal-subtitle">
-            {claim.id} · {claim.employee} · ${claim.amount.toFixed(2)}
+            {claim.id} · {claim.employee} · {formatSGD(claim.amount)}
           </p>
         </div>
         <div className="modal-body">

@@ -16,16 +16,16 @@ export default function LoginIllustration() {
         </div>
         <div className="illus-notification-text">
           <strong>New claim submitted</strong>
-          <span>Michael Chen · Travel · $450</span>
+          <span>Lim Wei Ming · Grab · S$28.50</span>
         </div>
       </div>
 
       {/* main review mockup */}
       <div className="illus-review" data-aos="zoom-in" data-aos-delay="200">
         <div className="illus-review-header">
-          <div className="illus-review-avatar">SJ</div>
+          <div className="illus-review-avatar">RT</div>
           <div className="illus-review-meta">
-            <div className="illus-review-name">Sarah Johnson</div>
+            <div className="illus-review-name">Rachel Tan</div>
             <div className="illus-review-sub">Sales · CLM-001</div>
           </div>
           <span className="illus-badge illus-badge-pending">Pending</span>
@@ -46,15 +46,15 @@ export default function LoginIllustration() {
         <div className="illus-review-details">
           <div className="illus-detail">
             <span className="illus-detail-label">Amount</span>
-            <span className="illus-detail-value">$145.50</span>
+            <span className="illus-detail-value">S$145.50</span>
           </div>
           <div className="illus-detail">
             <span className="illus-detail-label">Category</span>
-            <span className="illus-detail-value">Meal</span>
+            <span className="illus-detail-value">F&B</span>
           </div>
           <div className="illus-detail">
             <span className="illus-detail-label">Date</span>
-            <span className="illus-detail-value">May 11</span>
+            <span className="illus-detail-value">11 May</span>
           </div>
         </div>
 
