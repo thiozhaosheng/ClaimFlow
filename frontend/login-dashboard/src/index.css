@@ -54,6 +54,85 @@
   --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ========== DARK THEME OVERRIDES ========== */
+[data-theme="dark"] {
+  --bg-app: #0a0a0c;
+  --bg-card: #1c1c1e;
+  --bg-subtle: #2c2c2e;
+  --bg-muted: #38383a;
+
+  --text-primary: #f5f5f7;
+  --text-secondary: #a1a1a6;
+  --text-tertiary: #6e6e73;
+
+  --border-subtle: #2c2c2e;
+  --border-default: #38383a;
+  --border-strong: #48484a;
+
+  --primary: #f5f5f7;
+  --primary-hover: #e5e5e7;
+
+  --accent: #0a84ff;
+  --accent-hover: #409cff;
+  --accent-subtle: rgba(10, 132, 255, 0.16);
+  --accent-ring: rgba(10, 132, 255, 0.25);
+
+  --success-bg: rgba(52, 199, 89, 0.16);
+  --success-text: #34c759;
+  --warning-bg: rgba(255, 149, 0, 0.16);
+  --warning-text: #ff9500;
+  --danger: #ff3b30;
+  --danger-bg: rgba(255, 59, 48, 0.16);
+  --danger-text: #ff453a;
+  --info-bg: rgba(10, 132, 255, 0.16);
+  --info-text: #0a84ff;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px -8px rgba(0, 0, 0, 0.6), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.7), 0 4px 8px -2px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 28px 60px -16px rgba(0, 0, 0, 0.8), 0 12px 20px -8px rgba(0, 0, 0, 0.6);
+}
+
+/* dark theme adjustments for specific components */
+[data-theme="dark"] header {
+  background-color: rgba(28, 28, 30, 0.72);
+}
+
+[data-theme="dark"] .auth-topbar {
+  background-color: rgba(28, 28, 30, 0.72);
+}
+
+[data-theme="dark"] .auth-brand-panel {
+  background:
+    radial-gradient(at 18% 14%, rgba(10, 132, 255, 0.18) 0%, transparent 45%),
+    radial-gradient(at 82% 22%, rgba(88, 86, 214, 0.16) 0%, transparent 45%),
+    radial-gradient(at 50% 78%, rgba(52, 199, 89, 0.1) 0%, transparent 40%),
+    radial-gradient(at 92% 88%, rgba(255, 149, 0, 0.1) 0%, transparent 40%),
+    linear-gradient(135deg, #0a0a0c 0%, #1c1c1e 100%);
+}
+
+[data-theme="dark"] .illus-receipt-photo {
+  background: linear-gradient(180deg, #2c2c2e 0%, #1c1c1e 50%, #2c2c2e 100%);
+}
+
+[data-theme="dark"] .claim-detail-receipt {
+  background: linear-gradient(180deg, #2c2c2e 0%, #1c1c1e 50%, #2c2c2e 100%);
+}
+
+[data-theme="dark"] .empty-state-icon,
+[data-theme="dark"] .empty-graphic circle:first-child {
+  fill: rgba(10, 132, 255, 0.1);
+}
+
+[data-theme="dark"] .timeline-dot {
+  box-shadow: 0 0 0 3px var(--bg-card);
+}
+
+[data-theme="dark"] .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -183,6 +262,28 @@ header {
   align-items: center;
   gap: 0.4rem;
   margin-left: 0.4rem;
+}
+
+.btn-theme-toggle {
+  width: 36px;
+  height: 36px;
+  background-color: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-base);
+  margin-left: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.btn-theme-toggle:hover {
+  background-color: var(--bg-subtle);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
 }
 
 .btn-logout:hover {

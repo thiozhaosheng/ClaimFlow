@@ -1,4 +1,5 @@
 import { useAuth } from "../context/authcontext.jsx";
+import { useTheme } from "../hooks/usetheme.js";
 import Logo from "./logo.jsx";
 
 const ROLE_LABELS = {
@@ -19,6 +20,7 @@ function deriveName(email) {
 
 export default function Header() {
   const { session, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   if (!session) return null;
 
@@ -42,6 +44,14 @@ export default function Header() {
           <div className="user-identity-avatar" aria-hidden="true">
             {initials}
           </div>
+          <button
+            className="btn-theme-toggle"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            <i className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`}></i>
+          </button>
           <button
             className="btn-logout"
             onClick={logout}
