@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/authcontext.jsx";
 import Logo from "../components/logo.jsx";
 import LoginIllustration from "../components/loginillustration.jsx";
@@ -185,6 +186,14 @@ export default function SignIn() {
             <p className="auth-card-modern-footer">
               Don't have an account?{" "}
               <a href="mailto:admin@claimflow.sg">Contact your admin</a>
+            </p>
+
+            <p className="auth-card-modern-footer" style={{ marginTop: 8 }}>
+              <Link to="/privacy">Privacy notice</Link>
+              <span style={{ margin: "0 8px", color: "#9aa0a6" }}>·</span>
+              <Link to="/policies">Approval policy</Link>
+              <span style={{ margin: "0 8px", color: "#9aa0a6" }}>·</span>
+              <Link to="/compliance">Compliance</Link>
             </p>
           </div>
         </div>

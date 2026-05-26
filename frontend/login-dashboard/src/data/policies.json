@@ -1,0 +1,78 @@
+{
+  "version": "2026-05-26",
+  "currency": "SGD",
+  "rules": [
+    {
+      "id": "block-disallowed-category",
+      "when": [{ "field": "category", "op": "in", "value": ["Club Subscription", "Medical (non-statutory)", "Family Benefit", "Motor Car (non-commercial)"] }],
+      "then": "block",
+      "message": "This category is not eligible for input tax claim under IRAS Regulations 26/27. See your finance team if this is a one-off."
+    },
+    {
+      "id": "block-missing-receipt-over-threshold",
+      "when": [
+        { "field": "amount", "op": ">", "value": 50 },
+        { "field": "receiptUrl", "op": "missing" }
+      ],
+      "then": "block",
+      "message": "A receipt image is required for claims above S$50."
+    },
+    {
+      "id": "block-future-date",
+      "when": [{ "field": "expenseDate", "op": ">", "value": "today" }],
+      "then": "block",
+      "message": "The expense date cannot be in the future."
+    },
+    {
+      "id": "block-stale-claim",
+      "when": [{ "field": "expenseDate", "op": "older_than_days", "value": 90 }],
+      "then": "block",
+      "message": "Claims older than 90 days require finance-admin override. Email finance with the original receipt."
+    },
+    {
+      "id": "auto-approve-small-meal",
+      "when": [
+        { "field": "category", "op": "==", "value": "Meal" },
+        { "field": "amount", "op": "<=", "value": 30 },
+        { "field": "receiptUrl", "op": "present" }
+      ],
+      "then": "auto-approve",
+      "message": "Within meal allowance."
+    },
+    {
+      "id": "auto-approve-transport",
+      "when": [
+        { "field": "category", "op": "==", "value": "Transport" },
+        { "field": "amount", "op": "<=", "value": 50 },
+        { "field": "receiptUrl", "op": "present" }
+      ],
+      "then": "auto-approve",
+      "message": "Within transport allowance."
+    },
+    {
+      "id": "auto-approve-office-supplies",
+      "when": [
+        { "field": "category", "op": "==", "value": "Office Supplies" },
+        { "field": "amount", "op": "<=", "value": 100 },
+        { "field": "receiptUrl", "op": "present" }
+      ],
+      "then": "auto-approve",
+      "message": "Standard office supply purchase."
+    },
+    {
+      "id": "route-tax-invoice-required",
+      "when": [
+        { "field": "amount", "op": ">", "value": 1000 },
+        { "field": "supplierGstRegNumber", "op": "missing" }
+      ],
+      "then": "route-to-human",
+      "message": "Full tax invoice fields are missing. Finance to verify before approving."
+    },
+    {
+      "id": "route-large-amount",
+      "when": [{ "field": "amount", "op": ">", "value": 500 }],
+      "then": "route-to-human",
+      "message": "Above auto-approval ceiling; manager review."
+    }
+  ]
+}
