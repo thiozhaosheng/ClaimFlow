@@ -32,6 +32,8 @@ function adaptClaim(claim) {
     action: "Claim submitted",
     bank: deriveBankLabel(claim.id),
     receiptUrl: claim.receiptUrl || null,
+    gstAmount: claim.gstAmount != null ? Number(claim.gstAmount) : null,
+    merchant: claim.merchant || null,
   };
 }
 
@@ -113,9 +115,14 @@ export function useClaims() {
   }, [claims]);
 
   const submitClaim = useCallback(
-    async ({ date, category, amount }) => {
+    async ({ date, category, amount, gstAmount, merchant }) => {
       const created = await api.post("/api/claims", {
         amount: Number(amount),
+        gstAmount:
+          gstAmount === "" || gstAmount === null || gstAmount === undefined
+            ? null
+            : Number(gstAmount),
+        merchant: merchant || null,
         category,
         expenseDate: date,
       });

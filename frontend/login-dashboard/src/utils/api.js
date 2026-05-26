@@ -76,12 +76,48 @@ async function request(path, { method = "GET", body, headers = {} } = {}) {
   return payload;
 }
 
+async function requestForm(path, formData) {
+  const token = getToken();
+  const headers = { Accept: "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers,
+      body: formData,
+      credentials: "include",
+    });
+  } catch (e) {
+    throw new ApiError("Network error - the ClaimFlow API is unreachable.", { status: 0 });
+  }
+
+  if (response.status === 401) {
+    setToken(null);
+    if (onUnauthorizedHandler) onUnauthorizedHandler();
+  }
+
+  let payload = null;
+  if ((response.headers.get("content-type") || "").includes("application/json")) {
+    try { payload = await response.json(); } catch { payload = null; }
+  }
+  if (!response.ok) {
+    throw new ApiError(payload?.message || `Upload failed (${response.status})`, {
+      status: response.status,
+      body: payload,
+    });
+  }
+  return payload;
+}
+
 export const api = {
   get: (path) => request(path),
   post: (path, body) => request(path, { method: "POST", body }),
   patch: (path, body) => request(path, { method: "PATCH", body }),
   put: (path, body) => request(path, { method: "PUT", body }),
   delete: (path) => request(path, { method: "DELETE" }),
+  postForm: (path, formData) => requestForm(path, formData),
 };
 
 // ---------- backend <-> frontend value mappings ----------
