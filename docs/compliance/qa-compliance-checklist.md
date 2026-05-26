@@ -52,9 +52,9 @@ Each item is phrased as "Given / When / Then" so it maps directly to a test case
 
 ## F. Approval policy
 
-**F1.** Given the rule `auto-approve-small-meal`, when a Meal claim of S$28 with a receipt is submitted, then the claim is created in `Approved` status and an AuditLog row records `auto-approved by policy auto-approve-small-meal`.
+**F1.** Given the rule `auto-approve-small-meal`, when a Meal claim of S$28 with a receipt is submitted, then the claim is created in `Endorsed` status and an AuditLog row records `auto-approved by policy auto-approve-small-meal`.
 
-**F2.** Given the rule `route-large-amount`, when a S$501 claim is submitted, then status is `Submitted` and the API response carries `{ outcome: "route-to-human", ruleId: "route-large-amount", message: ... }`.
+**F2.** Given the rule `route-large-amount`, when a S$501 claim is submitted, then status is `Pending` and the API response carries `{ outcome: "route-to-human", ruleId: "route-large-amount", message: ... }`.
 
 **F3.** Given the rule `block-stale-claim`, when a claim is submitted with `expenseDate` 91 days ago, then no Claim row is created and the API returns 422 with the rule's message.
 
