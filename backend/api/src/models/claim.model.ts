@@ -5,16 +5,32 @@ export async function createClaim(data: Prisma.ClaimUncheckedCreateInput): Promi
   return db.claim.create({ data });
 }
 
-export async function getClaimsByUser(userId: number): Promise<Claim[]> {
-  return db.claim.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } });
+const userSelect = {
+  user: {
+    select: { id: true, name: true, email: true, department: true, role: true },
+  },
+} as const;
+
+export async function getClaimsByUser(userId: number) {
+  return db.claim.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    include: userSelect,
+  });
 }
 
-export async function getAllClaims(): Promise<Claim[]> {
-  return db.claim.findMany({ orderBy: { createdAt: 'desc' } });
+export async function getAllClaims() {
+  return db.claim.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: userSelect,
+  });
 }
 
-export async function findById(id: number): Promise<Claim | null> {
-  return db.claim.findUnique({ where: { id } });
+export async function findById(id: number) {
+  return db.claim.findUnique({
+    where: { id },
+    include: userSelect,
+  });
 }
 
 export async function updateClaimStatus(id: number, status: ClaimStatus): Promise<Claim> {
