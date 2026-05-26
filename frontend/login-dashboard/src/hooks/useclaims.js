@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { api, mapStatusFromApi, mapRoleFromApi } from "../utils/api.js";
+import { api, mapRoleFromApi } from "../utils/api.js";
 import { useAuth } from "../context/authcontext.jsx";
 
 // Adapt a backend Claim (with user include) into the frontend's row shape.
@@ -26,7 +26,7 @@ function adaptClaim(claim) {
     type: claim.category,
     department: user.department || "Sales",
     amount: Number(claim.amount),
-    status: mapStatusFromApi(claim.status),
+    status: claim.status,
     actor: user.name || "Unknown",
     role: mapRoleFromApi(user.role || "Employee"),
     action: "Claim submitted",
@@ -63,7 +63,7 @@ function adaptAuditLog(log) {
     type: log.action,
     department: "—",
     amount: 0,
-    status: mapStatusFromApi(log.newStatus),
+    status: log.newStatus,
     actor: executor.name || "System",
     role: mapRoleFromApi(executor.role || "FinanceAdmin"),
     action: log.action.replace(/_/g, " ").toLowerCase(),

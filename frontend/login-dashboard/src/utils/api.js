@@ -120,30 +120,16 @@ export const api = {
   postForm: (path, formData) => requestForm(path, formData),
 };
 
-// ---------- backend <-> frontend value mappings ----------
+// Map the backend Role enum (PascalCase) to the URL slug used in routes (/employee, /approving, /finance).
+// Status no longer needs a mapper — backend and frontend now share the same vocabulary
+// (Pending, Endorsed, Rejected, Paid).
 
-const BACKEND_ROLE_TO_UI = {
+const BACKEND_ROLE_TO_ROUTE = {
   Employee: "employee",
   Manager: "approving",
   FinanceAdmin: "finance",
-  "Finance Admin": "finance",
-};
-
-const BACKEND_STATUS_TO_UI = {
-  Submitted: "Pending",
-  "Pending Review": "Pending",
-  PendingReview: "Pending",
-  Approved: "Endorsed",
-  Endorsed: "Endorsed",
-  Rejected: "Rejected",
-  Reimbursed: "Paid",
-  Paid: "Paid",
 };
 
 export function mapRoleFromApi(role) {
-  return BACKEND_ROLE_TO_UI[role] || "employee";
-}
-
-export function mapStatusFromApi(status) {
-  return BACKEND_STATUS_TO_UI[status] || status;
+  return BACKEND_ROLE_TO_ROUTE[role] || "employee";
 }
