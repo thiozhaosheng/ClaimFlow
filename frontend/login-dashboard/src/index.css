@@ -1096,6 +1096,34 @@ header {
 .role-workspace {
   max-width: 1400px;
   margin: 0 auto;
+  animation: page-enter 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.auth-shell {
+  animation: page-enter 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .role-workspace,
+  .auth-shell,
+  .modal-sheet,
+  .toast-card {
+    animation: none;
+  }
+  * {
+    transition: none !important;
+  }
 }
 
 /* loading screen */
