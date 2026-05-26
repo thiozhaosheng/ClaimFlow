@@ -108,15 +108,17 @@ import { ClaimStatus, Role } from '@prisma/client';
 
 export const createClaim = async (req: Request, res: Response) => {
   try {
-    const { amount, category, expenseDate, receiptUrl } = req.body;
-    
+    const { amount, gstAmount, merchant, category, expenseDate, receiptUrl } = req.body;
+
     const newClaim = await claimModel.createClaim({
       amount,
+      gstAmount: gstAmount ?? null,
+      merchant: merchant ?? null,
       category,
       expenseDate: new Date(expenseDate),
       receiptUrl,
       userId: req.user!.id,
-      status: ClaimStatus.Submitted
+      status: ClaimStatus.Submitted,
     });
 
     res.status(201).json({ status: 'success', data: { claim: newClaim } });
