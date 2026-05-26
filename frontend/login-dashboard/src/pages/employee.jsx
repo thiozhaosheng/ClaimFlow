@@ -102,14 +102,23 @@ export default function Employee() {
       if (data.receiptUrl) setReceiptUrl(data.receiptUrl);
       if (data.viewUrl) setViewUrl(data.viewUrl);
       setExtracted(data);
-      addToast({
-        variant: "info",
-        title:
-          data.source === "azure"
-            ? "Receipt analysed"
-            : "Receipt parsed (demo data)",
-        message: "Review the extracted details and confirm before submitting.",
-      });
+      if (data.source === "unavailable") {
+        addToast({
+          variant: "warning",
+          title: "Couldn't read this receipt",
+          message:
+            "The image was uploaded but the parser couldn't extract details. Please fill in the fields manually.",
+        });
+      } else {
+        addToast({
+          variant: "info",
+          title:
+            data.source === "azure"
+              ? "Receipt analysed"
+              : "Receipt parsed (demo data)",
+          message: "Review the extracted details and confirm before submitting.",
+        });
+      }
     } catch (err) {
       addToast({
         variant: "error",
@@ -225,7 +234,7 @@ export default function Employee() {
             </h2>
 
             <form onSubmit={handleSubmit}>
-              {extracted && (
+              {extracted && extracted.source !== "unavailable" && (
                 <div className="extracted-banner" role="status">
                   <div className="extracted-banner-icon">
                     <i className="fa-solid fa-wand-magic-sparkles"></i>
@@ -240,6 +249,19 @@ export default function Employee() {
                       We pre-filled the form below. Review each field and adjust
                       anything that looks off before submitting.
                     </span>
+                  </div>
+                </div>
+              )}
+              {extracted && extracted.source === "unavailable" && (
+                <div className="alert alert-warning d-flex gap-2 align-items-start" role="alert">
+                  <i className="fa-solid fa-circle-info mt-1"></i>
+                  <div>
+                    <strong>OCR couldn't read this receipt.</strong>
+                    <div className="small">
+                      The image is stored against your claim — please fill in the fields
+                      manually. Common causes: PDF over 4 MB, encrypted PDF, very small
+                      screenshot, or a layout the model doesn't recognise.
+                    </div>
                   </div>
                 </div>
               )}
