@@ -1,53 +1,54 @@
 import { useAuth } from "../context/authcontext.jsx";
-import { Link, useLocation } from "react-router-dom";
+import Logo from "./logo.jsx";
+
+const ROLE_LABELS = {
+  employee: "Employee",
+  approving: "Approving Officer",
+  finance: "Finance Admin",
+};
+
+function deriveName(email) {
+  if (!email) return "";
+  const local = email.split("@")[0];
+  return local
+    .split(/[._-]/)
+    .filter(Boolean)
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join(" ");
+}
 
 export default function Header() {
-  const { session, logout, switchView } = useAuth();
-  const location = useLocation();
+  const { session, logout } = useAuth();
 
-  const isActive = (path) => location.pathname === path;
+  if (!session) return null;
+
+  const name = deriveName(session.email);
+  const initials = (name.match(/\b\w/g) || ["U"]).slice(0, 2).join("").toUpperCase();
+  const roleLabel = ROLE_LABELS[session.role] || "Member";
 
   return (
     <header id="app-header">
       <div className="header-container">
         <div className="brand-meta">
-          <div className="logo-box">
-            <i className="fa-solid fa-building-columns text-white fs-5"></i>
-          </div>
-          <div>
-            <h1 className="brand-title">ClaimFlow Portal</h1>
-            <p className="user-meta">
-              Logged in as: <span>{session?.email || "..."}</span>
-            </p>
-          </div>
+          <Logo size={30} />
+          <h1 className="brand-title">ClaimFlow</h1>
         </div>
 
-        <div className="nav-actions">
-          <div className="role-switcher-group btn-group" role="group">
-            <Link
-              to="/employee"
-              onClick={() => switchView("employee")}
-              className={`btn btn-nav text-nowrap ${isActive("/employee") ? "active" : ""}`}
-            >
-              <i className="fa-solid fa-user-tie me-2"></i>Employee
-            </Link>
-            <Link
-              to="/approving"
-              onClick={() => switchView("approving")}
-              className={`btn btn-nav text-nowrap ${isActive("/approving") ? "active" : ""}`}
-            >
-              <i className="fa-solid fa-user-check me-2"></i>Approving Officer
-            </Link>
-            <Link
-              to="/finance"
-              onClick={() => switchView("finance")}
-              className={`btn btn-nav text-nowrap ${isActive("/finance") ? "active" : ""}`}
-            >
-              <i className="fa-solid fa-wallet me-2"></i>Finance
-            </Link>
+        <div className="user-identity">
+          <div className="user-identity-text">
+            <span className="user-identity-name">{name}</span>
+            <span className="user-identity-role">{roleLabel}</span>
           </div>
-          <button className="btn btn-logout ms-2 text-nowrap" onClick={logout}>
-            <i className="fa-solid fa-right-from-bracket me-2"></i>Logout
+          <div className="user-identity-avatar" aria-hidden="true">
+            {initials}
+          </div>
+          <button
+            className="btn-logout"
+            onClick={logout}
+            aria-label="Sign out"
+          >
+            <i className="fa-solid fa-arrow-right-from-bracket"></i>
+            <span>Sign out</span>
           </button>
         </div>
       </div>

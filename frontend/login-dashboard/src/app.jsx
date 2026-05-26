@@ -14,8 +14,9 @@ export default function App() {
     if (window.AOS) {
       window.AOS.init({
         disable: "phone",
-        duration: 800,
+        duration: 600,
         once: true,
+        easing: "ease-out-cubic",
       });
     }
   }, []);
@@ -36,9 +37,30 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="/employee" element={<Employee />} />
-        <Route path="/approving" element={<Approving />} />
-        <Route path="/finance" element={<Finance />} />
+        <Route
+          path="/employee"
+          element={
+            <ProtectedRoute role="employee">
+              <Employee />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/approving"
+          element={
+            <ProtectedRoute role="approving">
+              <Approving />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance"
+          element={
+            <ProtectedRoute role="finance">
+              <Finance />
+            </ProtectedRoute>
+          }
+        />
       </Route>
     </Routes>
   );

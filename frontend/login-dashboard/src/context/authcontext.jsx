@@ -26,7 +26,7 @@ export function AuthProvider({ children }) {
     if (!session && !isPublic) {
       navigate("/");
     } else if (session && isPublic) {
-      navigate(`/${session.currentView}`);
+      navigate(`/${session.role}`);
     }
   }, [session, loading, location.pathname, navigate]);
 
@@ -41,7 +41,6 @@ export function AuthProvider({ children }) {
     const newSession = {
       email: email,
       role: role,
-      currentView: role,
       financeTab: "audit",
     };
 
@@ -56,14 +55,6 @@ export function AuthProvider({ children }) {
     navigate("/");
   };
 
-  const switchView = (view) => {
-    if (!session) return;
-    const updated = { ...session, currentView: view };
-    setSession(updated);
-    localStorage.setItem("claimflow_session", JSON.stringify(updated));
-    navigate(`/${view}`);
-  };
-
   const setFinanceTab = (tab) => {
     if (!session) return;
     const updated = { ...session, financeTab: tab };
@@ -73,7 +64,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, signIn, logout, switchView, setFinanceTab, loading }}
+      value={{ session, signIn, logout, setFinanceTab, loading }}
     >
       {children}
     </AuthContext.Provider>
