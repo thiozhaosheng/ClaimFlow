@@ -3,6 +3,7 @@ import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
 import { useClaims } from "../hooks/useclaims.js";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
+import { api } from "../utils/api.js";
 import WelcomeStrip from "../components/welcomestrip.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
@@ -17,9 +18,52 @@ export default function Employee() {
   const [date, setDate] = useState("");
   const [category, setCategory] = useState("Transport");
   const [amount, setAmount] = useState("");
+  const [gstAmount, setGstAmount] = useState("");
+  const [merchant, setMerchant] = useState("");
   const [fileName, setFileName] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [extracted, setExtracted] = useState(null);
   const fileInputRef = useRef(null);
+
+  const parseFile = async (file) => {
+    if (!file) return;
+    setFileName(file.name);
+    setParsing(true);
+    setExtracted(null);
+    try {
+      const fd = new FormData();
+      fd.append("receipt", file);
+      const result = await api.postForm("/api/claims/parse-receipt", fd);
+      const data = result?.data;
+      if (!data) throw new Error("No data returned");
+      if (data.total != null) setAmount(String(data.total));
+      if (data.gstAmount != null) setGstAmount(String(data.gstAmount));
+      if (data.merchant) setMerchant(data.merchant);
+      if (data.expenseDate) setDate(data.expenseDate);
+      if (data.category) setCategory(data.category);
+      if (data.merchant && !title) {
+        setTitle(`${data.merchant} - ${data.category || "claim"}`);
+      }
+      setExtracted(data);
+      addToast({
+        variant: "info",
+        title:
+          data.source === "azure"
+            ? "Receipt analysed"
+            : "Receipt parsed (demo data)",
+        message: "Review the extracted details and confirm before submitting.",
+      });
+    } catch (err) {
+      addToast({
+        variant: "error",
+        title: "Could not read receipt",
+        message: err?.message || "Try again or fill in the fields manually.",
+      });
+    } finally {
+      setParsing(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,6 +76,8 @@ export default function Employee() {
         date,
         category,
         amount: parseFloat(amount),
+        gstAmount: gstAmount === "" ? null : parseFloat(gstAmount),
+        merchant: merchant || null,
         email: session?.email || "",
       });
       addToast({
@@ -45,7 +91,10 @@ export default function Employee() {
       setDate("");
       setCategory("Transport");
       setAmount("");
+      setGstAmount("");
+      setMerchant("");
       setFileName("");
+      setExtracted(null);
     } catch (err) {
       addToast({
         variant: "error",
@@ -71,13 +120,13 @@ export default function Employee() {
     setIsDragOver(false);
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      setFileName(files[0].name);
+      parseFile(files[0]);
     }
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) setFileName(file.name);
+    if (file) parseFile(file);
   };
 
   const distinctClaims = Object.values(latestMap).slice(0, 5);
@@ -110,6 +159,25 @@ export default function Employee() {
             </h2>
 
             <form onSubmit={handleSubmit}>
+              {extracted && (
+                <div className="extracted-banner" role="status">
+                  <div className="extracted-banner-icon">
+                    <i className="fa-solid fa-wand-magic-sparkles"></i>
+                  </div>
+                  <div className="extracted-banner-text">
+                    <strong>
+                      {extracted.source === "azure"
+                        ? "Receipt analysed"
+                        : "Receipt parsed (demo data)"}
+                    </strong>
+                    <span>
+                      We pre-filled the form below. Review each field and adjust
+                      anything that looks off before submitting.
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="mb-3">
                 <label className="form-label">Claim Title</label>
                 <input
@@ -119,6 +187,17 @@ export default function Employee() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
+                />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">Merchant</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g., Grab, NTUC FairPrice, Toast Box"
+                  value={merchant}
+                  onChange={(e) => setMerchant(e.target.value)}
                 />
               </div>
 
@@ -151,54 +230,85 @@ export default function Employee() {
                 </div>
               </div>
 
-              <div className="mb-4">
-                <label className="form-label">Amount</label>
-                <div className="input-group">
-                  <span className="input-group-text bg-white border-end-0 text-secondary">
-                    S$
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="form-control border-start-0 ps-1"
-                    placeholder="0.00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    required
-                  />
+              <div className="row">
+                <div className="col-md-7 mb-4">
+                  <label className="form-label">
+                    Total amount (incl. GST)
+                  </label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-white border-end-0 text-secondary">
+                      S$
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-control border-start-0 ps-1"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="col-md-5 mb-4">
+                  <label className="form-label">
+                    GST (9%) <span className="form-label-hint">optional</span>
+                  </label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-white border-end-0 text-secondary">
+                      S$
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-control border-start-0 ps-1"
+                      placeholder="0.00"
+                      value={gstAmount}
+                      onChange={(e) => setGstAmount(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="mb-4">
-                <label className="form-label">Receipt Upload</label>
+                <label className="form-label">
+                  Receipt <span className="form-label-hint">we auto-fill the form from this</span>
+                </label>
                 <input
                   type="file"
                   ref={fileInputRef}
                   className="d-none"
+                  accept="image/*,.pdf"
                   onChange={handleFileChange}
                 />
                 <div
-                  className={`file-dropzone ${isDragOver ? "dragover" : ""}`}
-                  onClick={() => fileInputRef.current?.click()}
+                  className={`file-dropzone ${isDragOver ? "dragover" : ""} ${parsing ? "parsing" : ""}`}
+                  onClick={() => !parsing && fileInputRef.current?.click()}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
-                  <i className="fa-solid fa-cloud-arrow-up dropzone-icon mb-2"></i>
+                  {parsing ? (
+                    <i className="fa-solid fa-circle-notch fa-spin dropzone-icon mb-2"></i>
+                  ) : (
+                    <i className="fa-solid fa-cloud-arrow-up dropzone-icon mb-2"></i>
+                  )}
                   <p className="m-0">
-                    {fileName ? (
+                    {parsing ? (
+                      "Reading your receipt..."
+                    ) : fileName ? (
                       <>
                         <span className="text-primary">
                           {escapeHtml(fileName)}
                         </span>{" "}
-                        ready for upload
+                        attached
                       </>
                     ) : (
-                      "Drag and drop your receipt here, or click to browse"
+                      "Drop a receipt photo here or click to browse"
                     )}
                   </p>
                   <span className="dropzone-subtext">
-                    PDF, JPG, PNG up to 10MB
+                    Photos of physical receipts, screenshots of Grab / PayNow / SimplyGo receipts. JPG, PNG, PDF up to 10MB.
                   </span>
                 </div>
               </div>

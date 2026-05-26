@@ -77,6 +77,20 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
               <span className="claim-detail-meta-label">Bank account</span>
               <span className="claim-detail-meta-value">{claim.bank}</span>
             </div>
+            {claim.merchant && (
+              <div className="claim-detail-meta-item">
+                <span className="claim-detail-meta-label">Merchant</span>
+                <span className="claim-detail-meta-value">{claim.merchant}</span>
+              </div>
+            )}
+            {claim.gstAmount != null && (
+              <div className="claim-detail-meta-item">
+                <span className="claim-detail-meta-label">GST</span>
+                <span className="claim-detail-meta-value">
+                  {formatSGD(claim.gstAmount)}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="claim-detail-history">
