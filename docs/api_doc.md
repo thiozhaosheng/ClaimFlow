@@ -75,7 +75,7 @@ This document outlines the API endpoints provided by the Auth Gateway. For front
     "status": "success",
     "results": 1,
     "data": { 
-      "claims": [ { "id": 1, "amount": 100, "status": "Submitted", "category": "Transport", "expenseDate": "..." } ] 
+      "claims": [ { "id": 1, "amount": 100, "status": "Pending", "category": "Transport", "expenseDate": "..." } ] 
     }
   }
   ```
@@ -108,7 +108,7 @@ This document outlines the API endpoints provided by the Auth Gateway. For front
     "performedBy": 1
   }
   ```
-*Note: Valid statuses are `Approved`, `Rejected`, or `Reimbursed`.*
+*Note: Valid statuses are `Endorsed`, `Rejected`, or `Paid`.*
 
 ---
 

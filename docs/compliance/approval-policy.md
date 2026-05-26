@@ -6,15 +6,15 @@ This is the manual configuration that bridges the current "approver reads every 
 
 ## Problem we are solving
 
-Today, every submitted claim sits in `Submitted` status until a Manager or FinanceAdmin reviews it. With dozens to hundreds of claims a week this becomes a queue the approver cannot keep up with, and obvious-correct claims get blocked behind borderline ones.
+Today, every submitted claim sits in `Pending` status until a Manager or FinanceAdmin reviews it. With dozens to hundreds of claims a week this becomes a queue the approver cannot keep up with, and obvious-correct claims get blocked behind borderline ones.
 
 The fix is a policy layer that runs at submission time and assigns one of three outcomes:
 
 | Outcome | What happens |
 |---|---|
-| **auto-approve** | Claim moves to `Approved` immediately. Audit log records `auto-approved by policy <rule id>`. |
-| **route-to-human** | Claim stays `Submitted`. Reviewer sees the policy hits as hints. |
-| **block** | Claim never enters `Submitted`. The frontend shows the reason inline; nothing is persisted. |
+| **auto-approve** | Claim moves to `Endorsed` immediately. Audit log records `auto-approved by policy <rule id>`. |
+| **route-to-human** | Claim stays `Pending`. Reviewer sees the policy hits as hints. |
+| **block** | Claim never enters `Pending`. The frontend shows the reason inline; nothing is persisted. |
 
 The policy is the same configuration that determines the **IRAS input-tax-eligibility hint** ([gst-iras.md](./gst-iras.md) §Input tax claim eligibility), so the eligibility check and the approval policy share one source of truth.
 
