@@ -384,10 +384,10 @@ export default function Finance() {
               ) : (
                 filteredLogs.map((log, idx) => {
                   let roleBadgeClass = "bg-light text-dark border";
-                  if (log.role === "Approving Officer")
+                  if (log.role === "approving")
                     roleBadgeClass =
                       "text-primary bg-primary-subtle border border-primary-subtle";
-                  if (log.role === "Finance Admin")
+                  if (log.role === "finance")
                     roleBadgeClass =
                       "text-info bg-info-subtle border border-info-subtle";
 

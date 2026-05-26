@@ -2,7 +2,7 @@ const LIFECYCLE = [
   { key: "submitted", label: "Submitted", icon: "fa-paper-plane" },
   { key: "pending", label: "Pending Review", icon: "fa-hourglass-half" },
   { key: "endorsed", label: "Endorsed", icon: "fa-circle-check" },
-  { key: "reimbursed", label: "Reimbursed", icon: "fa-wallet" },
+  { key: "paid", label: "Paid", icon: "fa-wallet" },
 ];
 
 export default function WelcomeStrip({ title, subtitle, activeStage }) {
