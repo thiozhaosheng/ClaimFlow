@@ -4,9 +4,11 @@ import { escapeHtml } from "../utils/helpers.js";
 import WelcomeStrip from "../components/welcomestrip.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import RejectionModal from "../components/rejectionmodal.jsx";
+import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 
 export default function Approving() {
-  const { latestMap, updateClaimStatus } = useClaims();
+  const { latestMap, updateClaimStatus, claimsDb } = useClaims();
+  const [activeClaim, setActiveClaim] = useState(null);
   const [filterStatus, setFilterStatus] = useState("Pending");
   const [filterDept, setFilterDept] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -147,7 +149,11 @@ export default function Approving() {
                     </tr>
                   ) : (
                     matchingClaims.map((item) => (
-                      <tr key={item.id}>
+                      <tr
+                        key={item.id}
+                        className="row-clickable"
+                        onClick={() => setActiveClaim(item)}
+                      >
                         <td>
                           <div className="d-flex align-items-center gap-2">
                             <div className="avatar-dot">
@@ -172,7 +178,10 @@ export default function Approving() {
                         <td className="text-end font-bold">
                           ${item.amount.toFixed(2)}
                         </td>
-                        <td className="text-center">
+                        <td
+                          className="text-center"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {item.status === "Pending" ? (
                             <div className="d-flex justify-content-center gap-2">
                               <button
@@ -180,6 +189,7 @@ export default function Approving() {
                                 onClick={() =>
                                   updateClaimStatus(item.id, "Endorsed")
                                 }
+                                aria-label="Endorse claim"
                               >
                                 <i className="fa-solid fa-check"></i>
                               </button>
@@ -214,6 +224,17 @@ export default function Approving() {
         claim={rejectingClaim}
         onConfirm={handleRejectConfirm}
         onCancel={() => setRejectingClaim(null)}
+      />
+
+      <ClaimDetailModal
+        open={!!activeClaim}
+        claim={activeClaim}
+        history={
+          activeClaim
+            ? claimsDb.filter((log) => log.id === activeClaim.id)
+            : []
+        }
+        onClose={() => setActiveClaim(null)}
       />
     </section>
   );

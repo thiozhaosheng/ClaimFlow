@@ -5,6 +5,7 @@ import { escapeHtml } from "../utils/helpers.js";
 import WelcomeStrip from "../components/welcomestrip.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import { exportAuditLogToCsv } from "../utils/export.js";
+import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 
 export default function Finance() {
   const { session, setFinanceTab } = useAuth();
@@ -15,6 +16,7 @@ export default function Finance() {
   const [auditFilter, setAuditFilter] = useState("All");
   const [selectedClaims, setSelectedClaims] = useState(new Set());
   const [selectAll, setSelectAll] = useState(false);
+  const [activeClaim, setActiveClaim] = useState(null);
 
   const switchTab = (tabKey) => {
     setActiveTab(tabKey);
@@ -201,8 +203,15 @@ export default function Finance() {
                 </tr>
               ) : (
                 endorsedClaims.map((item) => (
-                  <tr key={item.id}>
-                    <td className="text-center">
+                  <tr
+                    key={item.id}
+                    className="row-clickable"
+                    onClick={() => setActiveClaim(item)}
+                  >
+                    <td
+                      className="text-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <input
                         type="checkbox"
                         className="form-check-input"
@@ -339,7 +348,11 @@ export default function Finance() {
                       "text-info bg-info-subtle border border-info-subtle";
 
                   return (
-                    <tr key={`${log.id}-${idx}`}>
+                    <tr
+                      key={`${log.id}-${idx}`}
+                      className="row-clickable"
+                      onClick={() => setActiveClaim(log)}
+                    >
                       <td className="text-nowrap text-secondary font-medium">
                         {log.date}{" "}
                         <span
@@ -393,6 +406,17 @@ export default function Finance() {
           <span>Total Claims: {uniqueClaimIds.size}</span>
         </div>
       </div>
+
+      <ClaimDetailModal
+        open={!!activeClaim}
+        claim={activeClaim}
+        history={
+          activeClaim
+            ? claimsDb.filter((log) => log.id === activeClaim.id)
+            : []
+        }
+        onClose={() => setActiveClaim(null)}
+      />
     </section>
   );
 }

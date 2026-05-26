@@ -4,10 +4,12 @@ import { useClaims } from "../hooks/useclaims.js";
 import { escapeHtml } from "../utils/helpers.js";
 import WelcomeStrip from "../components/welcomestrip.jsx";
 import EmptyState from "../components/emptystate.jsx";
+import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 
 export default function Employee() {
   const { session } = useAuth();
-  const { latestMap, submitClaim } = useClaims();
+  const { latestMap, submitClaim, claimsDb } = useClaims();
+  const [activeClaim, setActiveClaim] = useState(null);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [category, setCategory] = useState("Travel");
@@ -192,7 +194,13 @@ export default function Employee() {
                 distinctClaims.map((item) => (
                   <div
                     key={item.id}
-                    className={`claim-mini-card ${item.status.toLowerCase()}`}
+                    className={`claim-mini-card clickable ${item.status.toLowerCase()}`}
+                    onClick={() => setActiveClaim(item)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") setActiveClaim(item);
+                    }}
                   >
                     <div className="d-flex justify-content-between align-items-start">
                       <div>
@@ -221,6 +229,17 @@ export default function Employee() {
           </div>
         </div>
       </div>
+
+      <ClaimDetailModal
+        open={!!activeClaim}
+        claim={activeClaim}
+        history={
+          activeClaim
+            ? claimsDb.filter((log) => log.id === activeClaim.id)
+            : []
+        }
+        onClose={() => setActiveClaim(null)}
+      />
     </section>
   );
 }
