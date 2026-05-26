@@ -38,7 +38,7 @@ Role-based expense claim portal for SMEs. Submitted as the capstone for NP-CET D
 
 **Infrastructure**
 
-![Microsoft Azure](https://img.shields.io/badge/Microsoft%20Azure-Static%20Web%20Apps%20%2B%20App%20Service%20%2B%20Postgres%20Flexible%20Server-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
+![Microsoft Azure](https://img.shields.io/badge/Microsoft%20Azure-PostgreSQL%20%2B%20Blob%20Storage%20%2B%20Document%20Intelligence%20%2B%20App%20Service-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
 
 ## Run it
 
