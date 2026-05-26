@@ -1,172 +1,78 @@
 # ClaimFlow
 
-Digital expense claim management for SMEs. Replaces ad-hoc submission over WhatsApp and similar channels with a role-based portal where claims are submitted, reviewed, and reimbursed through a defined workflow with a complete audit trail.
+Role-based expense claim portal for SMEs. Submitted as the capstone for NP-CET DFS IP Run 2.
 
-Built as the capstone project for NP-CET DFS IP Run 2.
+## Team
 
-## The Team
+| Name | Role |
+|---|---|
+| Ang Bi Jun | Lead Frontend Engineer |
+| Wong Sin Yaw | Lead Backend Engineer |
+| Travis Thio | Lead Infrastructure Engineer |
+| Wong Lian Yi Daniel | Lead QA & Technical Writer |
 
-| Name | Role | Responsibilities |
-|---|---|---|
-| Ang Bi Jun | Lead Frontend Engineer | Client-side state, responsive UI, frontend to API integration |
-| Wong Sin Yaw | Lead Backend Engineer | REST API design, server-side logic, database integration |
-| Travis Thio | Lead Infrastructure Engineer | Azure setup, environment configuration, deployment, monitoring |
-| Wong Lian Yi Daniel | Lead QA & Technical Writer | Documentation, test design, edge-case testing, defect tracking |
+## Stack
 
-## What it does
+**Frontend**
 
-Three user roles, each with their own scope:
+![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![React Router](https://img.shields.io/badge/React%20Router-6-CA4245?style=for-the-badge&logo=reactrouter&logoColor=white)
+![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)
 
-- **Employee** submits expense claims and uploads receipts (JPEG or PNG).
-- **Manager** reviews claims submitted within their department and either endorses or rejects them. Rejections require a reason that is returned to the claimant.
-- **Finance Admin** processes endorsed claims for reimbursement and reviews the audit trail. Audit data is exportable as CSV.
+**Backend**
 
-Every claim moves through a fixed lifecycle:
+![Node.js](https://img.shields.io/badge/Node.js-20%20LTS-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4-000000?style=for-the-badge&logo=express&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-5-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
+![bcrypt](https://img.shields.io/badge/bcrypt-Hashing-525252?style=for-the-badge)
+![Zod](https://img.shields.io/badge/Zod-Validation-3E67B1?style=for-the-badge&logo=zod&logoColor=white)
+![Helmet](https://img.shields.io/badge/Helmet-Headers-0F0F0F?style=for-the-badge)
+![Swagger](https://img.shields.io/badge/Swagger-OpenAPI-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
 
-```
-Submitted -> Pending Review -> Endorsed or Rejected -> Reimbursed
-```
+**Database**
 
-Every status change is recorded with a timestamp, the actor that performed it, and the previous and new state.
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14%2B-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 
-## Tech Stack
+**Infrastructure**
 
-**Frontend** (`frontend/login-dashboard/`)
-- React 18 with Vite 5
-- React Router 6
-- Bootstrap 5.3 utility classes
-- FontAwesome 6 icons
-- Inter and SF Pro typography
-- Custom CSS with design tokens, dark mode, and a gradient mesh sign-in background
+![Microsoft Azure](https://img.shields.io/badge/Microsoft%20Azure-Static%20Web%20Apps%20%2B%20App%20Service%20%2B%20Postgres%20Flexible%20Server-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
 
-**Backend API** (`backend/api/`)
-- Node.js with Express 4
-- TypeScript 5
-- Prisma 5 ORM
-- PostgreSQL 14 or newer
-- JSON Web Tokens via `jsonwebtoken`
-- `bcrypt` for password hashing
-- `zod` for request validation
-- `helmet` for security headers
-- `express-rate-limit` for brute-force throttling
-- Swagger UI for API documentation
+## Run it
 
-**Auth Gateway** (`backend/auth-gateway/`)
-- Node.js with Express 4 (plain JavaScript)
-- Proxies authentication and selected routes to the API or a downstream service
-- Same security middleware stack as the API
+Prerequisites: Node 20 LTS, npm, and either a local PostgreSQL 14+ or access to the project's Azure database (your IP must be whitelisted by the Infrastructure Lead first).
 
-**Database** (`database/`)
-- PostgreSQL (Azure Database for PostgreSQL Flexible Server in production, any local Postgres for development)
-- Schema managed through Prisma migrations
-- Seed data lives in `backend/api/prisma/seed.ts`
-
-## Project Structure
-
-```
-ClaimFlow/
-  backend/
-    api/                 main REST API (TypeScript + Prisma)
-      prisma/            schema and seed data
-      src/
-        config/          env loading, db client, swagger
-        controllers/     auth, claim, user, workflow
-        middleware/      auth (JWT), validate (zod), security (cors/helmet/rate-limit)
-        models/          thin db access layer per entity
-        routes/          express routers
-        schemas/         zod schemas
-    auth-gateway/        auth proxy (JavaScript)
-  database/              raw SQL schema and reference seed
-  docs/                  API documentation, npm notes
-  frontend/
-    login-dashboard/     primary web client (Vite + React)
-    ui-scaffold/         early empty scaffold, kept for reference
-  .gitignore
-  LICENSE
-  README.md
-```
-
-## Local Development
-
-### Prerequisites
-
-- Node.js 20 LTS
-- npm 10 or newer
-- PostgreSQL 14 or newer (or access to an existing Postgres database)
-- Git
-
-### Setup
-
-```
+```bash
 git clone https://github.com/thiozhaosheng/ClaimFlow
 cd ClaimFlow
 ```
 
-### Backend API
+Backend API:
 
-```
+```bash
 cd backend/api
-cp .env.example .env
-```
-
-Edit `.env`:
-- Generate a JWT secret: `node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"`
-- Set `DATABASE_URL` (URL-encode any special characters in the password)
-- Adjust `CORS_ORIGINS` to include your frontend origin
-
-Then:
-
-```
+cp .env.example .env          # fill DATABASE_URL and JWT_SECRET
 npm install
 npm run prisma:generate
 npm run prisma:migrate
 npm run prisma:seed
-npm run dev
+npm run dev                   # http://localhost:4000
 ```
 
-The API defaults to port `4000`.
+Frontend:
 
-### Auth Gateway
-
-```
-cd backend/auth-gateway
-cp .env.example .env
-```
-
-The `JWT_SECRET` in this file must be identical to the one used by `backend/api`, otherwise tokens issued by either service will not validate against the other.
-
-```
-npm install
-npm run dev
-```
-
-The auth gateway defaults to port `4001`.
-
-### Frontend
-
-```
+```bash
 cd frontend/login-dashboard
-cp .env.example .env
-```
-
-`VITE_API_BASE_URL` should point at the running API. With the defaults above:
-
-```
-VITE_API_BASE_URL=http://localhost:4000
-```
-
-Then:
-
-```
+cp .env.example .env          # VITE_API_BASE_URL=http://localhost:4000
 npm install
-npm run dev
+npm run dev                   # http://localhost:3000
 ```
 
-The Vite dev server serves on port `3000`. Open `http://localhost:3000`.
+## Demo accounts
 
-### Demo Accounts
-
-The seed script creates three accounts that match the demo buttons on the sign-in page. All three share the same password.
+The seed creates three accounts for evaluation. The login page has one-click sign-in buttons for each.
 
 | Role | Email | Password |
 |---|---|---|
@@ -174,67 +80,18 @@ The seed script creates three accounts that match the demo buttons on the sign-i
 | Manager | demo.manager@claimflow.com | claimflow-demo |
 | Finance Admin | demo.finance@claimflow.com | claimflow-demo |
 
-The password can be overridden at seed time by setting `DEMO_PASSWORD` in `backend/api/.env` before running the seed script.
+## Layout
 
-## API Documentation
+```
+backend/api/              REST API — TypeScript, Express, Prisma
+backend/auth-gateway/     Auth proxy — JavaScript, Express
+database/                 Reference SQL (live schema is managed by Prisma)
+docs/                     Project documentation
+frontend/login-dashboard/ Web client — React + Vite
+```
 
-With the API running, Swagger UI is available at `http://localhost:4000/api/docs`. Endpoint schemas, parameters, and response codes are documented inline in the controllers via JSDoc and rendered through `swagger-jsdoc`.
+## Where to find things
 
-## Security
-
-Defaults that apply to both backend services:
-
-- Passwords are hashed with bcrypt at cost factor 10 and are never stored or logged in plain text.
-- JWTs are signed with HS256 using a server-side secret read from the environment. The service refuses to start if `JWT_SECRET` is missing.
-- Login responses run a constant-time bcrypt compare even when the email is unknown, so request timing does not reveal which emails are registered.
-- Rate limits per IP: 5 requests per 15 minutes on auth endpoints (login, register, password update), 120 requests per minute on the rest of the API.
-- CORS uses an explicit allowlist from `CORS_ORIGINS`. Unknown origins are rejected.
-- Helmet sets security headers on every response.
-- Input validation on auth endpoints uses zod schemas. Validation errors return a structured 400 response.
-- Secrets live only in `.env` files, which are covered by `.gitignore` (including any nested `**/.env`). The `.env.example` in each service folder lists every required and optional key.
-- Any 401 from the API clears the stored frontend token and redirects to the sign-in page.
-
-When using Azure Database for PostgreSQL Flexible Server, the developer's public IP must be added to the firewall allowlist before local connections will succeed.
-
-## Deployment and Infrastructure
-
-| Component | Technology | Purpose |
-|---|---|---|
-| Frontend Hosting | Azure Static Web Apps | Serves the built Vite bundle to end users |
-| Backend Server | Azure App Service (Node.js) | Hosts the Express API and the auth gateway |
-| Relational Database | Azure Database for PostgreSQL Flexible Server | Stores user profiles, claim metadata, and audit logs |
-| Object Storage | Azure Blob Storage | Stores uploaded receipt image files |
-| Environment Config | `.env` files (excluded from version control) | Secrets and per-environment configuration |
-
-### Environment Variables
-
-| Variable | Service | Description |
-|---|---|---|
-| NODE_ENV | api, auth-gateway | `development`, `production`, or `test` |
-| PORT | api, auth-gateway | Port the service listens on |
-| DATABASE_URL | api | Postgres connection string. URL-encode any special characters in the password |
-| JWT_SECRET | api, auth-gateway | Server-side signing key, must match across both services |
-| JWT_EXPIRES_IN | api | Token expiry, supports `15m`, `12h`, `7d`, etc. |
-| CORS_ORIGINS | api, auth-gateway | Comma-separated allowlist of frontend origins |
-| BASE_SERVICE_HOST | auth-gateway | Hostname of the upstream service the gateway proxies to |
-| BASE_SERVICE_PORT | auth-gateway | Port of the upstream service |
-| BASE_SERVICE_TIMEOUT | auth-gateway | Request timeout in milliseconds |
-| HITPAY_API_KEY | api | Payment provider API key (optional, only if disbursement is wired up) |
-| HITPAY_SALT | api | Payment provider signing salt (optional) |
-| DEMO_PASSWORD | seed script | Password used for the seeded demo accounts |
-| VITE_API_BASE_URL | frontend | Base URL of the API the frontend should call |
-
-Real values for each environment are kept in `.env` files outside the repository. Every service ships an `.env.example` describing the required and optional keys.
-
-## Testing
-
-Test cases, edge-case scenarios, and defect tracking live alongside the documentation in `docs/`. Current coverage focuses on:
-
-- Authentication and role authorization at both the route and middleware layers
-- Claim lifecycle state transitions
-- Receipt upload validation
-- Audit log completeness for every status change
-
-## License
-
-This project is licensed under the terms of the LICENSE file in the repository root.
+- API reference: `http://localhost:4000/api/docs` (Swagger UI, while the API is running)
+- Full report and design rationale: the submitted project document
+- Schema source of truth: `backend/api/prisma/schema.prisma`
