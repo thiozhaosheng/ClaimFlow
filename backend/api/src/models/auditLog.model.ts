@@ -1,0 +1,13 @@
+import { db } from '../config/database';
+import { AuditLog, Prisma } from '@prisma/client';
+
+export async function createAuditLog(data: Prisma.AuditLogUncheckedCreateInput): Promise<AuditLog> {
+  return db.auditLog.create({ data });
+}
+
+export async function getAuditLogsByClaim(claimId: number): Promise<AuditLog[]> {
+  return db.auditLog.findMany({
+    where: { claimId },
+    orderBy: { createdAt: 'asc' },
+  });
+}
