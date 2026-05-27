@@ -4,7 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-const authService = require("./src/authService");
+const proxyRequest = require("./src/proxy");
 const logUtil = require("./src/logUtil");
 const config = require("./src/config/config");
 
@@ -35,8 +35,6 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-app.use(express.json({ limit: "1mb" }));
-
 app.use((req, _res, next) => {
   logUtil.info(`[Gateway] ${req.method} ${req.url}`);
   next();
@@ -62,14 +60,10 @@ const apiLimiter = rateLimit({
 app.use(express.static(path.join(__dirname, config.staticFolder)));
 
 // Auth endpoints — strict per-IP throttle
-app.post("/api/users/login", authLimiter, authService.login);
-app.post("/api/users/register", authLimiter, authService.register);
-app.patch("/api/users/update-password", authLimiter, authService.updatePassword);
+app.use("/api/auth/login", authLimiter);
 
 // General API endpoints — loose throttle
-app.get("/api/claims", apiLimiter, authService.getAllClaims);
-app.post("/api/claims", apiLimiter, authService.createClaim);
-app.patch("/api/workflow/review/:id", apiLimiter, authService.reviewClaim);
+app.use("/api", apiLimiter, proxyRequest);
 
 app.use((req, res) => {
   res.status(404).json({ status: "error", message: "Endpoint not found" });

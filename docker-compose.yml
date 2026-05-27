@@ -26,6 +26,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: ${GATEWAY_PORT:-3001}
+      BASE_SERVICE_PROTOCOL: http
       BASE_SERVICE_HOST: api
       BASE_SERVICE_PORT: ${API_PORT:-4000}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:3004,http://localhost:5173}
