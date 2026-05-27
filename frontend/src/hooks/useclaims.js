@@ -21,6 +21,7 @@ function adaptClaim(claim) {
     rawId: claim.id,
     employee: user.name || "Unknown",
     employeeEmail: user.email || "",
+    avatarUrl: user.avatarUrl || null,
     date: expenseDate,
     time,
     type: claim.category,
@@ -32,8 +33,12 @@ function adaptClaim(claim) {
     action: "Claim submitted",
     bank: deriveBankLabel(claim.id),
     receiptUrl: claim.receiptUrl || null,
+    ocrSource: claim.ocrSource || null,
     gstAmount: claim.gstAmount != null ? Number(claim.gstAmount) : null,
     merchant: claim.merchant || null,
+    details: claim.details || null,
+    createdAt: claim.createdAt || null,
+    updatedAt: claim.updatedAt || null,
   };
 }
 
@@ -104,7 +109,19 @@ export function useClaims() {
 
   useEffect(() => {
     fetchClaimsForRole();
-  }, [fetchClaimsForRole]);
+    if (!session) return undefined;
+    // Poll every 25s so claim status updates from other roles surface
+    // without a manual refresh. Cheap, no websockets.
+    const id = setInterval(fetchClaimsForRole, 25_000);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") fetchClaimsForRole();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [fetchClaimsForRole, session]);
 
   const latestMap = useMemo(() => {
     const map = {};
@@ -115,7 +132,7 @@ export function useClaims() {
   }, [claims]);
 
   const submitClaim = useCallback(
-    async ({ date, category, amount, gstAmount, merchant, receiptUrl }) => {
+    async ({ date, category, amount, gstAmount, merchant, receiptUrl, ocrSource, details }) => {
       const created = await api.post("/api/claims", {
         amount: Number(amount),
         gstAmount:
@@ -126,9 +143,11 @@ export function useClaims() {
         category,
         expenseDate: date,
         receiptUrl: receiptUrl || null,
+        ocrSource: ocrSource || null,
+        details: details || null,
       });
       await fetchClaimsForRole();
-      return adaptClaim(created?.data?.claim);
+      return { claim: adaptClaim(created?.data?.claim), policy: created?.policy };
     },
     [fetchClaimsForRole],
   );
