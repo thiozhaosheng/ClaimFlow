@@ -15,11 +15,9 @@ export function useTheme() {
   const [theme, setTheme] = useState(readInitialTheme);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    // Bootstrap 5.3 reads data-bs-theme to switch its own utility colors (.table,
-    // .form-control, .modal, etc.). Keeping them in sync stops white-on-white
-    // and similar Bootstrap-default colors leaking into dark mode.
-    document.documentElement.setAttribute("data-bs-theme", theme);
+    const root = document.documentElement;
+    root.setAttribute("data-theme", theme);
+    root.classList.toggle("dark", theme === "dark");
     window.localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 
