@@ -1,6 +1,6 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import { useEffect } from "react";
-import Layout from "./components/layout.jsx";
+import AppShell from "./components/appshell.jsx";
 import ProtectedRoute from "./components/protectedroute.jsx";
 import SignIn from "./pages/signin.jsx";
 import Employee from "./pages/employee.jsx";
@@ -39,7 +39,7 @@ export default function App() {
       <Route
         element={
           <ProtectedRoute>
-            <Layout />
+            <AppShell />
           </ProtectedRoute>
         }
       >

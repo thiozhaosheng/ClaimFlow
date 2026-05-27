@@ -111,7 +111,7 @@ async function requestForm(path, formData) {
   return payload;
 }
 
-export const api = {
+const realApi = {
   get: (path) => request(path),
   post: (path, body) => request(path, { method: "POST", body }),
   patch: (path, body) => request(path, { method: "PATCH", body }),
@@ -119,6 +119,12 @@ export const api = {
   delete: (path) => request(path, { method: "DELETE" }),
   postForm: (path, formData) => requestForm(path, formData),
 };
+
+// VITE_MOCK_API=true short-circuits every API call to a localStorage-backed
+// mock so the frontend is usable without the backend.
+import { mockApi } from "./mockApi.js";
+const useMock = import.meta.env.VITE_MOCK_API === "true";
+export const api = useMock ? mockApi : realApi;
 
 // Map the backend Role enum (PascalCase) to the URL slug used in routes (/employee, /approving, /finance).
 // Status no longer needs a mapper — backend and frontend now share the same vocabulary

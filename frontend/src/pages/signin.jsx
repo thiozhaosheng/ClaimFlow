@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  Camera,
+  Moon,
+  Shield,
+  Sparkles,
+  Sun,
+  Wallet,
+} from "lucide-react";
 import { useAuth } from "../context/authcontext.jsx";
+import { useTheme } from "../hooks/usetheme.js";
 import Logo from "../components/logo.jsx";
-import LoginIllustration from "../components/loginillustration.jsx";
 
 const DEMO_PASSWORD = "claimflow-demo";
 
@@ -29,6 +37,7 @@ const DEMO_ACCOUNTS = [
 
 export default function SignIn() {
   const { signIn } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -63,44 +72,100 @@ export default function SignIn() {
           <Logo size={28} />
           <span className="auth-topbar-name">ClaimFlow</span>
         </div>
-        <span className="auth-topbar-help">
-          Need help?{" "}
-          <a href="mailto:support@claimflow.sg">support@claimflow.sg</a>
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="auth-topbar-help">
+            Need help?{" "}
+            <a href="mailto:support@claimflow.sg">support@claimflow.sg</a>
+          </span>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={
+              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            }
+            title={
+              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            }
+            className="auth-topbar-theme"
+          >
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="auth-split">
         <div className="auth-brand-panel">
           <div className="auth-brand-panel-content" data-aos="fade-right">
             <span className="auth-eyebrow">
-              <i className="fa-solid fa-sparkles"></i>
-              Expense management for SMEs
+              <Sparkles className="h-3.5 w-3.5" />
+              Built for Singapore SMEs
             </span>
             <h1 className="auth-headline">
-              Reimbursements,
+              Receipts in.
               <br />
-              <span className="auth-headline-accent">without the chaos.</span>
+              <span className="auth-headline-accent">Approved claims out.</span>
             </h1>
             <p className="auth-subheadline">
-              Replace WhatsApp receipts and spreadsheet approvals with a
-              structured workflow your finance team will actually trust.
+              Smart capture pulls the merchant, amount and GST off the receipt. Policy decides the next stop.
+              Finance sees every step. You get paid.
             </p>
-            <ul className="auth-feature-row">
-              <li>
-                <i className="fa-solid fa-bolt"></i>
-                <span>Submit in seconds</span>
+
+            <div className="auth-stat-strip">
+              <div>
+                <strong>~12 min</strong>
+                <span>avg approval</span>
+              </div>
+              <span className="auth-stat-divider" aria-hidden="true" />
+              <div>
+                <strong>87%</strong>
+                <span>auto-approved</span>
+              </div>
+              <span className="auth-stat-divider" aria-hidden="true" />
+              <div>
+                <strong>PDPA + IRAS</strong>
+                <span>compliant</span>
+              </div>
+            </div>
+
+            <ol className="auth-flow">
+              <li className="auth-flow-step" style={{ "--i": 0 }}>
+                <span className="auth-flow-num">1</span>
+                <span className="auth-flow-icon"><Camera className="h-4 w-4" /></span>
+                <div className="auth-flow-text">
+                  <strong>Snap a receipt</strong>
+                  <span>Photo or PDF — Grab, FairPrice, anything.</span>
+                </div>
               </li>
-              <li>
-                <i className="fa-solid fa-shield-halved"></i>
-                <span>Role-based approvals</span>
+              <li className="auth-flow-step" style={{ "--i": 1 }}>
+                <span className="auth-flow-num">2</span>
+                <span className="auth-flow-icon"><Sparkles className="h-4 w-4" /></span>
+                <div className="auth-flow-text">
+                  <strong>Smart capture</strong>
+                  <span>Amount, GST 9%, merchant, date pulled automatically.</span>
+                </div>
               </li>
-              <li>
-                <i className="fa-solid fa-file-lines"></i>
-                <span>Audit-ready records</span>
+              <li className="auth-flow-step" style={{ "--i": 2 }}>
+                <span className="auth-flow-num">3</span>
+                <span className="auth-flow-icon"><Shield className="h-4 w-4" /></span>
+                <div className="auth-flow-text">
+                  <strong>Policy routes</strong>
+                  <span>Auto-approve, manager review, or block.</span>
+                </div>
               </li>
-            </ul>
+              <li className="auth-flow-step" style={{ "--i": 3 }}>
+                <span className="auth-flow-num">4</span>
+                <span className="auth-flow-icon"><Wallet className="h-4 w-4" /></span>
+                <div className="auth-flow-text">
+                  <strong>Finance disburses</strong>
+                  <span>Paid into your bank account.</span>
+                </div>
+              </li>
+            </ol>
           </div>
-          <LoginIllustration />
         </div>
 
         <div className="auth-form-panel">

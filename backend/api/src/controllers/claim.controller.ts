@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as claimModel from '../models/claim.model';
+import * as auditModel from '../models/auditLog.model';
 import { ClaimStatus, Role } from '@prisma/client';
 import { parseReceipt } from '../services/receiptParser';
 import {
@@ -7,6 +8,7 @@ import {
   uploadReceipt,
   generateViewUrl,
 } from '../services/blobStorage';
+import { evaluateClaim } from '../services/policyEngine';
 
 /**
  * @swagger
@@ -116,6 +118,29 @@ export const createClaim = async (req: Request, res: Response) => {
   try {
     const { amount, gstAmount, merchant, category, expenseDate, receiptUrl } = req.body;
 
+    // Run company policy against the incoming claim before we persist anything.
+    const policy = evaluateClaim({
+      amount: Number(amount),
+      gstAmount: gstAmount ?? null,
+      merchant: merchant ?? null,
+      category,
+      expenseDate,
+      receiptUrl: receiptUrl ?? null,
+    } as any);
+
+    // Block outcome — refuse the submission with the same shape callers
+    // already expect for validation errors.
+    if (policy.outcome === 'block') {
+      return res.status(422).json({
+        status: 'error',
+        message: policy.message,
+        policy,
+      });
+    }
+
+    const autoApprove = policy.outcome === 'auto-approve';
+    const initialStatus = autoApprove ? ClaimStatus.Endorsed : ClaimStatus.Pending;
+
     const newClaim = await claimModel.createClaim({
       amount,
       gstAmount: gstAmount ?? null,
@@ -124,10 +149,27 @@ export const createClaim = async (req: Request, res: Response) => {
       expenseDate: new Date(expenseDate),
       receiptUrl,
       userId: req.user!.id,
-      status: ClaimStatus.Pending,
+      status: initialStatus,
     });
 
-    res.status(201).json({ status: 'success', data: { claim: newClaim } });
+    // Audit trail: every auto-approval is recorded so the finance audit
+    // log stays symmetric with manager approvals.
+    if (autoApprove) {
+      await auditModel.createAuditLog({
+        claimId: newClaim.id,
+        action: 'AUTO_APPROVAL_BY_POLICY',
+        performedBy: req.user!.id,
+        oldStatus: ClaimStatus.Pending,
+        newStatus: ClaimStatus.Endorsed,
+        remarks: policy.ruleId,
+      });
+    }
+
+    res.status(201).json({
+      status: 'success',
+      data: { claim: newClaim },
+      policy,
+    });
   } catch (error: any) {
     res.status(400).json({ status: 'error', message: error.message });
   }

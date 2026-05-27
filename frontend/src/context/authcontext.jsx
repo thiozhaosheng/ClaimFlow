@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
           email: user.email,
           name: user.name,
           role: mapRoleFromApi(user.role),
-          financeTab: "audit",
+          financeTab: "dashboard",
         };
         setSession(newSession);
         localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
@@ -72,11 +72,19 @@ export function AuthProvider({ children }) {
   // route guard: bounce unauthenticated users to /, signed-in users away from /
   useEffect(() => {
     if (loading) return;
-    const publicPaths = ["/", "/index.html"];
+    const publicPaths = [
+      "/",
+      "/index.html",
+      "/privacy",
+      "/policies",
+      "/compliance",
+    ];
+    const signInOnlyPaths = ["/", "/index.html"];
     const isPublic = publicPaths.includes(location.pathname);
+    const isSignInOnly = signInOnlyPaths.includes(location.pathname);
     if (!session && !isPublic) {
       navigate("/");
-    } else if (session && isPublic) {
+    } else if (session && isSignInOnly) {
       navigate(`/${session.role}`);
     }
   }, [session, loading, location.pathname, navigate]);
@@ -90,7 +98,7 @@ export function AuthProvider({ children }) {
       email: result.user.email,
       name: result.user.name,
       role: mapRoleFromApi(result.user.role),
-      financeTab: "audit",
+      financeTab: "dashboard",
     };
     setSession(newSession);
     localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
@@ -101,6 +109,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setToken(null);
     localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem("claimflow_mock_session");
     setSession(null);
     navigate("/");
   };

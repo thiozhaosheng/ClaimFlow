@@ -1,11 +1,28 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { ShieldCheck, AlertTriangle, Ban } from "lucide-react";
 import { formatSGD, formatSGDate } from "../utils/helpers.js";
+import {
+  evaluatePolicies,
+  claimContextFromForm,
+} from "../lib/policy.js";
 
 const STATUS_KEYS = {
   Pending: "pending",
   Endorsed: "endorsed",
   Paid: "paid",
   Rejected: "rejected",
+};
+
+const POLICY_LABEL = {
+  "auto-approve": "Met every auto-approval check",
+  "route-to-human": "Flagged for your review",
+  block: "Blocked at submission by policy",
+};
+
+const POLICY_ICON = {
+  "auto-approve": ShieldCheck,
+  "route-to-human": AlertTriangle,
+  block: Ban,
 };
 
 export default function ClaimDetailModal({ open, claim, history = [], onClose }) {
@@ -18,9 +35,21 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
+  const policy = useMemo(() => {
+    if (!claim) return null;
+    const ctx = claimContextFromForm({
+      category: claim.type,
+      amount: claim.amount,
+      receiptUrl: claim.receiptUrl,
+      expenseDate: claim.date,
+    });
+    return evaluatePolicies(ctx);
+  }, [claim]);
+
   if (!open || !claim) return null;
 
   const statusKey = STATUS_KEYS[claim.status] || "pending";
+  const PolicyIcon = policy ? POLICY_ICON[policy.outcome] : null;
 
   return (
     <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
@@ -48,6 +77,22 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
         </div>
 
         <div className="modal-detail-body">
+          {/* policy hint — shown to anyone opening the claim */}
+          {policy && (
+            <div className={`preflight preflight-${policy.outcome}`} role="status">
+              <div className="preflight-icon">
+                {PolicyIcon && <PolicyIcon className="h-4 w-4" />}
+              </div>
+              <div className="preflight-body">
+                <div className="preflight-headline">
+                  <strong>{POLICY_LABEL[policy.outcome]}</strong>
+                  <span className="preflight-rule">{policy.ruleId}</span>
+                </div>
+                <p className="preflight-message">{policy.message}</p>
+              </div>
+            </div>
+          )}
+
           <div className="claim-detail-receipt">
             <div className="claim-detail-receipt-thumb">
               <i className="fa-regular fa-image"></i>

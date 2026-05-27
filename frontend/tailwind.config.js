@@ -5,19 +5,13 @@ export default {
   theme: {
     extend: {
       colors: {
+        // existing project tokens
         app: "var(--bg-app)",
-        card: "var(--bg-card)",
         subtle: "var(--bg-subtle)",
-        muted: "var(--bg-muted)",
         text: {
           primary: "var(--text-primary)",
           secondary: "var(--text-secondary)",
           tertiary: "var(--text-tertiary)",
-        },
-        border: {
-          subtle: "var(--border-subtle)",
-          DEFAULT: "var(--border-default)",
-          strong: "var(--border-strong)",
         },
         accent: {
           DEFAULT: "var(--accent)",
@@ -45,12 +39,60 @@ export default {
           bg: "var(--info-bg)",
           text: "var(--info-text)",
         },
+
+        // shadcn-compatible aliases — map to existing project tokens so
+        // shadcn primitives blend with the rest of the app
+        background: "var(--bg-app)",
+        foreground: "var(--text-primary)",
+        card: {
+          DEFAULT: "var(--bg-card)",
+          foreground: "var(--text-primary)",
+        },
+        popover: {
+          DEFAULT: "var(--bg-card)",
+          foreground: "var(--text-primary)",
+        },
+        primary: {
+          DEFAULT: "var(--accent)",
+          foreground: "#ffffff",
+        },
+        secondary: {
+          DEFAULT: "var(--bg-subtle)",
+          foreground: "var(--text-primary)",
+        },
+        muted: {
+          DEFAULT: "var(--bg-subtle)",
+          foreground: "var(--text-secondary)",
+        },
+        destructive: {
+          DEFAULT: "var(--danger)",
+          foreground: "#ffffff",
+        },
+        border: {
+          subtle: "var(--border-subtle)",
+          DEFAULT: "var(--border-default)",
+          strong: "var(--border-strong)",
+        },
+        input: "var(--border-default)",
+        ring: "var(--accent-ring)",
+        chart: {
+          1: "var(--accent)",
+          2: "var(--info)",
+          3: "var(--success)",
+          4: "var(--warning)",
+          5: "#af52de",
+        },
       },
       borderRadius: {
+        // existing project radii
         "ds-sm": "var(--radius-sm)",
         "ds-md": "var(--radius-md)",
         "ds-lg": "var(--radius-lg)",
         "ds-xl": "var(--radius-xl)",
+        // shadcn defaults
+        lg: "var(--radius-lg)",
+        md: "var(--radius-md)",
+        sm: "var(--radius-sm)",
       },
       boxShadow: {
         "ds-xs": "var(--shadow-xs)",
@@ -70,6 +112,20 @@ export default {
           '"Helvetica Neue"',
           "sans-serif",
         ],
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: 0 },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: 0 },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
       },
     },
   },

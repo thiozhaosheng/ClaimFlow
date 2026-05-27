@@ -1,12 +1,22 @@
 import { useState, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Ban,
+  ShieldCheck,
+} from "lucide-react";
 import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
 import { useClaims } from "../hooks/useclaims.js";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
 import { api } from "../utils/api.js";
 import policies from "../data/policies.json";
-import WelcomeStrip from "../components/welcomestrip.jsx";
+import {
+  evaluatePolicies,
+  claimContextFromForm,
+} from "../lib/policy.js";
+import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 
@@ -76,6 +86,19 @@ export default function Employee() {
   const formInvalid = categoryDisallowed || receiptMissing;
   const today = todayIso();
   const minDate = minDateIso();
+
+  // live policy preflight — runs as user fills the form
+  const preflight = useMemo(() => {
+    const ctx = claimContextFromForm({
+      category,
+      amount: numericAmount,
+      expenseDate: date,
+      hasFile,
+    });
+    return evaluatePolicies(ctx);
+  }, [category, numericAmount, date, hasFile]);
+
+  const formHasMinFields = title.trim() && date && numericAmount > 0;
 
   const parseFile = async (file) => {
     if (!file) return;
@@ -204,14 +227,59 @@ export default function Employee() {
     if (file) parseFile(file);
   };
 
-  const distinctClaims = Object.values(latestMap).slice(0, 5);
+  const allClaims = Object.values(latestMap);
+  const distinctClaims = allClaims.slice(0, 5);
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const thisMonth = (d) => {
+      if (!d) return false;
+      const dt = new Date(d);
+      return (
+        dt.getMonth() === now.getMonth() &&
+        dt.getFullYear() === now.getFullYear()
+      );
+    };
+    return {
+      submittedThisMonth: allClaims.filter((c) => thisMonth(c.date)).length,
+      pending: allClaims.filter((c) => c.status === "Pending").length,
+      endorsed: allClaims.filter((c) => c.status === "Endorsed").length,
+      inFlight: allClaims.filter(
+        (c) => c.status === "Pending" || c.status === "Endorsed",
+      ).length,
+      paidThisMonth: allClaims
+        .filter((c) => c.status === "Paid" && thisMonth(c.date))
+        .reduce((s, c) => s + c.amount, 0),
+      paidThisMonthCount: allClaims.filter(
+        (c) => c.status === "Paid" && thisMonth(c.date),
+      ).length,
+    };
+  }, [allClaims]);
 
   return (
     <section id="view-employee" className="role-workspace">
-      <WelcomeStrip
-        title="Submit a new claim"
-        subtitle="Upload your receipt and route it for approval — track every status in real time."
-        activeStage="submitted"
+      <PageHeader
+        title="Submit & track your claims"
+        subtitle="Snap a receipt — we extract the merchant, amount, GST and date so you only confirm. Claims under S$50 in standard categories auto-approve; anything larger routes to a manager."
+        actions={
+          <div className="claim-pipeline-pill" aria-label="Your claims pipeline">
+            <span className="claim-pipeline-pill-stage">
+              <b>{stats.submittedThisMonth}</b>Submitted
+            </span>
+            <ArrowRight className="claim-pipeline-pill-connector" aria-hidden="true" />
+            <span className="claim-pipeline-pill-stage tone-warning">
+              <b>{stats.pending}</b>Pending
+            </span>
+            <ArrowRight className="claim-pipeline-pill-connector" aria-hidden="true" />
+            <span className="claim-pipeline-pill-stage tone-accent">
+              <b>{stats.endorsed}</b>Endorsed
+            </span>
+            <ArrowRight className="claim-pipeline-pill-connector" aria-hidden="true" />
+            <span className="claim-pipeline-pill-stage tone-success">
+              <b>{stats.paidThisMonthCount}</b>Paid
+            </span>
+          </div>
+        }
       />
 
       {error && (
@@ -223,9 +291,10 @@ export default function Employee() {
           </div>
         </div>
       )}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <div className="lg:col-span-8">
-          <div className="workspace-card p-6">
+          <div className="workspace-card p-5">
             <h2 className="workspace-card-title mb-4 flex items-center">
               <span className="plus-icon-badge mr-2">
                 <i className="fa-solid fa-plus"></i>
@@ -301,27 +370,28 @@ export default function Employee() {
                 </div>
               )}
 
-              <div className="mb-3">
-                <label className="form-label">Claim Title</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g., Grab to client meeting"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label">Merchant</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g., Grab, NTUC FairPrice, Toast Box"
-                  value={merchant}
-                  onChange={(e) => setMerchant(e.target.value)}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div>
+                  <label className="form-label">Claim Title</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g., Grab to client meeting"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Merchant</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g., Grab, NTUC FairPrice, Toast Box"
+                    value={merchant}
+                    onChange={(e) => setMerchant(e.target.value)}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
@@ -462,6 +532,46 @@ export default function Employee() {
                 )}
               </div>
 
+              {/* compliance preflight */}
+              {formHasMinFields && (
+                <div
+                  className={`preflight preflight-${preflight.outcome}`}
+                  role="status"
+                  aria-live="polite"
+                >
+                  <div className="preflight-icon">
+                    {preflight.outcome === "auto-approve" ? (
+                      <ShieldCheck className="h-4 w-4" />
+                    ) : preflight.outcome === "block" ? (
+                      <Ban className="h-4 w-4" />
+                    ) : (
+                      <AlertTriangle className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div className="preflight-body">
+                    <div className="preflight-headline">
+                      <strong>
+                        {preflight.outcome === "auto-approve" &&
+                          "Will auto-approve on submit"}
+                        {preflight.outcome === "route-to-human" &&
+                          "Goes to your approving officer"}
+                        {preflight.outcome === "block" &&
+                          "Won't submit — policy blocks this"}
+                      </strong>
+                      <span className="preflight-rule">{preflight.ruleId}</span>
+                    </div>
+                    <p className="preflight-message">{preflight.message}</p>
+                    {preflight.outcome === "block" && (
+                      <p className="preflight-hint">
+                        Fix the issue above or see{" "}
+                        <Link to="/policies">the company approval policy</Link>{" "}
+                        for the full rule list.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <button
                 type="submit"
                 className="btn-primary w-full py-2 font-medium"
@@ -480,8 +590,45 @@ export default function Employee() {
         </div>
 
         <div className="lg:col-span-4">
-          <div className="workspace-card p-6 h-full">
-            <h3 className="panel-subtitle mb-4">Recent Claims</h3>
+          <div className="workspace-card p-5 h-full">
+            {/* compact at-a-glance stats */}
+            <div className="grid grid-cols-3 gap-2 pb-3 mb-3 border-b border-border-subtle">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                  Submitted
+                </span>
+                <span className="text-lg font-bold tabular-nums leading-tight">
+                  {stats.submittedThisMonth}
+                </span>
+                <span className="text-[10px] text-text-secondary">
+                  this month
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                  In flight
+                </span>
+                <span className="text-lg font-bold tabular-nums leading-tight">
+                  {stats.inFlight}
+                </span>
+                <span className="text-[10px] text-text-secondary">
+                  {stats.pending}P · {stats.endorsed}E
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                  Paid
+                </span>
+                <span className="text-lg font-bold tabular-nums text-success-text leading-tight">
+                  {formatSGD(stats.paidThisMonth).replace("S$", "")}
+                </span>
+                <span className="text-[10px] text-text-secondary">
+                  this month
+                </span>
+              </div>
+            </div>
+
+            <h3 className="panel-subtitle mb-3 text-sm">Recent Claims</h3>
             <div className="flex flex-col gap-3">
               {distinctClaims.length === 0 ? (
                 <EmptyState

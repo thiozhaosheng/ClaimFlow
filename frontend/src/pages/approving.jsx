@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { ArrowRight } from "lucide-react";
 import { useClaims } from "../hooks/useclaims.js";
 import { useToast } from "../context/toastcontext.jsx";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
-import WelcomeStrip from "../components/welcomestrip.jsx";
+import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import RejectionModal from "../components/rejectionmodal.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
@@ -67,16 +68,57 @@ export default function Approving() {
     return true;
   });
 
-  const pendingCount = Object.values(latestMap).filter(
-    (i) => i.department === "Sales" && i.status === "Pending",
-  ).length;
+  const deptClaims = Object.values(latestMap).filter(
+    (c) => c.department === "Sales",
+  );
+
+  const stats = useMemo(() => {
+    const pending = deptClaims.filter((c) => c.status === "Pending");
+    const endorsed = deptClaims.filter((c) => c.status === "Endorsed");
+    const paid = deptClaims.filter((c) => c.status === "Paid");
+    const rejected = deptClaims.filter((c) => c.status === "Rejected");
+    const oldestPendingDays = pending.reduce((max, c) => {
+      const d = c.date ? new Date(c.date) : null;
+      if (!d || Number.isNaN(d.getTime())) return max;
+      const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
+      return Math.max(max, days);
+    }, 0);
+    return {
+      pendingCount: pending.length,
+      pendingTotal: pending.reduce((s, c) => s + c.amount, 0),
+      endorsedCount: endorsed.length,
+      paidCount: paid.length,
+      rejectedCount: rejected.length,
+      oldestPendingDays,
+    };
+  }, [deptClaims]);
+
+  const pendingCount = stats.pendingCount;
 
   return (
     <section id="view-approving" className="role-workspace">
-      <WelcomeStrip
-        title="Pending claims for your department"
-        subtitle="Review the receipt and endorse or reject — comments help the claimant if you reject."
-        activeStage="pending"
+      <PageHeader
+        title="Approval queue"
+        subtitle="Endorse claims from your department or send them back with a reason. Auto-extracted fields, policy hints, and full receipt context are surfaced inline so reviews stay under a minute."
+        actions={
+          <div className="claim-pipeline-pill" aria-label="Sales department pipeline">
+            <span className="claim-pipeline-pill-stage tone-warning">
+              <b>{stats.pendingCount}</b>Pending
+            </span>
+            <ArrowRight className="claim-pipeline-pill-connector" aria-hidden="true" />
+            <span className="claim-pipeline-pill-stage tone-accent">
+              <b>{stats.endorsedCount}</b>Endorsed
+            </span>
+            <ArrowRight className="claim-pipeline-pill-connector" aria-hidden="true" />
+            <span className="claim-pipeline-pill-stage tone-success">
+              <b>{stats.paidCount}</b>Paid
+            </span>
+            <ArrowRight className="claim-pipeline-pill-connector" aria-hidden="true" />
+            <span className="claim-pipeline-pill-stage tone-danger">
+              <b>{stats.rejectedCount}</b>Rejected
+            </span>
+          </div>
+        }
       />
 
       {error && (
@@ -91,6 +133,39 @@ export default function Approving() {
 
       <div className="sidebar-layout-container">
         <aside className="sidebar-panel">
+          {/* compact at-a-glance stats */}
+          <div className="grid grid-cols-3 gap-2 pb-3 mb-3 border-b border-border-subtle">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                Pending
+              </span>
+              <span className="text-lg font-bold tabular-nums leading-tight">
+                {stats.pendingCount}
+              </span>
+              <span className="text-[10px] text-text-secondary">
+                claims
+              </span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                Queue
+              </span>
+              <span className="text-lg font-bold tabular-nums leading-tight">
+                {formatSGD(stats.pendingTotal).replace("S$", "")}
+              </span>
+              <span className="text-[10px] text-text-secondary">SGD</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                Oldest
+              </span>
+              <span className="text-lg font-bold tabular-nums leading-tight">
+                {stats.oldestPendingDays}
+              </span>
+              <span className="text-[10px] text-text-secondary">days</span>
+            </div>
+          </div>
+
           <div className="mb-4">
             <p className="sidebar-meta-label">
               <i className="fa-solid fa-filter mr-1"></i> Filters

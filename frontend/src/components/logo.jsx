@@ -3,7 +3,7 @@ export default function Logo({ size = 32, variant = "filled" }) {
 
   const background =
     variant === "monogram" ? (
-      <rect width="32" height="32" rx="8" fill="currentColor" />
+      <rect width="32" height="32" rx="9" fill="currentColor" />
     ) : (
       <>
         <defs>
@@ -19,11 +19,11 @@ export default function Logo({ size = 32, variant = "filled" }) {
             <stop offset="100%" stopColor="#0058b0" />
           </linearGradient>
         </defs>
-        <rect width="32" height="32" rx="8" fill={`url(#${gradientId})`} />
+        <rect width="32" height="32" rx="9" fill={`url(#${gradientId})`} />
       </>
     );
 
-  const receiptLineFill = variant === "monogram" ? "currentColor" : "#0058b0";
+  const lineFill = variant === "monogram" ? "currentColor" : "#0058b0";
 
   return (
     <svg
@@ -35,30 +35,47 @@ export default function Logo({ size = 32, variant = "filled" }) {
       aria-label="ClaimFlow"
     >
       {background}
-      {/* back receipt (stacked) */}
+      {/* subtle inner ring for depth */}
       <rect
-        x="9.5"
-        y="6.5"
-        width="13"
-        height="16"
-        rx="2.4"
-        fill="white"
+        x="0.5"
+        y="0.5"
+        width="31"
+        height="31"
+        rx="8.5"
+        fill="none"
+        stroke="white"
+        strokeOpacity={variant === "monogram" ? "0.18" : "0.12"}
+        strokeWidth="1"
+      />
+      {/* single receipt body */}
+      <rect x="9" y="6" width="14" height="20" rx="2.2" fill="white" />
+      {/* two thin content lines */}
+      <rect
+        x="11.5"
+        y="9.5"
+        width="9"
+        height="1"
+        rx="0.5"
+        fill={lineFill}
+        fillOpacity="0.55"
+      />
+      <rect
+        x="11.5"
+        y="11.5"
+        width="6"
+        height="1"
+        rx="0.5"
+        fill={lineFill}
         fillOpacity="0.35"
       />
-      {/* front receipt */}
-      <rect x="7" y="8.5" width="13" height="16" rx="2.4" fill="white" />
-      {/* receipt rows */}
-      <rect x="9.5" y="12" width="8" height="1.3" rx="0.65" fill={receiptLineFill} fillOpacity="0.85" />
-      <rect x="9.5" y="14.8" width="5.5" height="1.3" rx="0.65" fill={receiptLineFill} fillOpacity="0.55" />
-      <rect x="9.5" y="17.6" width="7" height="1.3" rx="0.65" fill={receiptLineFill} fillOpacity="0.55" />
-      {/* approval check badge */}
-      <circle cx="22.5" cy="22.5" r="5.2" fill="#34c759" />
+      {/* clean check mark in the lower receipt area */}
       <path
-        d="M20 22.6 L21.8 24.4 L25 20.9"
-        stroke="white"
-        strokeWidth="1.6"
+        d="M 11.5 19 L 14.5 22 L 20.5 15"
+        stroke="#34c759"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
+        fill="none"
       />
     </svg>
   );

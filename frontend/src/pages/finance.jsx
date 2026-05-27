@@ -3,16 +3,18 @@ import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
 import { useClaims } from "../hooks/useclaims.js";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
-import WelcomeStrip from "../components/welcomestrip.jsx";
+import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import { exportAuditLogToCsv } from "../utils/export.js";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
+import FinanceDashboard from "../components/financedashboard.jsx";
+import { LayoutDashboard, ShieldCheck, Wallet } from "lucide-react";
 
 export default function Finance() {
   const { session, setFinanceTab } = useAuth();
   const { addToast } = useToast();
-  const { claimsDb, latestMap, batchMarkAsPaid, error } = useClaims();
-  const [activeTab, setActiveTab] = useState(session?.financeTab || "audit");
+  const { claimsDb, latestMap, batchMarkAsPaid, error, loading } = useClaims();
+  const [activeTab, setActiveTab] = useState(session?.financeTab || "dashboard");
   const [searchQueue, setSearchQueue] = useState("");
   const [searchAudit, setSearchAudit] = useState("");
   const [auditFilter, setAuditFilter] = useState("All");
@@ -132,10 +134,30 @@ export default function Finance() {
 
   return (
     <section id="view-finance" className="role-workspace">
-      <WelcomeStrip
-        title="Process endorsed claims"
-        subtitle="Mark approved claims as paid once disbursed — every action is recorded in the audit trail."
-        activeStage={activeTab === "audit" ? "reimbursed" : "endorsed"}
+      <PageHeader
+        title="Finance workspace"
+        subtitle="See spend at a glance, disburse endorsed claims, and review the audit trail. GST 9% is captured per claim where applicable for IRAS reporting."
+        actions={
+          <div className="segmented-control" role="tablist">
+            {[
+              { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+              { key: "payment", label: "Payment Queue", icon: Wallet },
+              { key: "audit", label: "Audit Trail", icon: ShieldCheck },
+            ].map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === key}
+                className={`segment-btn flex items-center gap-1.5 ${activeTab === key ? "active" : ""}`}
+                onClick={() => switchTab(key)}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
+        }
       />
 
       {error && (
@@ -148,24 +170,12 @@ export default function Finance() {
         </div>
       )}
 
-      <ul className="flex list-none sub-tabs-layer mb-4">
-        <li>
-          <button
-            className={`sub-tab-link ${activeTab === "payment" ? "active" : ""}`}
-            onClick={() => switchTab("payment")}
-          >
-            <i className="fa-solid fa-wallet mr-2"></i>Payment Queue
-          </button>
-        </li>
-        <li>
-          <button
-            className={`sub-tab-link ${activeTab === "audit" ? "active" : ""}`}
-            onClick={() => switchTab("audit")}
-          >
-            <i className="fa-solid fa-file-shield mr-2"></i>Audit Trail
-          </button>
-        </li>
-      </ul>
+      {activeTab === "dashboard" && (
+        <FinanceDashboard
+          claims={Object.values(latestMap)}
+          loading={loading}
+        />
+      )}
 
       <div
         className={`workspace-card p-6 ${activeTab !== "payment" ? "hidden" : ""}`}
