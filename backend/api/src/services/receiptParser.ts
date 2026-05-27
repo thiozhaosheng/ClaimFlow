@@ -545,7 +545,7 @@ async function parseWithAzure(
     currency: currency ?? taxMoney.currency ?? null,
     expenseDate,
     transactionTime,
-    category: guessCategoryFromMerchant(merchant),
+    category: inferCategory(merchant, lineItems, route),
     items: lineItems,
     route,
     source: 'azure',
@@ -602,7 +602,7 @@ function parseWithMock(buffer: Buffer): ParsedReceipt {
     currency: 'SGD',
     expenseDate: new Date().toISOString().slice(0, 10),
     transactionTime: null,
-    category: guessCategoryFromMerchant(pick.merchant),
+    category: inferCategory(pick.merchant, [], null),
     items: [],
     route: null,
     source: 'mock',
@@ -614,15 +614,21 @@ function parseWithMock(buffer: Buffer): ParsedReceipt {
 // user's manual category choice (e.g. a medical receipt would come back as
 // Meal). The caller (frontend) only applies a non-null guess, and only when
 // the user hasn't already picked a different category.
-function guessCategoryFromMerchant(merchant: string | null): string | null {
-  if (!merchant) return null;
-  const m = merchant.toLowerCase();
-  if (/grab|gojek|taxi|comfort|smrt|mrt|transport|fuel|shell|esso|spc|tada/.test(m)) {
+function inferCategory(
+  merchant: string | null,
+  items: string[],
+  route: { from: string; to: string } | null,
+): string | null {
+  const text = [merchant, ...items].filter(Boolean).join(' ').toLowerCase();
+  if (
+    route ||
+    /\b(grab|grabcar|gojek|goride|taxi|comfort|smrt|mrt|transport|fuel|shell|esso|spc|tada|ride|trip fare|booking fee)\b/.test(text)
+  ) {
     return 'Transport';
   }
   if (
     /clinic|polyclinic|hospital|raffles medical|parkway|healthway|guardian|watsons|dental|medical|pharmacy|tcm|chinese physician|optical/.test(
-      m,
+      text,
     )
   ) {
     // Default to the statutory variant — non-statutory is disallowed and we
@@ -631,21 +637,21 @@ function guessCategoryFromMerchant(merchant: string | null): string | null {
     return 'Medical (statutory)';
   }
   if (
-    /ntuc|fairprice|cold storage|sheng siong|giant|stationery|popular|paper one|challenger|courts|harvey norman|daiso/.test(
-      m,
+    /ntuc|fairprice|cold storage|sheng siong|giant|stationery|popular|paper one|challenger|courts|harvey norman|daiso|office suppl|printer paper|copier paper|a4 paper|toner|ink cartridge|notebook|sticky notes|usb[- ]?c|keyboard|mouse/.test(
+      text,
     )
   ) {
     return 'Office Supplies';
   }
-  if (/singapore airlines|jetstar|scoot|airasia|sia|airbnb|hotel|booking\.com|agoda|expedia|trip\.com|klook/.test(m)) {
+  if (/singapore airlines|jetstar|scoot|airasia|sia|airbnb|hotel|booking\.com|agoda|expedia|trip\.com|klook|flight|accommodation/.test(text)) {
     return 'Travel';
   }
-  if (/coursera|udemy|workshop|conference|seminar|smu academy|nus iss|aws training|microsoft learn/.test(m)) {
+  if (/coursera|udemy|workshop|conference|seminar|smu academy|nus iss|aws training|microsoft learn|course fee|certification/.test(text)) {
     return 'Training';
   }
   if (
-    /toast box|ya kun|old chang kee|hawker|food centre|kopitiam|koufu|crystal jade|din tai fung|burnt ends|ippudo|paradise|jumbo|imperial treasure|swensen|mcdonald|kfc|burger king|starbucks|coffee bean|subway|pizza|sushi|restaurant|cafe|bistro|bakery/.test(
-      m,
+    /toast box|ya kun|old chang kee|hawker|food centre|kopitiam|koufu|crystal jade|din tai fung|burnt ends|ippudo|paradise|jumbo|imperial treasure|swensen|mcdonald|kfc|burger king|starbucks|coffee bean|subway|pizza|sushi|restaurant|cafe|bistro|bakery|burrito|taco|sandwich|burger|noodle|rice|coffee|tea|lunch|dinner|meal|food|beverage/.test(
+      text,
     )
   ) {
     return 'Meal';

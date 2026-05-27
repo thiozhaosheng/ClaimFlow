@@ -190,7 +190,7 @@ export default function Employee() {
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
-  const [category, setCategory] = useState("Transport");
+  const [category, setCategory] = useState("");
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [amount, setAmount] = useState("");
   const [gstAmount, setGstAmount] = useState("");
@@ -211,6 +211,7 @@ export default function Employee() {
   }, [amount]);
 
   const categoryDisallowed = DISALLOWED_CATEGORIES.includes(category);
+  const categoryMissing = !category;
   const receiptRequired = numericAmount > RECEIPT_REQUIRED_OVER;
   const receiptMissing = receiptRequired && !hasFile;
   const fullTaxInvoiceRequired = numericAmount > FULL_TAX_INVOICE_OVER;
@@ -219,7 +220,7 @@ export default function Employee() {
     [category, details],
   );
   const detailsIncomplete = missingDetailKeys.length > 0;
-  const formInvalid = categoryDisallowed || receiptMissing || detailsIncomplete;
+  const formInvalid = categoryMissing || categoryDisallowed || receiptMissing || detailsIncomplete;
   const today = todayIso();
   const minDate = minDateIso();
 
@@ -377,7 +378,7 @@ export default function Employee() {
       });
       setTitle("");
       setDate("");
-      setCategory("Transport");
+      setCategory("");
       setAmount("");
       setGstAmount("");
       setMerchant("");
@@ -619,7 +620,9 @@ export default function Employee() {
                       setCategory(e.target.value);
                       setCategoryTouched(true);
                     }}
+                    required
                   >
+                    <option value="">Select a category</option>
                     {CATEGORY_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
