@@ -5,7 +5,7 @@ export default function Layout() {
   return (
     <>
       <Header />
-      <main className="container-fluid py-4">
+      <main className="container-fluid">
         <Outlet />
       </main>
     </>

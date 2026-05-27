@@ -1,5 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Apple-inspired surfaces */
   --bg-app: #fbfbfd;
@@ -55,7 +59,7 @@
 }
 
 /* ========== DARK THEME OVERRIDES ========== */
-[data-theme="dark"] {
+.dark {
   --bg-app: #0a0a0c;
   --bg-card: #1c1c1e;
   --bg-subtle: #2c2c2e;
@@ -95,15 +99,15 @@
 }
 
 /* dark theme adjustments for specific components */
-[data-theme="dark"] header {
+.dark header {
   background-color: rgba(28, 28, 30, 0.72);
 }
 
-[data-theme="dark"] .auth-topbar {
+.dark .auth-topbar {
   background-color: rgba(28, 28, 30, 0.72);
 }
 
-[data-theme="dark"] .auth-brand-panel {
+.dark .auth-brand-panel {
   background:
     radial-gradient(at 18% 14%, rgba(10, 132, 255, 0.18) 0%, transparent 45%),
     radial-gradient(at 82% 22%, rgba(88, 86, 214, 0.16) 0%, transparent 45%),
@@ -112,188 +116,188 @@
     linear-gradient(135deg, #0a0a0c 0%, #1c1c1e 100%);
 }
 
-[data-theme="dark"] .illus-receipt-photo {
+.dark .illus-receipt-photo {
   background: linear-gradient(180deg, #2c2c2e 0%, #1c1c1e 50%, #2c2c2e 100%);
 }
 
-[data-theme="dark"] .claim-detail-receipt {
+.dark .claim-detail-receipt {
   background: linear-gradient(180deg, #2c2c2e 0%, #1c1c1e 50%, #2c2c2e 100%);
 }
 
-[data-theme="dark"] .empty-state-icon,
-[data-theme="dark"] .empty-graphic circle:first-child {
+.dark .empty-state-icon,
+.dark .empty-graphic circle:first-child {
   fill: rgba(10, 132, 255, 0.1);
 }
 
-[data-theme="dark"] .timeline-dot {
+.dark .timeline-dot {
   box-shadow: 0 0 0 3px var(--bg-card);
 }
 
-[data-theme="dark"] .modal-backdrop {
+.dark .modal-backdrop {
   background-color: rgba(0, 0, 0, 0.6);
 }
 
 /* dark theme: override Bootstrap utility classes that have hardcoded colors */
-[data-theme="dark"] .bg-light {
+.dark .bg-light {
   background-color: var(--bg-subtle) !important;
 }
 
-[data-theme="dark"] .bg-white {
+.dark .bg-white {
   background-color: var(--bg-card) !important;
   color: var(--text-primary) !important;
 }
 
-/* dark theme: Bootstrap text utilities don't switch with [data-theme="dark"] —
+/* dark theme: Bootstrap text utilities don't switch with .dark —
    override so secondary/muted/body text remain readable on dark surfaces */
-[data-theme="dark"] .text-secondary {
+.dark .text-secondary {
   color: var(--text-secondary) !important;
 }
 
-[data-theme="dark"] .text-muted {
+.dark .text-muted {
   color: var(--text-secondary) !important;
 }
 
 /* dark theme: avatar circle had background = --text-primary which inverts to near-white
    in dark mode, making the white initials disappear. Swap to the accent color. */
-[data-theme="dark"] .user-identity-avatar {
+.dark .user-identity-avatar {
   background-color: var(--accent);
   color: #ffffff;
 }
 
-[data-theme="dark"] .user-identity-presence {
+.dark .user-identity-presence {
   box-shadow: 0 0 0 2px var(--bg-card);
 }
 
-[data-theme="dark"] .text-body {
+.dark .text-body {
   color: var(--text-primary) !important;
 }
 
 /* dark theme: data-table header was using --text-tertiary (#6e6e73) on
    --bg-subtle (#2c2c2e) which fails contrast. Bump to secondary. */
-[data-theme="dark"] .data-table thead th {
+.dark .data-table thead th {
   color: var(--text-secondary);
   background-color: var(--bg-subtle);
 }
 
-[data-theme="dark"] .data-table tbody td {
+.dark .data-table tbody td {
   color: var(--text-primary);
 }
 
-[data-theme="dark"] .data-table tbody tr:hover {
+.dark .data-table tbody tr:hover {
   background-color: var(--bg-muted);
 }
 
-[data-theme="dark"] .bg-primary-subtle {
+.dark .bg-primary-subtle {
   background-color: var(--accent-subtle) !important;
 }
 
-[data-theme="dark"] .bg-info-subtle {
+.dark .bg-info-subtle {
   background-color: var(--info-bg) !important;
 }
 
-[data-theme="dark"] .bg-secondary-subtle {
+.dark .bg-secondary-subtle {
   background-color: var(--bg-muted) !important;
 }
 
-[data-theme="dark"] .text-info {
+.dark .text-info {
   color: var(--info-text) !important;
 }
 
-[data-theme="dark"] .border-primary-subtle {
+.dark .border-primary-subtle {
   border-color: var(--accent-subtle) !important;
 }
 
-[data-theme="dark"] .border-info-subtle {
+.dark .border-info-subtle {
   border-color: var(--info-bg) !important;
 }
 
-[data-theme="dark"] .border {
+.dark .border {
   border-color: var(--border-default) !important;
 }
 
-[data-theme="dark"] .form-check-input {
+.dark .form-check-input {
   background-color: var(--bg-subtle);
   border-color: var(--border-default);
 }
 
-[data-theme="dark"] .form-check-input:checked {
+.dark .form-check-input:checked {
   background-color: var(--accent);
   border-color: var(--accent);
 }
 
-[data-theme="dark"] .form-control,
-[data-theme="dark"] .form-select {
+.dark .form-control,
+.dark .form-select {
   background-color: var(--bg-card);
   color: var(--text-primary);
   border-color: var(--border-default);
 }
 
-[data-theme="dark"] .form-control::placeholder {
+.dark .form-control::placeholder {
   color: var(--text-tertiary);
 }
 
-[data-theme="dark"] .form-control:disabled,
-[data-theme="dark"] .form-control[readonly] {
+.dark .form-control:disabled,
+.dark .form-control[readonly] {
   background-color: var(--bg-subtle);
   color: var(--text-secondary);
 }
 
-[data-theme="dark"] .input-group-text {
+.dark .input-group-text {
   background-color: var(--bg-subtle);
   border-color: var(--border-default);
   color: var(--text-secondary);
 }
 
 /* dark theme: bg-light strip on finance page */
-[data-theme="dark"] .action-bar-strip {
+.dark .action-bar-strip {
   background-color: var(--bg-subtle) !important;
   border-color: var(--border-default) !important;
 }
 
 /* dark theme: form-select arrow needs lighter color */
-[data-theme="dark"] .form-select {
+.dark .form-select {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23a1a1a6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
 }
 
 /* dark theme: date input calendar icon */
-[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.8);
 }
 
 /* dark theme: receipt photo placeholder shimmer */
-[data-theme="dark"] .illus-receipt-photo::after {
+.dark .illus-receipt-photo::after {
   background-image:
     linear-gradient(90deg, transparent 30%, rgba(255, 255, 255, 0.06) 50%, transparent 70%);
 }
 
 /* dark theme: empty state graphic backdrop circles */
-[data-theme="dark"] .empty-graphic circle[fill="#eef7ff"] {
+.dark .empty-graphic circle[fill="#eef7ff"] {
   fill: rgba(10, 132, 255, 0.08);
 }
 
-[data-theme="dark"] .empty-graphic rect[fill="white"] {
+.dark .empty-graphic rect[fill="white"] {
   fill: var(--bg-card);
   stroke: var(--border-default);
 }
 
-[data-theme="dark"] .empty-graphic rect[fill="#d2d2d7"] {
+.dark .empty-graphic rect[fill="#d2d2d7"] {
   fill: var(--border-default);
 }
 
-[data-theme="dark"] .empty-graphic line {
+.dark .empty-graphic line {
   stroke: var(--border-default);
 }
 
 /* dark theme: claim mini card pending/endorsed/paid/rejected left borders stay vibrant */
-[data-theme="dark"] .claim-detail-meta-value,
-[data-theme="dark"] .timeline-action,
-[data-theme="dark"] .modal-title,
-[data-theme="dark"] .toast-title {
+.dark .claim-detail-meta-value,
+.dark .timeline-action,
+.dark .modal-title,
+.dark .toast-title {
   color: var(--text-primary);
 }
 
 /* dark theme: AOS-disabled-elements fix - ensure inline white backgrounds adapt */
-[data-theme="dark"] .auth-form-panel {
+.dark .auth-form-panel {
   border-left-color: var(--border-subtle);
 }
 
@@ -326,7 +330,7 @@
   pointer-events: none;
 }
 
-[data-theme="dark"] .auth-brand-panel::after {
+.dark .auth-brand-panel::after {
   opacity: 0.25;
   mix-blend-mode: overlay;
 }
@@ -1902,7 +1906,32 @@ header {
   to { transform: rotate(360deg); }
 }
 
-/* ========== BOOTSTRAP OVERRIDES ========== */
+/* ========== FORM & BUTTON BASE (standalone, no Bootstrap) ========== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-primary);
+  transition: var(--transition-base);
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  line-height: 1.2;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-primary {
   background: var(--accent);
   border: 1px solid var(--accent);
@@ -1912,6 +1941,14 @@ header {
   padding: 0.55rem 1.15rem;
   transition: var(--transition-base);
   letter-spacing: -0.005em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.2;
 }
 
 .btn-primary:hover,
@@ -1924,23 +1961,146 @@ header {
   transform: translateY(1px);
 }
 
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .form-control,
 .form-select {
+  display: block;
+  width: 100%;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  border-color: var(--border-default);
   transition: var(--transition-base);
+  font-family: inherit;
   font-size: 0.92rem;
+  line-height: 1.4;
+  appearance: none;
+}
+
+.form-control::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
 }
 
 .form-control:focus,
 .form-select:focus {
+  outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 4px var(--accent-ring);
 }
 
-/* spinner override */
+.form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236e6e73' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 14px;
+}
+
+.form-check-input {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.25rem;
+  vertical-align: top;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 0.25rem;
+  appearance: none;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.form-check-input:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px;
+}
+
+.form-check-input[type="radio"] {
+  border-radius: 50%;
+}
+
+.form-check-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.input-group {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.input-group > .form-control,
+.input-group > .form-select {
+  position: relative;
+  flex: 1 1 auto;
+  width: 1%;
+  min-width: 0;
+}
+
+.input-group > :not(:first-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  margin-left: -1px;
+}
+
+.input-group > :not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.input-group-text {
+  display: flex;
+  align-items: center;
+  padding: 0 0.85rem;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+/* spinner */
+.spinner-border {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spinner-border-rotate 0.75s linear infinite;
+  vertical-align: -0.125em;
+}
+
+.spinner-border-sm {
+  width: 0.875rem;
+  height: 0.875rem;
+  border-width: 1.5px;
+}
+
 .spinner-border.text-primary {
-  color: var(--accent) !important;
+  color: var(--accent);
+}
+
+@keyframes spinner-border-rotate {
+  to { transform: rotate(360deg); }
+}
+
+/* container-fluid: full-width responsive wrapper */
+.container-fluid {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
 }
 
 /* ========== BOOTSTRAP UTILITY OVERRIDES (consistent type) ========== */

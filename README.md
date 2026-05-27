@@ -64,7 +64,7 @@ npm run dev                   # http://localhost:4000
 Frontend:
 
 ```bash
-cd frontend/login-dashboard
+cd frontend
 cp .env.example .env          # VITE_API_BASE_URL=http://localhost:4000
 npm install
 npm run dev                   # http://localhost:3000
@@ -87,7 +87,7 @@ backend/api/              REST API — TypeScript, Express, Prisma
 backend/auth-gateway/     Auth proxy — JavaScript, Express
 database/                 Reference SQL (live schema is managed by Prisma)
 docs/                     Project documentation
-frontend/login-dashboard/ Web client — React + Vite
+frontend/                 Web client — React + Vite
 ```
 
 ## Where to find things
