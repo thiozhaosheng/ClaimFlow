@@ -1,285 +1,177 @@
 # ClaimFlow Frontend — Design Spec
 
-**Status:** Proposed (2026-05-26)
-**Scope:** Full frontend redesign of `frontend/login-dashboard/` from Bootstrap 5.3 to a shadcn/ui-based design system. Adds a new Finance Admin Insights dashboard.
-**Owner:** Daniel (executing), Ang Bi Jun (lead frontend reviewer).
-**Branch:** `feat/shadcn-redesign`.
+**Status:** In progress on `develop` (updated 2026-05-27).
+**Scope:** Migrate `frontend/` from Bootstrap 5.3 to Tailwind CSS while keeping the existing custom component layer and page structure. No new pages, no design system swap.
 
 ---
 
-## 1. Why
+## 1. Background
 
-Two pressures converged:
+The frontend has carried a Bootstrap 5.3 CDN link since the first commit on `develop`. Most of the visual styling, however, lives in a single hand-rolled `src/index.css` (≈3000 lines of Apple-inspired component classes). Bootstrap only contributes:
 
-1. **Insights gap.** Finance Admin currently has only Payment Queue and Audit Trail tabs. When claims grow past a few dozen per month, there is no way to see spend by department, policy effectiveness, or category mix without exporting CSV and pivoting externally. SME finance leads need this at a glance.
-2. **Style debt.** The current frontend is Bootstrap 5.3 plus ~63 KB of hand-rolled Apple-inspired CSS in `index.css`. The aesthetic is fine but the codebase has a single growing stylesheet, duplicated colour tokens, and no component primitives. New pages (compliance, policies, privacy) have already started diverging.
+- Utility classes used inline in JSX (`d-flex`, `justify-content-between`, `align-items-center`, `mb-3`, `row`/`col-*`, `text-end`, and so on).
+- Base styling for form elements (`.form-control`, `.form-select`, `.form-check-input`) and buttons (`.btn`, `.btn-primary`).
+- A dark-mode toggle hooked into `data-bs-theme` on `<html>`.
 
-The fix is a single coherent design system. shadcn/ui is the chosen target: copy-paste components on top of Tailwind + Radix, no runtime dependency on a framework lib, and standard Recharts integration for the dashboard.
+This has two problems:
+
+1. **Two redundant systems.** The custom CSS already overrides most Bootstrap defaults, so the framework is mostly along for the ride. The bundle pays for it and the markup is inconsistent (some places use Bootstrap utilities, others use custom classes for the same intent).
+2. **Hard to extend.** Adding new pages means choosing between writing more custom CSS in the growing `index.css` or pulling in more Bootstrap utility classes that need overriding anyway.
+
+Tailwind solves both: utilities are generated on demand, mapped against the existing design tokens, and the custom component layer in `index.css` survives intact. No design redo required.
 
 ## 2. Goals & non-goals
 
 **Goals**
-- All 7 pages share one design system and look consistent end-to-end.
-- Finance Admin gets a dedicated Insights view anchored on claim volume + spend, category & department breakdown, and policy effectiveness.
-- Light and dark mode preserved (already supported via `usetheme.js`).
-- Apple-blue brand colour (`#0071e3`) preserved as the shadcn `--primary`.
-- Mobile-responsive (current app is desktop-first; redesign brings sidebar-into-Sheet pattern for small screens).
+- Remove the Bootstrap CSS + JS CDN links from `index.html`.
+- Replace every Bootstrap utility class in JSX with the Tailwind equivalent.
+- Keep the custom component classes (`.auth-shell`, `.workspace-card`, `.welcome-strip`, `.data-table`, `.claim-mini-card`, `.badge-custom`, etc.) — they are project-owned and unchanged.
+- Switch the dark-mode trigger from `data-bs-theme` / `data-theme` to Tailwind's `.dark` class strategy.
+- Keep the existing design tokens (Apple-inspired CSS variables) — Tailwind config maps them.
 
 **Non-goals**
-- No new backend API endpoints. All insights are computed client-side from data already returned by `useClaims`.
-- No test suite introduction. The project has no tests today; adding Vitest + RTL is a separate decision.
-- No PWA / offline.
-- No HEIC inline preview (browser limitation, unrelated concern).
+- No visual redesign. Pages look identical pre/post migration.
+- No new pages, no new analytics or dashboard views.
+- No component library introduction (no shadcn, no Radix, no Material).
+- No icon migration (FontAwesome stays).
+- No tests added (the project has none today; that decision is separate).
 
-## 3. Inputs that drove the design
-
-- Project audience: Singapore SMEs (SGD, GST-aware, IRAS-compliant policies).
-- Existing role surfaces: Employee, Approving Officer (Manager), Finance Admin.
-- Existing client-side policy rules in `src/data/policies.json` (3 actions: `block`, `auto-approve`, `route-to-human`). The Insights view uses these to compute "policy effectiveness".
-- Constraint: view must be consistent at all times → rules out incremental page-by-page merges to `develop`. Migration happens on one feature branch and merges as one PR with reviewable chunks.
-
-## 4. Stack changes
+## 3. Stack changes
 
 **Add**
-- `tailwindcss` + `postcss` + `autoprefixer`
-- `class-variance-authority`, `clsx`, `tailwind-merge` (CVA pattern, the standard shadcn helper trio)
-- `@radix-ui/react-{slot,dialog,dropdown-menu,select,tabs,tooltip,popover,checkbox,label,avatar,separator}` (pulled in by individual shadcn components)
-- `lucide-react` (icon system; replaces FontAwesome)
-- `recharts` (charts)
-- `date-fns` (week/month bucketing for the trend chart)
-- `sonner` (toast layer; replaces the existing `toastcontext.jsx` internals, keeps `addToast({...})` API surface)
+- `tailwindcss` v3 (dev dependency).
+- `postcss`, `autoprefixer` (Tailwind PostCSS pipeline).
+- `tailwind.config.js` mapping design tokens.
+- `postcss.config.js` registering the Tailwind + autoprefixer plugins.
 
 **Remove**
-- `aos` (animate-on-scroll; rarely needed once shadcn provides motion via Radix transitions)
-- Bootstrap 5.3 CDN link in `index.html`
-- FontAwesome CDN link in `index.html`
-- The 63 KB `src/index.css` (replaced by a ~2 KB `globals.css` holding Tailwind directives + CSS variables)
+- Bootstrap 5.3 CSS link in `index.html`.
+- Bootstrap 5.3 JS bundle script in `index.html`.
 
 **Keep**
-- React 18, Vite 5, React Router 6
-- The Inter font (already loaded; shadcn defaults to it)
-- All hooks (`useclaims`, `usetheme`, `authcontext`, `toastcontext`) — API surface preserved, internals re-skinned where needed.
-- The backend integration (`utils/api.js`).
+- React 18, Vite 5, React Router 6.
+- `aos` (animate-on-scroll on the sign-in page).
+- FontAwesome 6.4 CDN for icons.
+- The Inter font CDN.
+- All hooks (`useclaims`, `usetheme`, `authcontext`, `toastcontext`) — API surface unchanged.
+- The 3000-line `src/index.css` — minus the `[data-theme="dark"]` selector swap to `.dark`, and minus the Bootstrap utility-class overrides that are no longer needed.
 
-## 5. Theme & tokens
+## 4. Theme tokens
 
-Tailwind config holds the theme. CSS variables on `:root` and `.dark` follow the standard shadcn pattern (HSL triples):
-
-```
---background, --foreground
---card, --card-foreground
---popover, --popover-foreground
---primary, --primary-foreground
---secondary, --secondary-foreground
---muted, --muted-foreground
---accent, --accent-foreground
---destructive, --destructive-foreground
---border, --input, --ring
---radius: 0.5rem
-```
-
-`--primary` is set to `210 100% 45%` (HSL of `#0071e3`) so the brand colour survives the migration.
-
-`usetheme.js` is updated to toggle `.dark` on `<html>` instead of `data-theme` / `data-bs-theme`. The existing storage key (`claimflow-theme`) and prefers-color-scheme detection stay.
-
-## 6. Component primitives
-
-All under `src/components/ui/`. Each is a verbatim shadcn copy-paste (with the Tailwind classes baked in), no framework runtime dependency:
+The existing CSS variables in `:root` and `.dark` (in `src/index.css`) stay as the source of truth. Tailwind's config maps them so utilities like `bg-card`, `text-text-primary`, `border-accent-subtle` resolve to those variables:
 
 ```
-button.jsx        card.jsx           badge.jsx
-input.jsx         label.jsx          textarea.jsx
-select.jsx        checkbox.jsx       table.jsx
-tabs.jsx          dialog.jsx         sheet.jsx
-dropdown-menu.jsx avatar.jsx         separator.jsx
-skeleton.jsx      sonner.jsx         tooltip.jsx
-popover.jsx       sidebar.jsx        chart.jsx
+--bg-app, --bg-card, --bg-subtle, --bg-muted
+--text-primary, --text-secondary, --text-tertiary
+--border-subtle, --border-default, --border-strong
+--accent, --accent-hover, --accent-subtle, --accent-ring
+--success / -bg / -text
+--warning / -bg / -text
+--danger / -bg / -text
+--info / -bg / -text
+--radius-sm, --radius-md, --radius-lg, --radius-xl
+--shadow-xs, --shadow-sm, --shadow-md, --shadow-lg, --shadow-xl
 ```
 
-The `chart.jsx` wrapper is shadcn's Recharts-themed wrapper — gives consistent colours, tooltips, and legend across all charts.
+Dark mode toggles on `<html class="dark">`, set by `usetheme.js`. The `claimflow-theme` localStorage key is preserved so existing user preferences carry over.
 
-## 7. Layout — AppShell
+## 5. Class translation table
 
-Authenticated routes wrap in an `AppShell` (replaces `components/layout.jsx`):
+The migration is mechanical. Each Bootstrap class in JSX is replaced with the Tailwind equivalent. Classes that share a name (e.g. `mb-3`, `text-center`, `p-4`) need no change — Tailwind generates the same utility.
 
-```
-┌─ AppShell ─────────────────────────────────────────────────┐
-│  Sidebar (Sheet on <md)            Main                    │
-│  ┌──────────────┐                  ┌──────────────────┐   │
-│  │ ◇ ClaimFlow  │                  │ PageHeader       │   │
-│  │              │                  │ title + actions  │   │
-│  │ <role nav>   │                  │                  │   │
-│  │              │                  │ <Outlet />       │   │
-│  │ ───────────  │                  │                  │   │
-│  │ 👤 Daniel    │                  │                  │   │
-│  │ ⚙ Theme/Out  │                  │                  │   │
-│  └──────────────┘                  └──────────────────┘   │
-└────────────────────────────────────────────────────────────┘
-```
-
-**Role-aware sidebar nav**
-- Employee: My Claims, Submit New
-- Manager: Approval Queue, History
-- Finance Admin: **Dashboard** (new), Payment Queue, Audit Trail
-
-**Public layout** (signin, compliance, policies, privacy) skips the shell — uses a centred card layout on a muted background.
-
-## 8. Insights page — Finance Admin → Dashboard
-
-The new view. Vertical sections:
-
-### 8.1 Header row
-```
-Insights                                          [This month ▼]
-```
-Date range options: This month, Last 30 days, Last quarter, Year to date, Custom.
-
-### 8.2 Stat tile row (4 cards)
-```
-┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐
-│ Total      │ │ Disbursed  │ │ Awaiting   │ │ To pay     │
-│ claims     │ │            │ │ endorsement│ │            │
-│ 142        │ │ S$38,420   │ │ 17         │ │ 24         │
-│ ↑ 12% MoM  │ │ ↑ 8% MoM   │ │            │ │            │
-└────────────┘ └────────────┘ └────────────┘ └────────────┘
-```
-
-MoM deltas computed from same range one period back.
-
-### 8.3 Two-up row — Policy effectiveness × Category mix
-
-**Policy effectiveness** (left, horizontal stacked bar + top breach reason)
-
-```
-Auto-approved   ▆▆▆▆▆▆▆▆▆▆▆▆▆▆  62%   88 claims
-Routed to human ▆▆▆▆▆▆          24%   34 claims
-Blocked         ▆▆▆▆            14%   20 claims
-
-Top block reason: Missing receipt > S$50  (11 claims)
-```
-
-Sourced by running `policies.json` rules against each loaded claim — pure client-side, no API.
-
-**Category mix** (right, donut + legend)
-
-Categories from existing claim data: Meal, Transport, Office Supplies, Travel, Medical, Training, Other.
-
-### 8.4 Department spend (horizontal bar, top 8)
-
-```
-Engineering    ████████████████████  S$12,840
-Sales          ██████████████        S$8,920
-Operations     ████████              S$5,210
-Marketing      ██████                S$3,640
-…
-```
-
-### 8.5 Submission trend (12-week area chart)
-
-```
-        ╱╲       ╱╲
-───╱╲──╱  ╲────╱  ╲───╱╲──
-W1   W4   W7   W10
-```
-
-Two series: claims submitted, claims disbursed. Recharts `<AreaChart>`, stacked false, light fill.
-
-## 9. Data flow
-
-No new API calls. New hooks under `src/hooks/`, all pure derivations of `useClaims` data:
-
-```
-useInsights(claims, range)        // totals, MoM deltas, pending counts
-usePolicyBreakdown(claims, rules) // runs policies.json against each claim
-useCategoryMix(claims)            // groupBy category, sum amount
-useDepartmentSpend(claims, n=8)   // groupBy department, top N
-useSubmissionTrend(claims, weeks) // bucket by ISO week
-```
-
-All memoized with `useMemo`. Single source of truth remains the existing claims API.
-
-## 10. Page migrations
-
-| Page | Notable changes |
+| Bootstrap | Tailwind |
 |---|---|
-| `signin.jsx` | Two-column: brand/illustration left, Card with Input/Label/Button right. Quick-login buttons become `Button variant="outline"` chips. |
-| `employee.jsx` | Claim form uses Card + Input + Select + Textarea. Receipt upload zone uses `Sheet` for "edit extracted fields" step. Claim list as shadcn Table with Badge status pills. |
-| `approving.jsx` | Approval queue as Table with row actions (DropdownMenu). Rejection modal → `Dialog` with Textarea + reason chips. |
-| `finance.jsx` | New left-nav inside the page: Dashboard / Payment Queue / Audit. Existing tables migrated to shadcn Table. CSV export button as `Button variant="outline"` with `Download` icon from lucide. |
-| `compliance.jsx` | Marketing-style sections inside Card layouts. |
-| `policies.jsx` | Same — Card per rule, Badge for action (`auto-approve`/`block`/`route-to-human`). |
-| `privacy.jsx` | Long-form text in a max-width container with anchored ToC. |
+| `d-flex` | `flex` |
+| `d-none` | `hidden` |
+| `d-block` | `block` |
+| `d-inline-block` | `inline-block` |
+| `flex-column` | `flex-col` |
+| `justify-content-between` | `justify-between` |
+| `justify-content-center` | `justify-center` |
+| `align-items-center` | `items-center` |
+| `align-items-start` | `items-start` |
+| `flex-grow-1` | `flex-1` |
+| `w-100` | `w-full` |
+| `h-100` | `h-full` |
+| `text-end` | `text-right` |
+| `text-nowrap` | `whitespace-nowrap` |
+| `me-N` | `mr-N` |
+| `ms-N` | `ml-N` |
+| `ps-N` | `pl-N` |
+| `pe-N` | `pr-N` |
+| `vstack gap-N` | `flex flex-col gap-N` |
+| `row` + `col-X-N` | `grid grid-cols-12 md:col-span-N` |
+| `border-end-0` | `border-r-0` |
+| `border-start-0` | `border-l-0` |
+| `border-top` | `border-t border-border-subtle` |
+| `border-bottom` | `border-b border-border-subtle` |
+| `rounded-3` | `rounded-ds-md` |
+| `shadow-sm` | `shadow-ds-sm` |
+| `text-uppercase` | `uppercase` |
+| `fw-semibold` | `font-semibold` |
+| `fw-normal` | `font-normal` |
+| `fs-5` | `text-lg` |
+| `small` | `text-xs` |
+| `text-decoration-none` | `no-underline` |
 
-## 11. Icon migration
+## 6. Standalone form & button rules
 
-Every FontAwesome `<i className="fa-...">` becomes a lucide-react component. Mapping kept simple:
+Bootstrap previously supplied the base for `<input>` / `<select>` / `<button>` styling, with the project CSS layering tokens on top. Without Bootstrap, the project rules become primary. The following classes in `src/index.css` were rewritten to be standalone (no inherited Bootstrap base):
 
-```
-fa-magnifying-glass → Search
-fa-filter           → Filter
-fa-wallet           → Wallet
-fa-file-shield      → FileShield
-fa-download         → Download
-fa-arrow-right-from-bracket → LogOut
-fa-sun / fa-moon    → Sun / Moon
-fa-circle-check     → CheckCircle2
-fa-triangle-exclamation → AlertTriangle
-fa-building-columns → Landmark
-```
+- `.btn`, `.btn-primary` — full sizing, padding, hover, disabled.
+- `.form-control`, `.form-select` — block, full width, border, background, focus ring, placeholder, select arrow.
+- `.form-check-input` — checkbox + radio appearance, checked state, focus ring.
+- `.input-group`, `.input-group-text` — joined input/affix sizing and borders.
+- `.spinner-border` — display, rotation animation.
+- `.container-fluid` — full-width wrapper.
 
-(Full mapping table built during implementation.)
+These keep the existing class names so the JSX call sites don't need to change for form elements.
 
-## 12. Error handling, loading, empty states
+## 7. Per-page migration notes
 
-- **Loading:** `Skeleton` components in cards and table rows. No more global spinner.
-- **Errors:** Inline `Alert` (variant=destructive) at the top of the affected view; toast via Sonner for transient failures.
-- **Empty states:** Card with a lucide icon, headline, supporting text, primary CTA. Replaces `components/emptystate.jsx` with one consistent component under `ui/`.
-- **Toasts:** `addToast({variant, title, message})` API preserved at the context level; the implementation under the hood becomes Sonner. Existing callers (`useclaims`, page handlers) don't change.
+| File | Migration |
+|---|---|
+| `pages/signin.jsx` | No JSX changes — already uses only custom project classes. |
+| `pages/employee.jsx` | Bootstrap grid (`row`/`col-md-*`) → Tailwind `grid` with `md:col-span-*`. Alert blocks (`alert alert-warning`, `alert alert-danger`) → token-driven Tailwind utility chains (`bg-warning-bg text-warning-text border border-warning/20`). All `d-flex` / `me-*` / `text-end` / `small` swapped. |
+| `pages/approving.jsx` | `vstack` → `flex flex-col`. `flex-grow-1` → `flex-1`. Bootstrap `nav nav-item nav-link` chrome dropped (sub-tabs already use the custom `.sub-tab-link`). `table-responsive` → `overflow-x-auto`. |
+| `pages/finance.jsx` | Largest migration: action bar, two data tables, segmented control, audit role badges. `bg-light` → `bg-subtle`. Role badge variants `bg-primary-subtle` / `bg-info-subtle` → `bg-accent-subtle` / `bg-info-bg` with matching text + border tokens. |
+| `pages/compliance.jsx` | Bootstrap `card` / `card-body` chrome → plain Tailwind card composition (`bg-card border border-border-subtle rounded-ds-lg shadow-ds-sm p-4`). Breadcrumb rewritten as a simple `<ol>` with `/` separators. |
+| `pages/policies.jsx` | Same card pattern as Compliance. Outcome badge colours (`bg-success`/`bg-warning`/`bg-danger`) keep the Bootstrap class names but resolve to Tailwind utilities from the token config. Update the source-of-truth path comment from `frontend/login-dashboard/...` to `frontend/...`. |
+| `pages/privacy.jsx` | Bootstrap heading sizing (`h4`, `h5`) replaced with Tailwind `text-xl font-semibold`. `breadcrumb` rewritten. `list-disc pl-6` added explicitly (Tailwind preflight resets list styling). |
+| `components/layout.jsx` | Drop `py-4` (Bootstrap utility); the project's `main.container-fluid` rule already supplies padding. |
+| `components/header.jsx`, `welcomestrip.jsx`, `emptystate.jsx`, `loginillustration.jsx`, `logo.jsx`, `protectedroute.jsx`, `claimdetailmodal.jsx`, `rejectionmodal.jsx` | No JSX changes — already pure custom classes. |
 
-## 13. Migration order — commits on `feat/shadcn-redesign`
+## 8. Folder restructure (related)
 
-Each commit is independently buildable. Final merge is one PR; the chunked history makes review tractable.
+In the same change set, the React app moved up one level:
 
-1. scaffold tailwind + postcss + shadcn deps; add `globals.css`, `tailwind.config.js`, `components.json`
-2. design tokens — HSL CSS variables, dark-mode `.dark` class, `usetheme.js` update
-3. shadcn primitives — copy in `ui/*` components
-4. AppShell — Sidebar, PageHeader, role-aware nav, theme/logout dropdown
-5. signin migration
-6. employee page migration
-7. approving page migration
-8. finance page migration (Payment Queue + Audit, no Dashboard yet)
-9. Insights page — hooks + Dashboard view
-10. public pages migration (compliance, policies, privacy)
-11. delete `index.css`, Bootstrap CDN, FontAwesome CDN, AOS
+- `frontend/login-dashboard/*` → `frontend/*`
+- `frontend/ui-scaffold/` deleted (was an unused scaffold duplicate).
+- `server/` (root, untracked) cleaned up.
 
-Each commit subject is short and lowercase, matching the existing log style on this repo (no AI tells).
+This is independent of the Tailwind migration but bundled into the same branch because both touch the frontend tree.
 
-## 14. Risk register
+## 9. Verification
+
+- `npm run dev` from `frontend/` starts on `http://localhost:3000`.
+- Each page renders without Bootstrap loaded.
+- Light/dark mode toggles via the header button; preference persists across reloads.
+- No console errors from missing Bootstrap classes.
+- `npm run build` produces a working production bundle.
+
+## 10. Out of this spec
+
+- New pages or dashboards (e.g. Finance insights analytics).
+- Component library adoption (shadcn, Radix, Material).
+- Icon migration (FontAwesome → lucide or similar).
+- Test framework introduction.
+- Multi-currency or i18n.
+
+## 11. Risk register
 
 | Risk | Mitigation |
 |---|---|
-| Bundle size jumps from Radix + Recharts | Tree-shaking via Vite + dynamic import for the chart bundle on the Insights page only. Target: <500 KB gzipped JS. |
-| `usetheme.js` toggle change breaks existing dark-mode preference | Keep the same `localStorage` key (`claimflow-theme`) so users don't get reset. |
-| Sonner toast API drift from existing `toastcontext` | Wrap Sonner inside the existing context provider; preserve `addToast({variant, title, message})` signature exactly. |
-| Bi Jun (frontend lead) is mid-flight on another page | Confirm before merging; respect any in-progress work on `develop`. |
-| Insights computation is heavy on large claim sets | All client-side hooks memoized; date-range filter applied before any groupBy. If lists exceed a few thousand claims, revisit with backend aggregation. |
-
-## 15. Out of this spec
-
-- New API endpoints for analytics aggregation. (Future, if claim volume warrants it.)
-- Tests. (Project has none; introducing a test framework is a separate decision.)
-- Email/Slack alerts on stuck claims.
-- A "Settings" page (per-user preferences, notification toggles).
-- Multi-currency. SGD only for now.
-
-## 16. Done means
-
-- All 7 pages render with the new design in light and dark mode.
-- Finance Admin Dashboard renders all four insight sections from seeded data without errors.
-- `index.css`, Bootstrap, FontAwesome, and AOS are gone from the bundle.
-- `npm run build` produces a working production bundle.
-- One PR `feat/shadcn-redesign → develop` with the chunked commit history.
-
-## 17. Implementation plan
-
-The implementation plan (file-by-file work breakdown) is generated separately by the writing-plans skill once this spec is approved.
+| Tailwind preflight resets browser defaults that Bootstrap previously supplied (e.g. list bullets, table borders). | Audit each page after migration; add explicit Tailwind utilities (`list-disc pl-6`, `border-collapse`) where the look depended on the reset. |
+| Dark-mode selector change breaks an in-flight branch that still uses `data-theme`. | The `usetheme.js` hook continues to set `data-theme` alongside `.dark` for backward compatibility; CSS rules in `index.css` updated in lockstep. |
+| Class-name collisions where Bootstrap and Tailwind share a name but differ in semantics (e.g. `align-middle`). | The shared names that matter (`mb-N`, `mt-N`, `p-N`, `text-center`) have identical semantics. Aliased ones (`align-middle` for vertical-align) resolve the same way in Tailwind. |
+| Stylesheet bloat from generated Tailwind utilities. | Content globs in `tailwind.config.js` are scoped to `./index.html` and `./src/**/*.{js,jsx}`; production builds purge unused utilities. |

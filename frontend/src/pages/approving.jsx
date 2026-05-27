@@ -93,10 +93,10 @@ export default function Approving() {
         <aside className="sidebar-panel">
           <div className="mb-4">
             <p className="sidebar-meta-label">
-              <i className="fa-solid fa-filter me-1"></i> Filters
+              <i className="fa-solid fa-filter mr-1"></i> Filters
             </p>
             <div className="mb-3">
-              <label className="form-label small text-secondary">Status</label>
+              <label className="form-label text-xs text-text-secondary">Status</label>
               <select
                 className="form-select form-select-sm"
                 value={filterStatus}
@@ -110,7 +110,7 @@ export default function Approving() {
               </select>
             </div>
             <div className="mb-3">
-              <label className="form-label small text-secondary">
+              <label className="form-label text-xs text-text-secondary">
                 Department
               </label>
               <select
@@ -124,7 +124,7 @@ export default function Approving() {
             </div>
           </div>
 
-          <div className="vstack gap-3">
+          <div className="flex flex-col gap-3">
             <div className="stat-widget-box">
               <span className="widget-title">Pending Review</span>
               <span className="widget-value highlight-blue">
@@ -133,24 +133,24 @@ export default function Approving() {
             </div>
             <div className="stat-widget-box">
               <span className="widget-title">Your Department</span>
-              <span className="widget-value text-dark font-semibold">
+              <span className="widget-value text-text-primary font-semibold">
                 Sales
               </span>
             </div>
           </div>
         </aside>
 
-        <div className="flex-grow-1">
-          <div className="workspace-card p-4">
-            <h2 className="workspace-card-title row-heading mb-1">
+        <div className="flex-1">
+          <div className="workspace-card p-6">
+            <h2 className="workspace-card-title mb-1">
               Pending Claims Dashboard
             </h2>
-            <p className="text-secondary small mb-3">
+            <p className="text-text-secondary text-xs mb-3">
               Review and endorse claims from Sales department
             </p>
 
-            <div className="alert alert-custom-info mb-4" role="alert">
-              <i className="fa-solid fa-circle text-primary small-dot me-2"></i>
+            <div className="alert-custom-info p-3 mb-4 flex items-center" role="alert">
+              <i className="fa-solid fa-circle text-accent text-[0.5rem] mr-2"></i>
               <span>
                 <strong>Departmental View:</strong> You can only view and
                 approve claims from the Sales department
@@ -168,15 +168,15 @@ export default function Approving() {
               />
             </div>
 
-            <div className="table-responsive">
-              <table className="table data-table align-middle">
+            <div className="overflow-x-auto">
+              <table className="data-table align-middle">
                 <thead>
                   <tr>
                     <th>EMPLOYEE NAME</th>
                     <th>SUBMISSION DATE</th>
                     <th>CLAIM TYPE</th>
                     <th>DEPARTMENT</th>
-                    <th className="text-end">TOTAL AMOUNT</th>
+                    <th className="text-right">TOTAL AMOUNT</th>
                     <th className="text-center">ACTION</th>
                   </tr>
                 </thead>
@@ -199,7 +199,7 @@ export default function Approving() {
                         onClick={() => setActiveClaim(item)}
                       >
                         <td data-label="Employee">
-                          <div className="d-flex align-items-center gap-2">
+                          <div className="flex items-center gap-2">
                             <div className="avatar-dot">
                               {item.employee.charAt(0)}
                             </div>
@@ -215,11 +215,11 @@ export default function Approving() {
                           </span>
                         </td>
                         <td data-label="Department">
-                          <span className="text-secondary">
+                          <span className="text-text-secondary">
                             {item.department}
                           </span>
                         </td>
-                        <td data-label="Amount" className="text-end font-bold">
+                        <td data-label="Amount" className="text-right font-bold">
                           {formatSGD(item.amount)}
                         </td>
                         <td
@@ -228,7 +228,7 @@ export default function Approving() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           {item.status === "Pending" ? (
-                            <div className="d-flex justify-content-center gap-2">
+                            <div className="flex justify-center gap-2">
                               <button
                                 className="action-icon-btn btn-action-approve"
                                 onClick={() => handleEndorse(item)}
