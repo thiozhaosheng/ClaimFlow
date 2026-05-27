@@ -13,7 +13,7 @@ const userSelect = {
 
 export async function getClaimsByUser(userId: number) {
   return db.claim.findMany({
-    where: { userId },
+    where: { userId, withdrawn: false },
     orderBy: { createdAt: 'desc' },
     include: userSelect,
   });
@@ -21,6 +21,7 @@ export async function getClaimsByUser(userId: number) {
 
 export async function getAllClaims() {
   return db.claim.findMany({
+    where: { withdrawn: false },
     orderBy: { createdAt: 'desc' },
     include: userSelect,
   });
@@ -35,4 +36,11 @@ export async function findById(id: number) {
 
 export async function updateClaimStatus(id: number, status: ClaimStatus): Promise<Claim> {
   return db.claim.update({ where: { id }, data: { status } });
+}
+
+export async function updateClaim(
+  id: number,
+  data: Prisma.ClaimUncheckedUpdateInput,
+): Promise<Claim> {
+  return db.claim.update({ where: { id }, data });
 }

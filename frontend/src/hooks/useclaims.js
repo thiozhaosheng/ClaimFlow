@@ -162,6 +162,41 @@ export function useClaims() {
     [claims, fetchClaimsForRole],
   );
 
+  const editClaim = useCallback(
+    async (claimId, updates) => {
+      const claim = claims.find((c) => c.id === claimId);
+      if (!claim) return;
+      const payload = {};
+      if (updates.category !== undefined) payload.category = updates.category;
+      if (updates.amount !== undefined) payload.amount = Number(updates.amount);
+      if (updates.merchant !== undefined)
+        payload.merchant = updates.merchant || null;
+      if (updates.expenseDate !== undefined)
+        payload.expenseDate = updates.expenseDate;
+      if (updates.gstAmount !== undefined) {
+        payload.gstAmount =
+          updates.gstAmount === "" ||
+          updates.gstAmount === null ||
+          updates.gstAmount === undefined
+            ? null
+            : Number(updates.gstAmount);
+      }
+      await api.patch(`/api/claims/${claim.rawId}`, payload);
+      await fetchClaimsForRole();
+    },
+    [claims, fetchClaimsForRole],
+  );
+
+  const withdrawClaim = useCallback(
+    async (claimId) => {
+      const claim = claims.find((c) => c.id === claimId);
+      if (!claim) return;
+      await api.patch(`/api/claims/${claim.rawId}/withdraw`, {});
+      await fetchClaimsForRole();
+    },
+    [claims, fetchClaimsForRole],
+  );
+
   // claimsDb shape: for finance, the audit log; otherwise, the claim list
   const claimsDb = useMemo(() => {
     if (session?.role === "finance") {
@@ -176,6 +211,8 @@ export function useClaims() {
     submitClaim,
     updateClaimStatus,
     batchMarkAsPaid,
+    editClaim,
+    withdrawClaim,
     loading,
     error,
     refetch: fetchClaimsForRole,

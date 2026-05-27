@@ -187,12 +187,13 @@ async function get(path) {
   if (path === "/api/claims/my") {
     const session = currentSession();
     const claims = load(CLAIMS_KEY, INITIAL_CLAIMS).filter(
-      (c) => c.user.email === session?.email,
+      (c) => c.user.email === session?.email && !c.withdrawn,
     );
     return { data: { claims } };
   }
   if (path === "/api/claims") {
-    return { data: { claims: load(CLAIMS_KEY, INITIAL_CLAIMS) } };
+    const claims = load(CLAIMS_KEY, INITIAL_CLAIMS).filter((c) => !c.withdrawn);
+    return { data: { claims } };
   }
   if (path === "/api/workflow/audit") {
     return { data: { logs: load(AUDIT_KEY, INITIAL_AUDIT) } };
@@ -240,6 +241,60 @@ async function post(path, body) {
 }
 
 async function patch(path, body) {
+  // Edit a claim's editable fields. Only pending claims can be edited; once
+  // endorsed/paid the audit trail must stay intact.
+  const editMatch = path.match(/^\/api\/claims\/(\d+)$/);
+  if (editMatch) {
+    const id = Number(editMatch[1]);
+    const claims = load(CLAIMS_KEY, INITIAL_CLAIMS);
+    const claim = claims.find((c) => c.id === id);
+    if (!claim) {
+      throw new ApiError("Claim not found", { status: 404 });
+    }
+    if (claim.status !== "Pending") {
+      throw new ApiError(
+        "Only pending claims can be edited — once endorsed or paid the record is locked",
+        { status: 422 },
+      );
+    }
+    const allowed = ["category", "amount", "expenseDate", "merchant", "gstAmount"];
+    for (const key of allowed) {
+      if (key in body) claim[key] = body[key];
+    }
+    save(CLAIMS_KEY, claims);
+    const session = currentSession();
+    const executor =
+      USERS.find((u) => u.email === session?.email) || USERS[0];
+    pushAudit(id, executor, "Claim edited by submitter", "Pending");
+    return { data: { claim } };
+  }
+
+  // Withdraw a claim. Soft-delete: marks withdrawn=true so the record stays
+  // recoverable for dispute handling but disappears from active views.
+  const withdrawMatch = path.match(/^\/api\/claims\/(\d+)\/withdraw$/);
+  if (withdrawMatch) {
+    const id = Number(withdrawMatch[1]);
+    const claims = load(CLAIMS_KEY, INITIAL_CLAIMS);
+    const claim = claims.find((c) => c.id === id);
+    if (!claim) {
+      throw new ApiError("Claim not found", { status: 404 });
+    }
+    if (claim.status !== "Pending") {
+      throw new ApiError(
+        "Only pending claims can be withdrawn",
+        { status: 422 },
+      );
+    }
+    claim.withdrawn = true;
+    claim.withdrawnAt = new Date().toISOString();
+    save(CLAIMS_KEY, claims);
+    const session = currentSession();
+    const executor =
+      USERS.find((u) => u.email === session?.email) || USERS[0];
+    pushAudit(id, executor, "Withdrawn by submitter", "Withdrawn");
+    return { data: { claim } };
+  }
+
   const reviewMatch = path.match(/^\/api\/workflow\/review\/(\d+)$/);
   if (reviewMatch) {
     const id = Number(reviewMatch[1]);

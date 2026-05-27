@@ -8,6 +8,7 @@ import EmptyState from "../components/emptystate.jsx";
 import { exportAuditLogToCsv } from "../utils/export.js";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import FinanceDashboard from "../components/financedashboard.jsx";
+import PolicyFlag from "../components/policyflag.jsx";
 import { LayoutDashboard, ShieldCheck, Wallet } from "lucide-react";
 
 export default function Finance() {
@@ -278,8 +279,10 @@ export default function Finance() {
                       />
                     </td>
                     <td data-label="Claim">
-                      <strong className="text-text-primary">{item.id}</strong>
-                      <br />
+                      <div className="flex items-center gap-2">
+                        <strong className="text-text-primary">{item.id}</strong>
+                        <PolicyFlag claim={item} variant="dot" />
+                      </div>
                       <span className="text-text-secondary text-xs">{item.date}</span>
                     </td>
                     <td data-label="Employee">

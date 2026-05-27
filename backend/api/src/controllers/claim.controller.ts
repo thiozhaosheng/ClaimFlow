@@ -204,6 +204,115 @@ export const getClaimById = async (req: Request, res: Response) => {
 
 /**
  * @swagger
+ * /api/claims/{id}:
+ *   patch:
+ *     summary: Edit a Pending claim
+ *     description: Submitter can correct claim details before review. Once the claim leaves Pending the record is locked. Only the original submitter is authorised.
+ *     tags: [Claims]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               category:    { type: string }
+ *               amount:      { type: number }
+ *               gstAmount:   { type: number, nullable: true }
+ *               merchant:    { type: string, nullable: true }
+ *               expenseDate: { type: string, format: date }
+ *     responses:
+ *       200: { description: Updated claim }
+ *       403: { description: Not the submitter }
+ *       404: { description: Claim not found }
+ *       422: { description: Claim is no longer in Pending status }
+ */
+export const editClaim = async (req: Request, res: Response) => {
+  try {
+    const claim = await claimModel.findById(Number(req.params.id));
+    if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (claim.userId !== req.user!.id) {
+      return res.status(403).json({ message: 'Only the submitter can edit this claim' });
+    }
+    if (claim.status !== ClaimStatus.Pending) {
+      return res
+        .status(422)
+        .json({ message: 'Only pending claims can be edited' });
+    }
+    const updates: any = {};
+    const allowed = ['amount', 'gstAmount', 'merchant', 'category', 'expenseDate'];
+    for (const key of allowed) {
+      if (key in req.body) updates[key] = req.body[key];
+    }
+    if (updates.expenseDate) updates.expenseDate = new Date(updates.expenseDate);
+
+    const updated = await claimModel.updateClaim(Number(req.params.id), updates);
+    res.status(200).json({ status: 'success', data: { claim: updated } });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+/**
+ * @swagger
+ * /api/claims/{id}/withdraw:
+ *   patch:
+ *     summary: Withdraw a Pending claim (soft-delete)
+ *     description: Marks the claim withdrawn=true. The row stays in storage so finance and infra can retrieve it for dispute handling, but active queues skip it. Audit log records the withdrawal. Only the submitter can withdraw; only Pending claims are eligible.
+ *     tags: [Claims]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200: { description: Withdrawn claim (with withdrawn=true, withdrawnAt set) }
+ *       403: { description: Not the submitter }
+ *       404: { description: Claim not found }
+ *       422: { description: Claim is not in Pending status }
+ */
+export const withdrawClaim = async (req: Request, res: Response) => {
+  try {
+    const claim = await claimModel.findById(Number(req.params.id));
+    if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (claim.userId !== req.user!.id) {
+      return res.status(403).json({ message: 'Only the submitter can withdraw this claim' });
+    }
+    if (claim.status !== ClaimStatus.Pending) {
+      return res
+        .status(422)
+        .json({ message: 'Only pending claims can be withdrawn' });
+    }
+    const updated = await claimModel.updateClaim(Number(req.params.id), {
+      withdrawn: true,
+      withdrawnAt: new Date(),
+    });
+    await auditModel.createAuditLog({
+      claimId: claim.id,
+      action: 'WITHDRAWN_BY_SUBMITTER',
+      performedBy: req.user!.id,
+      oldStatus: claim.status,
+      newStatus: claim.status,
+      remarks: 'Soft-delete; record retained for dispute retrieval',
+    });
+    res.status(200).json({ status: 'success', data: { claim: updated } });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+/**
+ * @swagger
  * /api/claims/parse-receipt:
  *   post:
  *     summary: Extract structured fields from a receipt image

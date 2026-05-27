@@ -4,7 +4,9 @@ import {
   AlertTriangle,
   ArrowRight,
   Ban,
+  Pencil,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
@@ -19,6 +21,8 @@ import {
 import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
+import EditClaimModal from "../components/editclaimmodal.jsx";
+import PolicyFlag from "../components/policyflag.jsx";
 
 const DISALLOWED_CATEGORIES = (() => {
   const rule = policies.rules.find((r) => r.id === "block-disallowed-category");
@@ -55,9 +59,17 @@ function minDateIso() {
 
 export default function Employee() {
   const { session } = useAuth();
-  const { latestMap, submitClaim, claimsDb, error } = useClaims();
+  const {
+    latestMap,
+    submitClaim,
+    claimsDb,
+    error,
+    editClaim,
+    withdrawClaim,
+  } = useClaims();
   const { addToast } = useToast();
   const [activeClaim, setActiveClaim] = useState(null);
+  const [editingClaim, setEditingClaim] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
@@ -641,29 +653,79 @@ export default function Employee() {
                   <div
                     key={item.id}
                     className={`claim-mini-card clickable ${item.status.toLowerCase()}`}
-                    onClick={() => setActiveClaim(item)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") setActiveClaim(item);
-                    }}
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
+                    <div
+                      className="flex justify-between items-start gap-2 cursor-pointer"
+                      onClick={() => setActiveClaim(item)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") setActiveClaim(item);
+                      }}
+                    >
+                      <div className="min-w-0">
                         <h4 className="font-semibold text-text-primary m-0 text-sm mb-1">
                           {escapeHtml(item.type)} Claim
                         </h4>
                         <span className="text-text-secondary block text-xs">{item.date}</span>
                       </div>
-                      <div className="text-right">
-                        <span className={`badge-custom badge-${item.status.toLowerCase()} mb-1`}>
+                      <div className="text-right flex flex-col items-end gap-1">
+                        <span className={`badge-custom badge-${item.status.toLowerCase()}`}>
                           {item.status}
                         </span>
                         <span className="block font-bold text-text-primary text-sm">
                           {formatSGD(item.amount)}
                         </span>
+                        <PolicyFlag claim={item} variant="chip" />
                       </div>
                     </div>
+                    {item.status === "Pending" && (
+                      <div className="flex justify-end gap-1 mt-2 pt-2 border-t border-border-subtle">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingClaim(item);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-ds-sm text-[11px] font-medium text-text-secondary hover:bg-subtle hover:text-foreground transition-colors"
+                          title="Edit claim details"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (
+                              !window.confirm(
+                                "Withdraw this claim? It won't be visible to approvers but stays archived in case of disputes.",
+                              )
+                            )
+                              return;
+                            try {
+                              await withdrawClaim(item.id);
+                              addToast({
+                                variant: "info",
+                                title: "Claim withdrawn",
+                                message: `${item.id} has been withdrawn from review.`,
+                              });
+                            } catch (err) {
+                              addToast({
+                                variant: "error",
+                                title: "Couldn't withdraw",
+                                message: err?.message || "Try again in a moment.",
+                              });
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-ds-sm text-[11px] font-medium text-danger-text hover:bg-danger-bg transition-colors"
+                          title="Withdraw claim"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Withdraw
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -681,6 +743,29 @@ export default function Employee() {
             : []
         }
         onClose={() => setActiveClaim(null)}
+      />
+
+      <EditClaimModal
+        open={!!editingClaim}
+        claim={editingClaim}
+        onSave={async (updates) => {
+          try {
+            await editClaim(editingClaim.id, updates);
+            addToast({
+              variant: "success",
+              title: "Claim updated",
+              message: `${editingClaim.id} saved — still pending review.`,
+            });
+            setEditingClaim(null);
+          } catch (err) {
+            addToast({
+              variant: "error",
+              title: "Couldn't save",
+              message: err?.message || "Try again.",
+            });
+          }
+        }}
+        onCancel={() => setEditingClaim(null)}
       />
     </section>
   );

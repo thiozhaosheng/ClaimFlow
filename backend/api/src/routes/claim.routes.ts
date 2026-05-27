@@ -33,6 +33,8 @@ router.post('/', claimController.createClaim);
 router.get('/my', claimController.getMyClaims);
 router.get('/:id/receipt', claimController.getReceiptViewUrl);
 router.get('/:id', claimController.getClaimById);
+router.patch('/:id/withdraw', claimController.withdrawClaim);
+router.patch('/:id', claimController.editClaim);
 
 router.get(
   '/',

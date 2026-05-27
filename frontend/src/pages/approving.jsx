@@ -7,6 +7,7 @@ import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import RejectionModal from "../components/rejectionmodal.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
+import PolicyFlag from "../components/policyflag.jsx";
 
 export default function Approving() {
   const { latestMap, updateClaimStatus, claimsDb, error } = useClaims();
@@ -250,6 +251,7 @@ export default function Approving() {
                     <th>EMPLOYEE NAME</th>
                     <th>SUBMISSION DATE</th>
                     <th>CLAIM TYPE</th>
+                    <th>FLAG</th>
                     <th>DEPARTMENT</th>
                     <th className="text-right">TOTAL AMOUNT</th>
                     <th className="text-center">ACTION</th>
@@ -258,7 +260,7 @@ export default function Approving() {
                 <tbody>
                   {matchingClaims.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="py-3">
+                      <td colSpan="7" className="py-3">
                         <EmptyState
                           variant="queue"
                           title="All caught up"
@@ -288,6 +290,9 @@ export default function Approving() {
                           <span className="badge-custom badge-role">
                             {escapeHtml(item.type)}
                           </span>
+                        </td>
+                        <td data-label="Flag">
+                          <PolicyFlag claim={item} variant="chip" hideAutoApproved />
                         </td>
                         <td data-label="Department">
                           <span className="text-text-secondary">

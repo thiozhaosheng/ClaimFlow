@@ -30,6 +30,10 @@ model Claim {
   expenseDate DateTime  @map("expense_date")
   receiptUrl  String?   @map("receipt_url")
   status      ClaimStatus @default(Pending)
+  // Soft-delete: when the submitter withdraws a Pending claim it is hidden
+  // from active views but the row stays in storage for dispute retrieval.
+  withdrawn   Boolean   @default(false)
+  withdrawnAt DateTime? @map("withdrawn_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   auditLogs   AuditLog[]
