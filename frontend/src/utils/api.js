@@ -1,4 +1,8 @@
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+if (!apiBaseUrl) {
+  throw new Error("VITE_API_BASE_URL is required. Configure the API gateway endpoint at build time.");
+}
+const API_BASE = apiBaseUrl.replace(/\/$/, "");
 const TOKEN_KEY = "claimflow_token";
 
 export function getToken() {
