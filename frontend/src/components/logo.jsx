@@ -3,7 +3,7 @@ export default function Logo({ size = 32, variant = "filled" }) {
 
   const background =
     variant === "monogram" ? (
-      <rect width="32" height="32" rx="9" fill="currentColor" />
+      <rect width="32" height="32" rx="7" fill="currentColor" />
     ) : (
       <>
         <defs>
@@ -15,15 +15,15 @@ export default function Logo({ size = 32, variant = "filled" }) {
             y2="32"
             gradientUnits="userSpaceOnUse"
           >
-            <stop offset="0%" stopColor="#0a84ff" />
-            <stop offset="100%" stopColor="#0058b0" />
+            <stop offset="0%" stopColor="#4f46e5" />
+            <stop offset="100%" stopColor="#312e81" />
           </linearGradient>
         </defs>
-        <rect width="32" height="32" rx="9" fill={`url(#${gradientId})`} />
+        <rect width="32" height="32" rx="7" fill={`url(#${gradientId})`} />
       </>
     );
 
-  const lineFill = variant === "monogram" ? "currentColor" : "#0058b0";
+  const lineFill = variant === "monogram" ? "currentColor" : "#312e81";
 
   return (
     <svg
@@ -35,21 +35,18 @@ export default function Logo({ size = 32, variant = "filled" }) {
       aria-label="ClaimFlow"
     >
       {background}
-      {/* subtle inner ring for depth */}
       <rect
         x="0.5"
         y="0.5"
         width="31"
         height="31"
-        rx="8.5"
+        rx="6.5"
         fill="none"
         stroke="white"
-        strokeOpacity={variant === "monogram" ? "0.18" : "0.12"}
+        strokeOpacity={variant === "monogram" ? "0.18" : "0.1"}
         strokeWidth="1"
       />
-      {/* single receipt body */}
-      <rect x="9" y="6" width="14" height="20" rx="2.2" fill="white" />
-      {/* two thin content lines */}
+      <rect x="9" y="6" width="14" height="20" rx="2" fill="white" />
       <rect
         x="11.5"
         y="9.5"
@@ -57,7 +54,7 @@ export default function Logo({ size = 32, variant = "filled" }) {
         height="1"
         rx="0.5"
         fill={lineFill}
-        fillOpacity="0.55"
+        fillOpacity="0.5"
       />
       <rect
         x="11.5"
@@ -66,12 +63,11 @@ export default function Logo({ size = 32, variant = "filled" }) {
         height="1"
         rx="0.5"
         fill={lineFill}
-        fillOpacity="0.35"
+        fillOpacity="0.3"
       />
-      {/* clean check mark in the lower receipt area */}
       <path
         d="M 11.5 19 L 14.5 22 L 20.5 15"
-        stroke="#34c759"
+        stroke="#15803d"
         strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"

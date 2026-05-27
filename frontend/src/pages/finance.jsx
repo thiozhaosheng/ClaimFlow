@@ -9,7 +9,17 @@ import { exportAuditLogToCsv } from "../utils/export.js";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import FinanceDashboard from "../components/financedashboard.jsx";
 import PolicyFlag from "../components/policyflag.jsx";
-import { LayoutDashboard, ShieldCheck, Wallet } from "lucide-react";
+import {
+  AlertTriangle,
+  Building2,
+  CheckCircle2,
+  Download,
+  Filter,
+  LayoutDashboard,
+  Search,
+  ShieldCheck,
+  Wallet,
+} from "lucide-react";
 
 export default function Finance() {
   const { session, setFinanceTab } = useAuth();
@@ -136,34 +146,40 @@ export default function Finance() {
   return (
     <section id="view-finance" className="role-workspace">
       <PageHeader
+        eyebrow="Finance admin"
         title="Finance workspace"
         subtitle="See spend at a glance, disburse endorsed claims, and review the audit trail. GST 9% is captured per claim where applicable for IRAS reporting."
-        actions={
-          <div className="segmented-control" role="tablist">
-            {[
-              { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-              { key: "payment", label: "Payment Queue", icon: Wallet },
-              { key: "audit", label: "Audit Trail", icon: ShieldCheck },
-            ].map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === key}
-                className={`segment-btn flex items-center gap-1.5 ${activeTab === key ? "active" : ""}`}
-                onClick={() => switchTab(key)}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-              </button>
-            ))}
-          </div>
-        }
       />
+
+      <div className="border-b border-border-subtle mb-6 -mt-3">
+        <div className="flex items-center gap-1" role="tablist">
+          {[
+            { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+            { key: "payment", label: "Payment queue", icon: Wallet },
+            { key: "audit", label: "Audit trail", icon: ShieldCheck },
+          ].map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === key}
+              className={`relative inline-flex items-center gap-1.5 px-3 h-9 text-[13px] font-medium transition-colors border-b-2 -mb-px ${
+                activeTab === key
+                  ? "text-foreground border-accent"
+                  : "text-text-secondary border-transparent hover:text-foreground"
+              }`}
+              onClick={() => switchTab(key)}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {error && (
         <div className="data-error" role="alert">
-          <i className="fa-solid fa-triangle-exclamation"></i>
+          <AlertTriangle className="h-4 w-4" />
           <div>
             <strong>Could not load claims</strong>
             <span>{error.message}</span>
@@ -181,39 +197,40 @@ export default function Finance() {
       <div
         className={`workspace-card p-6 ${activeTab !== "payment" ? "hidden" : ""}`}
       >
-        <h2 className="workspace-card-title mb-1">
-          Endorsed Claims Queue
+        <h2 className="workspace-card-title mb-0.5">
+          Endorsed claims queue
         </h2>
-        <p className="text-text-secondary text-xs mb-4">
-          Process endorsed claims for disbursement
+        <p className="text-text-tertiary text-[12px] mb-4">
+          Process endorsed claims for disbursement.
         </p>
 
-        <div className="action-bar-strip flex flex-wrap justify-between items-center gap-3 p-3 border border-border rounded-ds-md bg-subtle mb-3">
+        <div className="action-bar-strip flex flex-wrap justify-between items-center gap-3 p-3 border border-border-subtle rounded-ds-md mb-4">
           <div className="flex items-center gap-2">
             <div
               className="search-input-wrapper m-0"
               style={{ maxWidth: "280px" }}
             >
-              <i className="fa-solid fa-magnifying-glass search-leading-icon"></i>
+              <Search className="h-3.5 w-3.5 search-leading-icon" />
               <input
                 type="text"
-                className="form-control py-1 pl-12"
-                placeholder="Search by ID or Employee Name"
+                className="form-control"
+                placeholder="Search by ID or employee name"
                 value={searchQueue}
                 onChange={(e) => setSearchQueue(e.target.value)}
               />
             </div>
-            <button className="btn px-3 py-2 bg-card border border-border text-text-secondary hover:bg-subtle">
-              <i className="fa-solid fa-filter mr-1"></i>Filter
+            <button className="btn h-9 border border-border-subtle bg-card text-text-secondary hover:bg-subtle">
+              <Filter className="h-3.5 w-3.5" />
+              <span>Filter</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <span className="text-text-secondary text-xs block">
-                Selected Total
+          <div className="flex items-center gap-4">
+            <div className="text-right leading-tight">
+              <span className="text-text-tertiary text-[11px] block uppercase tracking-[0.05em]">
+                Selected total
               </span>
-              <span className="font-bold text-lg text-text-primary">
+              <span className="font-semibold text-[1.05rem] text-text-primary tabular-nums">
                 {formatSGD(selectedTotal)}
               </span>
             </div>
@@ -222,8 +239,10 @@ export default function Finance() {
               disabled={selectedClaims.size === 0 || paying}
               onClick={handleMarkAsPaid}
             >
-              <i className="fa-regular fa-circle-check mr-2"></i>Mark as Paid (
-              <span>{selectedClaims.size}</span>)
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span>
+                Mark as paid ({selectedClaims.size})
+              </span>
             </button>
           </div>
         </div>
@@ -238,6 +257,7 @@ export default function Finance() {
                     className="form-check-input"
                     checked={selectAll}
                     onChange={(e) => handleSelectAll(e.target.checked)}
+                    aria-label="Select all endorsed claims"
                   />
                 </th>
                 <th>CLAIM ID</th>
@@ -276,6 +296,7 @@ export default function Finance() {
                         onChange={(e) =>
                           handleRowSelect(item.id, e.target.checked)
                         }
+                        aria-label={`Select claim ${item.id}`}
                       />
                     </td>
                     <td data-label="Claim">
@@ -295,8 +316,8 @@ export default function Finance() {
                       </span>
                     </td>
                     <td data-label="Bank">
-                      <span className="badge-custom badge-role py-1 px-2">
-                        <i className="fa-solid fa-building-columns mr-1 text-text-secondary"></i>
+                      <span className="badge-custom badge-role inline-flex items-center gap-1.5">
+                        <Building2 className="h-3 w-3 text-text-tertiary" />
                         {item.bank}
                       </span>
                     </td>
@@ -317,33 +338,34 @@ export default function Finance() {
       <div
         className={`workspace-card p-6 ${activeTab !== "audit" ? "hidden" : ""}`}
       >
-        <div className="flex justify-between items-start flex-wrap gap-3 mb-1">
+        <div className="flex justify-between items-start flex-wrap gap-3 mb-4">
           <div>
-            <h2 className="workspace-card-title mb-1">
-              Audit Trail & Export
+            <h2 className="workspace-card-title mb-0.5">
+              Audit trail & export
             </h2>
-            <p className="text-text-secondary text-xs">
-              Read-only log of all claim status changes and actions
+            <p className="text-text-tertiary text-[12px]">
+              Read-only log of all claim status changes and actions.
             </p>
           </div>
           <button
-            className="btn-primary flex items-center gap-2 px-3 py-2 font-medium shadow-ds-sm"
+            className="btn-primary inline-flex items-center gap-1.5"
             onClick={exportCsv}
           >
-            <i className="fa-solid fa-download"></i> Export to CSV
+            <Download className="h-3.5 w-3.5" />
+            <span>Export CSV</span>
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 my-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div
             className="search-input-wrapper m-0 flex-1"
             style={{ maxWidth: "500px" }}
           >
-            <i className="fa-solid fa-magnifying-glass search-leading-icon"></i>
+            <Search className="h-3.5 w-3.5 search-leading-icon" />
             <input
               type="text"
               className="form-control"
-              placeholder="Search by Claim ID, Employee, or Actor..."
+              placeholder="Search by claim ID, employee, or actor…"
               value={searchAudit}
               onChange={(e) => setSearchAudit(e.target.value)}
             />
@@ -366,20 +388,12 @@ export default function Finance() {
           <table className="data-table align-middle">
             <thead>
               <tr>
-                <th>
-                  <i className="fa-regular fa-calendar mr-2"></i>Timestamp
-                </th>
-                <th>
-                  <i className="fa-regular fa-file-lines mr-2"></i>Claim ID
-                </th>
+                <th>Timestamp</th>
+                <th>Claim ID</th>
                 <th>Employee</th>
                 <th className="text-right">Amount</th>
-                <th>
-                  <i className="fa-solid fa-chart-line mr-2"></i>Action
-                </th>
-                <th>
-                  <i className="fa-regular fa-user mr-2"></i>Actor
-                </th>
+                <th>Action</th>
+                <th>Actor</th>
                 <th>Role</th>
               </tr>
             </thead>
@@ -397,13 +411,13 @@ export default function Finance() {
               ) : (
                 filteredLogs.map((log, idx) => {
                   let roleBadgeClass =
-                    "bg-subtle text-text-primary border border-border";
+                    "bg-subtle text-text-secondary border border-border-subtle";
                   if (log.role === "approving")
                     roleBadgeClass =
-                      "text-accent bg-accent-subtle border border-accent-subtle";
+                      "text-accent bg-accent-subtle border border-transparent";
                   if (log.role === "finance")
                     roleBadgeClass =
-                      "text-info-text bg-info-bg border border-info-bg";
+                      "text-info-text bg-info-bg border border-transparent";
 
                   return (
                     <tr

@@ -1,5 +1,11 @@
 import { useState, useMemo } from "react";
-import { ArrowRight } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Filter,
+  Search,
+  X,
+} from "lucide-react";
 import { useClaims } from "../hooks/useclaims.js";
 import { useToast } from "../context/toastcontext.jsx";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
@@ -94,29 +100,35 @@ export default function Approving() {
     };
   }, [deptClaims]);
 
-  const pendingCount = stats.pendingCount;
-
   return (
     <section id="view-approving" className="role-workspace">
       <PageHeader
+        eyebrow="Approving officer · Sales"
         title="Approval queue"
         subtitle="Endorse claims from your department or send them back with a reason. Auto-extracted fields, policy hints, and full receipt context are surfaced inline so reviews stay under a minute."
         actions={
-          <div className="claim-pipeline-pill" aria-label="Sales department pipeline">
-            <span className="claim-pipeline-pill-stage tone-warning">
-              <b>{stats.pendingCount}</b>Pending
+          <div
+            className="flex items-center gap-4 px-3 h-9 rounded-ds-sm border border-border-subtle bg-card text-[12px] text-text-secondary tabular-nums"
+            aria-label="Sales department pipeline"
+          >
+            <span>
+              <b className="font-semibold text-warning-text">{stats.pendingCount}</b>{" "}
+              pending
             </span>
-            <ArrowRight className="claim-pipeline-pill-connector" aria-hidden="true" />
-            <span className="claim-pipeline-pill-stage tone-accent">
-              <b>{stats.endorsedCount}</b>Endorsed
+            <span className="h-3 w-px bg-border-subtle" aria-hidden="true" />
+            <span>
+              <b className="font-semibold text-accent">{stats.endorsedCount}</b>{" "}
+              endorsed
             </span>
-            <ArrowRight className="claim-pipeline-pill-connector" aria-hidden="true" />
-            <span className="claim-pipeline-pill-stage tone-success">
-              <b>{stats.paidCount}</b>Paid
+            <span className="h-3 w-px bg-border-subtle" aria-hidden="true" />
+            <span>
+              <b className="font-semibold text-success-text">{stats.paidCount}</b>{" "}
+              paid
             </span>
-            <ArrowRight className="claim-pipeline-pill-connector" aria-hidden="true" />
-            <span className="claim-pipeline-pill-stage tone-danger">
-              <b>{stats.rejectedCount}</b>Rejected
+            <span className="h-3 w-px bg-border-subtle" aria-hidden="true" />
+            <span>
+              <b className="font-semibold text-danger-text">{stats.rejectedCount}</b>{" "}
+              rejected
             </span>
           </div>
         }
@@ -124,7 +136,7 @@ export default function Approving() {
 
       {error && (
         <div className="data-error" role="alert">
-          <i className="fa-solid fa-triangle-exclamation"></i>
+          <AlertTriangle className="h-4 w-4" />
           <div>
             <strong>Could not load claims</strong>
             <span>{error.message}</span>
@@ -168,8 +180,8 @@ export default function Approving() {
           </div>
 
           <div className="mb-4">
-            <p className="sidebar-meta-label">
-              <i className="fa-solid fa-filter mr-1"></i> Filters
+            <p className="sidebar-meta-label flex items-center gap-1.5">
+              <Filter className="h-3 w-3" /> Filters
             </p>
             <div className="mb-3">
               <label className="form-label text-xs text-text-secondary">Status</label>
@@ -200,45 +212,39 @@ export default function Approving() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <div className="stat-widget-box">
-              <span className="widget-title">Pending Review</span>
-              <span className="widget-value highlight-blue">
-                {pendingCount}
-              </span>
-            </div>
-            <div className="stat-widget-box">
-              <span className="widget-title">Your Department</span>
-              <span className="widget-value text-text-primary font-semibold">
+          <div className="rounded-ds-md border border-border-subtle bg-subtle/50 p-3">
+            <p className="text-[10px] uppercase tracking-[0.08em] font-semibold text-text-tertiary mb-1.5">
+              Scope
+            </p>
+            <p className="text-[13px] text-text-secondary leading-snug">
+              You can review and endorse claims from{" "}
+              <strong className="text-text-primary font-medium">
                 Sales
-              </span>
-            </div>
+              </strong>{" "}
+              only. Endorsed claims are forwarded to Finance for disbursement.
+            </p>
           </div>
         </aside>
 
         <div className="flex-1">
           <div className="workspace-card p-6">
-            <h2 className="workspace-card-title mb-1">
-              Pending Claims Dashboard
-            </h2>
-            <p className="text-text-secondary text-xs mb-3">
-              Review and endorse claims from Sales department
-            </p>
-
-            <div className="alert-custom-info p-3 mb-4 flex items-center" role="alert">
-              <i className="fa-solid fa-circle text-accent text-[0.5rem] mr-2"></i>
-              <span>
-                <strong>Departmental View:</strong> You can only view and
-                approve claims from the Sales department
-              </span>
+            <div className="flex items-baseline justify-between gap-3 mb-4">
+              <div>
+                <h2 className="workspace-card-title mb-0.5">
+                  Pending claims
+                </h2>
+                <p className="text-text-tertiary text-[12px]">
+                  Sales department only — your scope of approval.
+                </p>
+              </div>
             </div>
 
             <div className="search-input-wrapper mb-4">
-              <i className="fa-solid fa-magnifying-glass search-leading-icon"></i>
+              <Search className="h-3.5 w-3.5 search-leading-icon" />
               <input
                 type="text"
                 className="form-control"
-                placeholder="Search by employee name or claim type..."
+                placeholder="Search by employee name or claim type…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -308,20 +314,22 @@ export default function Approving() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           {item.status === "Pending" ? (
-                            <div className="flex justify-center gap-2">
+                            <div className="flex justify-center gap-1.5">
                               <button
                                 className="action-icon-btn btn-action-approve"
                                 onClick={() => handleEndorse(item)}
                                 aria-label="Endorse claim"
+                                title="Endorse"
                               >
-                                <i className="fa-solid fa-check"></i>
+                                <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
                               </button>
                               <button
                                 className="action-icon-btn btn-action-reject"
                                 onClick={() => setRejectingClaim(item)}
                                 aria-label="Reject claim"
+                                title="Reject"
                               >
-                                <i className="fa-solid fa-xmark"></i>
+                                <X className="h-3.5 w-3.5" strokeWidth={2.5} />
                               </button>
                             </div>
                           ) : (

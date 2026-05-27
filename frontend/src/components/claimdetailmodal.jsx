@@ -1,10 +1,19 @@
 import { useEffect, useMemo } from "react";
-import { ShieldCheck, AlertTriangle, Ban } from "lucide-react";
+import {
+  ShieldCheck,
+  AlertTriangle,
+  Ban,
+  Eye,
+  ScanLine,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { formatSGD, formatSGDate } from "../utils/helpers.js";
 import {
   evaluatePolicies,
   claimContextFromForm,
 } from "../lib/policy.js";
+import categoryFields from "../data/categoryFields.json";
 
 const STATUS_KEYS = {
   Pending: "pending",
@@ -25,6 +34,74 @@ const POLICY_ICON = {
   block: Ban,
 };
 
+// Generate "where to look" hints based on the matched policy + claim data.
+function buildFieldHints(claim, policy) {
+  const hints = [];
+
+  if (claim.ocrSource === "unavailable") {
+    hints.push({
+      field: "Receipt",
+      message:
+        "OCR could not read this receipt. Open the image and verify amount, merchant and date match what was entered.",
+      tone: "warning",
+      icon: ScanLine,
+    });
+  }
+
+  if (policy?.ruleId === "route-large-amount") {
+    hints.push({
+      field: "Amount",
+      message: `${formatSGD(claim.amount)} is above the S$500 auto-approve ceiling — confirm there's a business justification.`,
+      tone: "warning",
+      icon: AlertTriangle,
+    });
+  }
+
+  if (policy?.ruleId === "block-missing-receipt-over-threshold") {
+    hints.push({
+      field: "Receipt",
+      message: `Receipt is required for claims above S$50 — none attached.`,
+      tone: "danger",
+      icon: Ban,
+    });
+  }
+
+  if (policy?.ruleId === "block-disallowed-category") {
+    hints.push({
+      field: "Category",
+      message: `"${claim.type}" is on the IRAS disallowed list — cannot be reimbursed.`,
+      tone: "danger",
+      icon: Ban,
+    });
+  }
+
+  if (policy?.ruleId === "block-future-date") {
+    hints.push({
+      field: "Date",
+      message: `Expense date is in the future — submit again after the expense actually happens.`,
+      tone: "danger",
+      icon: Ban,
+    });
+  }
+
+  if (policy?.outcome === "auto-approve") {
+    hints.push({
+      field: "Status",
+      message: `${claim.ocrSource === "unavailable" ? "Would have been " : "Was "}auto-endorsed — no manager action required, but the receipt is here for spot-checks.`,
+      tone: "success",
+      icon: ShieldCheck,
+    });
+  }
+
+  return hints;
+}
+
+const HINT_TONE_CLASSES = {
+  warning: "border-l-warning bg-warning-bg/60 text-warning-text",
+  danger: "border-l-danger bg-danger-bg/60 text-danger-text",
+  success: "border-l-success bg-success-bg/60 text-success-text",
+};
+
 export default function ClaimDetailModal({ open, claim, history = [], onClose }) {
   useEffect(() => {
     if (!open) return;
@@ -42,9 +119,23 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
       amount: claim.amount,
       receiptUrl: claim.receiptUrl,
       expenseDate: claim.date,
+      details: claim.details || {},
     });
     return evaluatePolicies(ctx);
   }, [claim]);
+
+  const categorySpec = claim ? categoryFields[claim.type] : null;
+  const detailEntries =
+    claim?.details && categorySpec?.fields
+      ? categorySpec.fields
+          .map((f) => ({ label: f.label, value: claim.details[f.key] }))
+          .filter((e) => e.value !== undefined && e.value !== null && e.value !== "")
+      : [];
+
+  const hints = useMemo(
+    () => (claim ? buildFieldHints(claim, policy) : []),
+    [claim, policy],
+  );
 
   if (!open || !claim) return null;
 
@@ -52,7 +143,12 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
   const PolicyIcon = policy ? POLICY_ICON[policy.outcome] : null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+    <div
+      className="modal-backdrop"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
       <div
         className="modal-sheet modal-sheet-wide"
         onClick={(e) => e.stopPropagation()}
@@ -72,12 +168,11 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
             onClick={onClose}
             aria-label="Close"
           >
-            <i className="fa-solid fa-xmark"></i>
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
 
         <div className="modal-detail-body">
-          {/* policy hint — shown to anyone opening the claim */}
           {policy && (
             <div className={`preflight preflight-${policy.outcome}`} role="status">
               <div className="preflight-icon">
@@ -93,11 +188,55 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
             </div>
           )}
 
+          {hints.length > 0 && (
+            <div className="rounded-ds-md border border-border-subtle bg-card overflow-hidden">
+              <div className="px-3 py-2 border-b border-border-subtle flex items-center gap-1.5 bg-subtle/40">
+                <Eye className="h-3 w-3 text-text-tertiary" />
+                <span className="text-[10px] uppercase tracking-[0.08em] font-semibold text-text-tertiary">
+                  Where to look
+                </span>
+              </div>
+              <ul className="flex flex-col">
+                {hints.map((hint, idx) => {
+                  const Icon = hint.icon;
+                  return (
+                    <li
+                      key={idx}
+                      className={`border-l-2 px-3 py-2.5 text-[12px] leading-snug ${HINT_TONE_CLASSES[hint.tone]}`}
+                    >
+                      <div className="flex items-start gap-1.5">
+                        <Icon className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-semibold text-text-primary mb-0.5">
+                            {hint.field}
+                          </div>
+                          <p className="text-text-secondary">{hint.message}</p>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
           <div className="claim-detail-receipt">
             <div className="claim-detail-receipt-thumb">
-              <i className="fa-regular fa-image"></i>
-              <span>Receipt attached</span>
-              <small>Click to view full image</small>
+              <ScanLine className="h-6 w-6" />
+              <span>
+                {claim.receiptUrl ? "Receipt attached" : "No receipt"}
+              </span>
+              <small>
+                {claim.receiptUrl
+                  ? claim.ocrSource === "azure"
+                    ? "Azure OCR · structured fields"
+                    : claim.ocrSource === "mock"
+                    ? "Demo parser"
+                    : claim.ocrSource === "unavailable"
+                    ? "Stored, OCR unavailable"
+                    : "Click to view full image"
+                  : "Manual entry"}
+              </small>
             </div>
           </div>
 
@@ -138,8 +277,33 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
             )}
           </div>
 
+          {detailEntries.length > 0 && (
+            <div className="rounded-ds-md border border-border-subtle bg-card overflow-hidden">
+              <div className="px-3 py-2 border-b border-border-subtle bg-subtle/40">
+                <span className="text-[10px] uppercase tracking-[0.08em] font-semibold text-text-tertiary">
+                  {categorySpec?.label || claim.type} details
+                </span>
+              </div>
+              <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 p-3">
+                {detailEntries.map((entry, idx) => (
+                  <div key={idx} className="min-w-0">
+                    <dt className="text-[10px] uppercase tracking-[0.06em] text-text-tertiary font-medium mb-0.5">
+                      {entry.label}
+                    </dt>
+                    <dd className="text-[13px] text-text-primary leading-snug whitespace-pre-wrap break-words">
+                      {String(entry.value)}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+
           <div className="claim-detail-history">
-            <h4 className="claim-detail-history-title">Activity</h4>
+            <h4 className="claim-detail-history-title flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-text-tertiary" />
+              Activity
+            </h4>
             {history.length === 0 ? (
               <p className="form-hint">No activity recorded yet.</p>
             ) : (
@@ -155,6 +319,11 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
                           {entry.actor} · {entry.role} · {entry.date}{" "}
                           {entry.time}
                         </div>
+                        {entry.reason && (
+                          <div className="text-[12px] text-text-secondary mt-1 italic">
+                            {entry.reason}
+                          </div>
+                        )}
                       </div>
                     </li>
                   );

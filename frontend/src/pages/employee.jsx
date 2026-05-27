@@ -2,11 +2,18 @@ import { useState, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertTriangle,
-  ArrowRight,
   Ban,
+  CheckCircle2,
+  Download,
+  FlaskConical,
+  Info,
+  Loader2,
   Pencil,
+  Plus,
   ShieldCheck,
   Trash2,
+  UploadCloud,
+  XCircle,
 } from "lucide-react";
 import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
@@ -23,6 +30,9 @@ import EmptyState from "../components/emptystate.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import EditClaimModal from "../components/editclaimmodal.jsx";
 import PolicyFlag from "../components/policyflag.jsx";
+import CategoryFields, {
+  missingRequiredCategoryFields,
+} from "../components/categoryfields.jsx";
 
 const DISALLOWED_CATEGORIES = (() => {
   const rule = policies.rules.find((r) => r.id === "block-disallowed-category");
@@ -47,8 +57,115 @@ const RECEIPT_REQUIRED_OVER = 50;
 const FULL_TAX_INVOICE_OVER = 1000;
 const MAX_AGE_DAYS = 90;
 
+const DEMO_RECEIPTS = [
+  {
+    label: "Small Grab — auto-approves",
+    href: "/test-receipts/grab-transport.pdf",
+    ext: "PDF",
+    expect: "Transport · S$19.10 · auto-endorsed",
+  },
+  {
+    label: "Hawker meal — auto-approves",
+    href: "/test-receipts/hawker-meal.pdf",
+    ext: "PDF",
+    expect: "Meal · S$8.70 · auto-endorsed",
+  },
+  {
+    label: "Office supplies — routes to approver",
+    href: "/test-receipts/office-supplies.pdf",
+    ext: "PDF",
+    expect: "Office Supplies · S$177.00 · pending review",
+  },
+  {
+    label: "Client dinner — over S$500 ceiling",
+    href: "/test-receipts/client-dinner.pdf",
+    ext: "PDF",
+    expect: "Client Entertainment · S$657.80 · pending review with hint",
+  },
+  {
+    label: "Hawker meal (JPEG)",
+    href: "/test-receipts/hawker-meal.jpg",
+    ext: "JPG",
+    expect: "Tiny fixture to test JPEG upload path",
+  },
+  {
+    label: "Grab transport (PNG)",
+    href: "/test-receipts/grab-transport.png",
+    ext: "PNG",
+    expect: "Tiny fixture to test PNG upload path",
+  },
+  {
+    label: "Oversized file (~11 MB)",
+    href: "/test-receipts/oversized.pdf",
+    ext: "PDF",
+    expect: "Rejected by the 10 MB upload limit",
+  },
+];
+
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
+}
+
+// Map an "HH:MM" transaction time to one of the CategoryFields travel-window
+// options so OCR can prefill Transport.travelWindow from receipt timestamps.
+function travelWindowFromTime(hhmm) {
+  if (!hhmm || typeof hhmm !== "string") return null;
+  const m = hhmm.match(/^(\d{1,2}):/);
+  if (!m) return null;
+  const h = parseInt(m[1], 10);
+  if (Number.isNaN(h)) return null;
+  if (h >= 6 && h < 12) return "Morning (06-12)";
+  if (h >= 12 && h < 18) return "Afternoon (12-18)";
+  if (h >= 18 && h < 22) return "Evening (18-22)";
+  return "Late night (22-06)";
+}
+
+// Build a per-category `details` prefill from whatever OCR extracted. Only
+// fields with confident OCR signals are populated — fields we can't extract
+// (occasion, attendees, businessJustification, etc.) stay empty and the user
+// fills them in. The caller merges this into the live `details` state but
+// never overwrites values the user already typed.
+function derivePerCategoryDetails(category, ocrData) {
+  if (!ocrData) return null;
+  const { merchant, items, route, transactionTime } = ocrData;
+
+  switch (category) {
+    case "Transport": {
+      const out = {};
+      if (route?.from) out.fromLocation = route.from;
+      if (route?.to) out.toLocation = route.to;
+      const window = travelWindowFromTime(transactionTime);
+      if (window) out.travelWindow = window;
+      return out;
+    }
+    case "Office Supplies": {
+      if (!items || items.length === 0) return null;
+      // First few line items, comma-joined, capped so the textarea stays sane.
+      const summary = items.slice(0, 5).join(", ");
+      return summary ? { itemSummary: summary } : null;
+    }
+    case "Travel": {
+      const out = {};
+      if (merchant) {
+        const m = merchant.toLowerCase();
+        if (/airline|airways|airasia|scoot|jetstar|sia/.test(m)) out.mode = "Flight";
+        else if (/train|smrt|mrt|rail/.test(m)) out.mode = "Train";
+      }
+      return Object.keys(out).length > 0 ? out : null;
+    }
+    case "Training": {
+      // Provider is the merchant on training receipts (Coursera, AWS Training,
+      // SMU Academy, etc.).
+      if (!merchant) return null;
+      return { provider: merchant };
+    }
+    case "Medical (statutory)": {
+      if (!merchant) return null;
+      return { clinic: merchant };
+    }
+    default:
+      return null;
+  }
 }
 
 function minDateIso() {
@@ -74,6 +191,7 @@ export default function Employee() {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [category, setCategory] = useState("Transport");
+  const [categoryTouched, setCategoryTouched] = useState(false);
   const [amount, setAmount] = useState("");
   const [gstAmount, setGstAmount] = useState("");
   const [merchant, setMerchant] = useState("");
@@ -84,6 +202,7 @@ export default function Employee() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [extracted, setExtracted] = useState(null);
+  const [details, setDetails] = useState({});
   const fileInputRef = useRef(null);
 
   const numericAmount = useMemo(() => {
@@ -95,9 +214,23 @@ export default function Employee() {
   const receiptRequired = numericAmount > RECEIPT_REQUIRED_OVER;
   const receiptMissing = receiptRequired && !hasFile;
   const fullTaxInvoiceRequired = numericAmount > FULL_TAX_INVOICE_OVER;
-  const formInvalid = categoryDisallowed || receiptMissing;
+  const missingDetailKeys = useMemo(
+    () => missingRequiredCategoryFields(category, details),
+    [category, details],
+  );
+  const detailsIncomplete = missingDetailKeys.length > 0;
+  const formInvalid = categoryDisallowed || receiptMissing || detailsIncomplete;
   const today = todayIso();
   const minDate = minDateIso();
+
+  // Reset per-category details when category changes so leftover Transport
+  // fields don't end up persisted on a Meal claim.
+  const lastCategoryRef = useRef(category);
+  if (lastCategoryRef.current !== category) {
+    lastCategoryRef.current = category;
+    // safe to call during render — same-tick state update
+    setDetails({});
+  }
 
   // live policy preflight — runs as user fills the form
   const preflight = useMemo(() => {
@@ -106,9 +239,10 @@ export default function Employee() {
       amount: numericAmount,
       expenseDate: date,
       hasFile,
+      details,
     });
     return evaluatePolicies(ctx);
-  }, [category, numericAmount, date, hasFile]);
+  }, [category, numericAmount, date, hasFile, details]);
 
   const formHasMinFields = title.trim() && date && numericAmount > 0;
 
@@ -128,7 +262,14 @@ export default function Employee() {
       if (data.gstAmount != null) setGstAmount(String(data.gstAmount));
       if (data.merchant) setMerchant(data.merchant);
       if (data.expenseDate) setDate(data.expenseDate);
-      if (data.category && CATEGORY_OPTIONS.find((o) => o.value === data.category)) {
+      // Only apply OCR's category guess if the user hasn't already picked
+      // one themselves. Even a "confident" guess can be wrong (e.g. a
+      // medical bill from "Raffles Medical Cafe" looks like Meal to OCR).
+      if (
+        !categoryTouched &&
+        data.category &&
+        CATEGORY_OPTIONS.find((o) => o.value === data.category)
+      ) {
         setCategory(data.category);
       }
       if (data.merchant && !title) {
@@ -137,6 +278,24 @@ export default function Employee() {
       if (data.receiptUrl) setReceiptUrl(data.receiptUrl);
       if (data.viewUrl) setViewUrl(data.viewUrl);
       setExtracted(data);
+
+      // Best-effort prefill of per-category details from what OCR extracted.
+      // Only fills empty keys — never overwrites something the user typed.
+      const effectiveCategory =
+        categoryTouched ? category : (data.category || category);
+      const detailsPrefill = derivePerCategoryDetails(effectiveCategory, data);
+      if (detailsPrefill) {
+        setDetails((prev) => {
+          const next = { ...prev };
+          for (const [k, v] of Object.entries(detailsPrefill)) {
+            if (v === undefined || v === null || v === "") continue;
+            if (next[k] === undefined || next[k] === null || next[k] === "") {
+              next[k] = v;
+            }
+          }
+          return next;
+        });
+      }
       if (data.source === "unavailable") {
         addToast({
           variant: "warning",
@@ -184,7 +343,7 @@ export default function Employee() {
 
     setSubmitting(true);
     try {
-      const created = await submitClaim({
+      const result = await submitClaim({
         title,
         date,
         category,
@@ -192,13 +351,28 @@ export default function Employee() {
         gstAmount: gstAmount === "" ? null : parseFloat(gstAmount),
         merchant: merchant || null,
         receiptUrl,
+        ocrSource: extracted?.source || null,
+        details: Object.keys(details).length > 0 ? details : null,
         email: session?.email || "",
       });
+      const created = result?.claim;
+      const policy = result?.policy;
+      const suppressed = policy?.autoApproveSuppressedByOcr;
+      const autoApproved =
+        policy?.outcome === "auto-approve" && !suppressed;
       addToast({
-        variant: "success",
-        title: "Claim submitted",
+        variant: suppressed ? "warning" : autoApproved ? "success" : "info",
+        title: suppressed
+          ? "Submitted — pending manual review"
+          : autoApproved
+          ? "Auto-endorsed"
+          : "Claim submitted",
         message: created
-          ? `${created.id} (${created.type} · ${formatSGD(created.amount)}) is now pending review.`
+          ? suppressed
+            ? `${created.id} would have auto-approved, but OCR couldn't verify the receipt — your approver will double-check.`
+            : autoApproved
+            ? `${created.id} (${created.type} · ${formatSGD(created.amount)}) was auto-endorsed by policy. Awaiting payout.`
+            : `${created.id} (${created.type} · ${formatSGD(created.amount)}) is now pending review.`
           : "Your claim is now pending review.",
       });
       setTitle("");
@@ -212,6 +386,8 @@ export default function Employee() {
       setReceiptUrl(null);
       setViewUrl(null);
       setExtracted(null);
+      setDetails({});
+      setCategoryTouched(false);
     } catch (err) {
       addToast({
         variant: "error",
@@ -271,24 +447,36 @@ export default function Employee() {
   return (
     <section id="view-employee" className="role-workspace">
       <PageHeader
+        eyebrow="Employee"
         title="Submit & track your claims"
         subtitle="Snap a receipt — we extract the merchant, amount, GST and date so you only confirm. Claims under S$50 in standard categories auto-approve; anything larger routes to a manager."
         actions={
-          <div className="claim-pipeline-pill" aria-label="Your claims pipeline">
-            <span className="claim-pipeline-pill-stage">
-              <b>{stats.submittedThisMonth}</b>Submitted
+          <div
+            className="flex items-center gap-4 px-3 h-9 rounded-ds-sm border border-border-subtle bg-card text-[12px] text-text-secondary tabular-nums"
+            aria-label="Your claims pipeline"
+          >
+            <span>
+              <b className="font-semibold text-text-primary">
+                {stats.submittedThisMonth}
+              </b>{" "}
+              submitted
             </span>
-            <ArrowRight className="claim-pipeline-pill-connector" aria-hidden="true" />
-            <span className="claim-pipeline-pill-stage tone-warning">
-              <b>{stats.pending}</b>Pending
+            <span className="h-3 w-px bg-border-subtle" aria-hidden="true" />
+            <span>
+              <b className="font-semibold text-warning-text">{stats.pending}</b>{" "}
+              pending
             </span>
-            <ArrowRight className="claim-pipeline-pill-connector" aria-hidden="true" />
-            <span className="claim-pipeline-pill-stage tone-accent">
-              <b>{stats.endorsed}</b>Endorsed
+            <span className="h-3 w-px bg-border-subtle" aria-hidden="true" />
+            <span>
+              <b className="font-semibold text-accent">{stats.endorsed}</b>{" "}
+              endorsed
             </span>
-            <ArrowRight className="claim-pipeline-pill-connector" aria-hidden="true" />
-            <span className="claim-pipeline-pill-stage tone-success">
-              <b>{stats.paidThisMonthCount}</b>Paid
+            <span className="h-3 w-px bg-border-subtle" aria-hidden="true" />
+            <span>
+              <b className="font-semibold text-success-text">
+                {stats.paidThisMonthCount}
+              </b>{" "}
+              paid
             </span>
           </div>
         }
@@ -296,7 +484,7 @@ export default function Employee() {
 
       {error && (
         <div className="data-error" role="alert">
-          <i className="fa-solid fa-triangle-exclamation"></i>
+          <AlertTriangle className="h-4 w-4" />
           <div>
             <strong>Could not load claims</strong>
             <span>{error.message}</span>
@@ -304,21 +492,21 @@ export default function Employee() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <div className="lg:col-span-8">
           <div className="workspace-card p-5">
-            <h2 className="workspace-card-title mb-4 flex items-center">
-              <span className="plus-icon-badge mr-2">
-                <i className="fa-solid fa-plus"></i>
+            <h2 className="workspace-card-title mb-3 flex items-center gap-2">
+              <span className="plus-icon-badge">
+                <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
               </span>
-              Submit New Claim
+              Submit new claim
             </h2>
 
             <form onSubmit={handleSubmit}>
               {extracted && extracted.source !== "unavailable" && (
                 <div className="extracted-banner" role="status">
                   <div className="extracted-banner-icon">
-                    <i className="fa-solid fa-wand-magic-sparkles"></i>
+                    <CheckCircle2 className="h-3.5 w-3.5" />
                   </div>
                   <div className="extracted-banner-text">
                     <strong>
@@ -334,8 +522,8 @@ export default function Employee() {
                 </div>
               )}
               {extracted && extracted.source === "unavailable" && (
-                <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-md bg-warning-bg text-warning-text border border-warning/20" role="alert">
-                  <i className="fa-solid fa-circle-info mt-1"></i>
+                <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-sm bg-warning-bg text-warning-text border border-border-subtle" role="alert">
+                  <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div>
                     <strong>OCR couldn't read this receipt.</strong>
                     <div className="text-xs mt-1">
@@ -348,8 +536,8 @@ export default function Employee() {
               )}
 
               {categoryDisallowed && (
-                <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-md bg-danger-bg text-danger-text border border-danger/20" role="alert">
-                  <i className="fa-solid fa-ban mt-1"></i>
+                <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-sm bg-danger-bg text-danger-text border border-border-subtle" role="alert">
+                  <Ban className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div>
                     <strong>This category cannot be claimed.</strong>
                     <div className="text-xs mt-1">
@@ -364,8 +552,8 @@ export default function Employee() {
               )}
 
               {fullTaxInvoiceRequired && !categoryDisallowed && (
-                <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-md bg-warning-bg text-warning-text border border-warning/20" role="alert">
-                  <i className="fa-solid fa-circle-exclamation mt-1"></i>
+                <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-sm bg-warning-bg text-warning-text border border-border-subtle" role="alert">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div>
                     <strong>Full tax invoice required.</strong>
                     <div className="text-xs mt-1">
@@ -382,7 +570,7 @@ export default function Employee() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
                 <div>
                   <label className="form-label">Claim Title</label>
                   <input
@@ -406,7 +594,7 @@ export default function Employee() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
                 <div>
                   <label className="form-label">Expense Date</label>
                   <input
@@ -427,7 +615,10 @@ export default function Employee() {
                   <select
                     className={`form-select ${categoryDisallowed ? "border-danger" : ""}`}
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) => {
+                      setCategory(e.target.value);
+                      setCategoryTouched(true);
+                    }}
                   >
                     {CATEGORY_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -439,7 +630,13 @@ export default function Employee() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4">
+              <CategoryFields
+                category={category}
+                details={details}
+                onChange={setDetails}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
                 <div className="md:col-span-7">
                   <label className="form-label">Total amount (incl. GST)</label>
                   <div className="input-group">
@@ -495,51 +692,62 @@ export default function Employee() {
                   accept="image/*,.pdf"
                   onChange={handleFileChange}
                 />
-                <div
-                  className={`file-dropzone ${isDragOver ? "dragover" : ""} ${parsing ? "parsing" : ""} ${
-                    receiptMissing ? "border border-danger" : ""
+                <button
+                  type="button"
+                  className={`file-dropzone block w-full ${isDragOver ? "dragover" : ""} ${parsing ? "parsing" : ""} ${
+                    receiptMissing ? "!border-danger" : ""
                   }`}
                   onClick={() => !parsing && fileInputRef.current?.click()}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
+                  aria-label={fileName ? `Receipt ${fileName} attached. Click to replace.` : "Upload receipt"}
+                  disabled={parsing}
                 >
-                  {parsing ? (
-                    <i className="fa-solid fa-circle-notch fa-spin dropzone-icon mb-2"></i>
-                  ) : (
-                    <i className="fa-solid fa-cloud-arrow-up dropzone-icon mb-2"></i>
-                  )}
-                  <p className="m-0">
+                  <div className="flex justify-center mb-2">
                     {parsing ? (
-                      "Reading your receipt..."
+                      <Loader2 className="h-6 w-6 text-text-tertiary animate-spin" />
+                    ) : (
+                      <UploadCloud className="h-6 w-6 text-text-tertiary" strokeWidth={1.5} />
+                    )}
+                  </div>
+                  <p className="m-0 text-sm">
+                    {parsing ? (
+                      "Reading your receipt…"
                     ) : fileName ? (
                       <>
-                        <span className="text-accent">{escapeHtml(fileName)}</span> attached
+                        <span className="text-accent font-medium">
+                          {escapeHtml(fileName)}
+                        </span>{" "}
+                        attached
                       </>
                     ) : (
-                      "Drop a receipt photo here or click to browse"
+                      "Drop a receipt here or click to browse"
                     )}
                   </p>
                   <span className="dropzone-subtext">
-                    Photos of physical receipts, screenshots of Grab / PayNow / SimplyGo receipts.
-                    JPG, PNG, PDF up to 10MB.
+                    Photos, Grab / PayNow / SimplyGo screenshots. JPG, PNG, PDF up to 10&nbsp;MB.
                   </span>
-                </div>
+                </button>
                 {receiptMissing && (
-                  <div className="text-danger text-xs mt-2">
-                    <i className="fa-solid fa-circle-exclamation mr-1"></i>
-                    A receipt is required for claims above {formatSGD(RECEIPT_REQUIRED_OVER)}.
-                    Rule: <code>block-missing-receipt-over-threshold</code>.
+                  <div className="text-danger-text text-xs mt-2 flex items-start gap-1.5">
+                    <XCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                    <span>
+                      A receipt is required for claims above {formatSGD(RECEIPT_REQUIRED_OVER)}.
+                      Rule: <code>block-missing-receipt-over-threshold</code>.
+                    </span>
                   </div>
                 )}
                 {viewUrl && (
-                  <div className="text-success text-xs mt-2">
-                    <i className="fa-solid fa-circle-check mr-1"></i>
-                    Receipt stored.{" "}
-                    <a href={viewUrl} target="_blank" rel="noreferrer">
-                      View uploaded image
-                    </a>{" "}
-                    <span className="text-text-tertiary">(link valid 15 minutes)</span>
+                  <div className="text-success-text text-xs mt-2 flex items-start gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                    <span>
+                      Receipt stored.{" "}
+                      <a href={viewUrl} target="_blank" rel="noreferrer" className="underline">
+                        View uploaded image
+                      </a>{" "}
+                      <span className="text-text-tertiary">(link valid 15 minutes)</span>
+                    </span>
                   </div>
                 )}
               </div>
@@ -589,7 +797,7 @@ export default function Employee() {
                 className="btn-primary w-full py-2 font-medium"
                 disabled={submitting || formInvalid}
               >
-                {submitting ? "Submitting..." : "Submit Claim"}
+                {submitting ? "Submitting…" : "Submit claim"}
               </button>
 
               <p className="text-xs text-text-tertiary mt-3 mb-0 text-center">
@@ -640,7 +848,39 @@ export default function Employee() {
               </div>
             </div>
 
-            <h3 className="panel-subtitle mb-3 text-sm">Recent Claims</h3>
+            <details className="mb-3 group">
+              <summary className="cursor-pointer text-[11px] font-medium text-text-tertiary hover:text-text-primary inline-flex items-center gap-1.5 select-none">
+                <FlaskConical className="h-3 w-3" />
+                Demo fixtures · {DEMO_RECEIPTS.length} test receipts
+              </summary>
+              <ul className="mt-2 flex flex-col gap-1 text-[11px]">
+                {DEMO_RECEIPTS.map((r) => (
+                  <li
+                    key={r.href}
+                    className="flex items-start justify-between gap-2 px-2 py-1.5 rounded-ds-sm border border-border-subtle bg-subtle/40"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <a
+                        href={r.href}
+                        download
+                        className="inline-flex items-center gap-1 font-medium text-text-primary hover:text-accent"
+                      >
+                        <Download className="h-2.5 w-2.5" />
+                        {r.label}
+                      </a>
+                      <p className="text-text-tertiary mt-0.5 truncate">
+                        {r.expect}
+                      </p>
+                    </div>
+                    <span className="text-[9px] font-mono text-text-tertiary border border-border-subtle px-1 py-0.5 rounded">
+                      {r.ext}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+
+            <h3 className="panel-subtitle mb-3 text-sm">Recent claims</h3>
             <div className="flex flex-col gap-3">
               {distinctClaims.length === 0 ? (
                 <EmptyState

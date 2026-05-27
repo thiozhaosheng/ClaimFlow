@@ -1,5 +1,4 @@
-import { Routes, Route, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { Routes, Route } from "react-router-dom";
 import AppShell from "./components/appshell.jsx";
 import ProtectedRoute from "./components/protectedroute.jsx";
 import SignIn from "./pages/signin.jsx";
@@ -11,25 +10,6 @@ import Policies from "./pages/policies.jsx";
 import Privacy from "./pages/privacy.jsx";
 
 export default function App() {
-  const location = useLocation();
-
-  useEffect(() => {
-    if (window.AOS) {
-      window.AOS.init({
-        disable: "phone",
-        duration: 600,
-        once: true,
-        easing: "ease-out-cubic",
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (window.AOS) {
-      window.AOS.refreshHard();
-    }
-  }, [location.pathname]);
-
   return (
     <Routes>
       <Route path="/" element={<SignIn />} />

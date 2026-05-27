@@ -5,7 +5,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        // existing project tokens
         app: "var(--bg-app)",
         subtle: "var(--bg-subtle)",
         text: {
@@ -40,8 +39,7 @@ export default {
           text: "var(--info-text)",
         },
 
-        // shadcn-compatible aliases — map to existing project tokens so
-        // shadcn primitives blend with the rest of the app
+        // shadcn-compatible aliases
         background: "var(--bg-app)",
         foreground: "var(--text-primary)",
         card: {
@@ -80,16 +78,14 @@ export default {
           2: "var(--info)",
           3: "var(--success)",
           4: "var(--warning)",
-          5: "#af52de",
+          5: "var(--danger)",
         },
       },
       borderRadius: {
-        // existing project radii
         "ds-sm": "var(--radius-sm)",
         "ds-md": "var(--radius-md)",
         "ds-lg": "var(--radius-lg)",
         "ds-xl": "var(--radius-xl)",
-        // shadcn defaults
         lg: "var(--radius-lg)",
         md: "var(--radius-md)",
         sm: "var(--radius-sm)",
@@ -103,15 +99,25 @@ export default {
       },
       fontFamily: {
         sans: [
+          '"Geist"',
           "-apple-system",
           "BlinkMacSystemFont",
-          '"SF Pro Text"',
-          '"SF Pro Display"',
-          '"Inter"',
           '"Segoe UI"',
           '"Helvetica Neue"',
           "sans-serif",
         ],
+        mono: [
+          '"Geist Mono"',
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "monospace",
+        ],
+      },
+      letterSpacing: {
+        tightest: "-0.035em",
+        tighter: "-0.025em",
+        tight: "-0.015em",
       },
       keyframes: {
         "accordion-down": {
