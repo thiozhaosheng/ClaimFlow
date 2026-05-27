@@ -23,6 +23,12 @@ const optional = (key: string, fallback: string): string => {
 export const NODE_ENV = optional('NODE_ENV', 'development');
 export const PORT = parseInt(optional('PORT', '3000'), 10);
 
+const configuredForProduction = (key: string, developmentFallback: string): string => {
+  return NODE_ENV === 'production' ? required(key) : optional(key, developmentFallback);
+};
+
+export const API_PUBLIC_URL = configuredForProduction('API_PUBLIC_URL', `http://localhost:${PORT}`);
+
 // Secrets — no fallback. Service refuses to boot without them.
 export const JWT_SECRET = required('JWT_SECRET');
 export const DATABASE_URL = required('DATABASE_URL');
@@ -31,7 +37,7 @@ export const DATABASE_URL = required('DATABASE_URL');
 export const JWT_EXPIRES_IN = optional('JWT_EXPIRES_IN', '1d');
 
 // CORS allowlist (comma-separated). In dev, defaults to the Vite frontend.
-export const CORS_ORIGINS = optional(
+export const CORS_ORIGINS = configuredForProduction(
   'CORS_ORIGINS',
   'http://localhost:3000,http://localhost:5173',
 )

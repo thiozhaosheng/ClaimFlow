@@ -1,17 +1,12 @@
 import rateLimit from 'express-rate-limit';
 import cors, { CorsOptions } from 'cors';
-import { CORS_ORIGINS, NODE_ENV } from '../config/constants';
+import { CORS_ORIGINS } from '../config/constants';
 
-const isProduction = NODE_ENV === 'production';
-
-// CORS allowlist from env. In dev, also allow requests with no origin
-// (curl, server-to-server, mobile webviews).
+// Browser origins must be allowlisted. Requests without Origin, such as
+// health probes and server-to-server calls, do not gain browser CORS access.
 export const corsOptions: CorsOptions = {
   origin(origin, callback) {
     if (!origin) {
-      if (isProduction) {
-        return callback(new Error('Origin required in production'));
-      }
       return callback(null, true);
     }
     if (CORS_ORIGINS.includes(origin)) {

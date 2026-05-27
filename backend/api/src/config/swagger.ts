@@ -1,4 +1,5 @@
 import swaggerJSDoc from 'swagger-jsdoc';
+import { API_PUBLIC_URL } from './constants';
 
 const options: swaggerJSDoc.Options = {
   definition: {
@@ -10,8 +11,8 @@ const options: swaggerJSDoc.Options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
-        description: 'Development server',
+        url: API_PUBLIC_URL,
+        description: 'Configured API server',
       },
     ],
     components: {

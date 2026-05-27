@@ -19,9 +19,6 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 const corsOptions = {
   origin(origin, callback) {
     if (!origin) {
-      if (isProduction) {
-        return callback(new Error("Origin required in production"));
-      }
       return callback(null, true);
     }
     if (config.corsOrigins.includes(origin)) {
