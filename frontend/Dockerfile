@@ -10,7 +10,7 @@ COPY vite.config.js postcss.config.js tailwind.config.js ./
 COPY src ./src
 COPY public ./public
 
-ARG VITE_API_BASE_URL=http://localhost:4000
+ARG VITE_API_BASE_URL=https://claimflow-auth-gateway.kindhill-bf93fe88.southeastasia.azurecontainerapps.io
 ARG VITE_MOCK_API=false
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_MOCK_API=$VITE_MOCK_API
