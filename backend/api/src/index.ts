@@ -1,7 +1,9 @@
 import express from 'express';
 import helmet from 'helmet';
+import swaggerUi from 'swagger-ui-express';
 import { connectDatabase } from './config/database';
 import apiRoutes from './routes/index';
+import { swaggerSpec } from './config/swagger';
 import { PORT, NODE_ENV } from './config/constants';
 import {
   corsMiddleware,
@@ -24,6 +26,22 @@ app.use(
 
 app.use(corsMiddleware);
 app.use(express.json({ limit: '1mb' }));
+
+// Swagger UI at /api/docs, raw OpenAPI JSON at /api/docs.json.
+// Mounted BEFORE the rate limiters so refreshing the docs page doesn't
+// chew through the /api allowance.
+app.get('/api/docs.json', (_req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+app.use(
+  '/api/docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'ClaimFlow API',
+    customCss: '.swagger-ui .topbar { display: none }',
+  }),
+);
 
 // Rate limits — strictest on auth (matches before mount), looser elsewhere.
 app.use('/api/auth', authLimiter);
