@@ -58,8 +58,19 @@ function daysAgo(value: unknown, now = new Date()): number | null {
   return Math.floor((now.getTime() - d.getTime()) / MS_PER_DAY);
 }
 
+function resolveField(ctx: any, fieldPath: string): unknown {
+  if (!fieldPath) return undefined;
+  const parts = fieldPath.split('.');
+  let cur: any = ctx;
+  for (const p of parts) {
+    if (cur == null) return undefined;
+    cur = cur[p];
+  }
+  return cur;
+}
+
 function evaluateCondition(cond: Condition, ctx: ClaimContext): boolean {
-  const v: unknown = (ctx as any)[cond.field];
+  const v: unknown = resolveField(ctx, cond.field);
   switch (cond.op) {
     case 'present':
       return v !== null && v !== undefined && v !== '';

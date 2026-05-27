@@ -18,8 +18,20 @@ function daysAgo(value, now = new Date()) {
   return Math.floor((now - d) / MS_PER_DAY);
 }
 
+function resolveField(ctx, fieldPath) {
+  // Dot-path resolver so rules can target nested values like "details.clientCompany".
+  if (!fieldPath) return undefined;
+  const parts = fieldPath.split(".");
+  let cur = ctx;
+  for (const p of parts) {
+    if (cur == null) return undefined;
+    cur = cur[p];
+  }
+  return cur;
+}
+
 export function evaluateCondition(cond, ctx) {
-  const v = ctx[cond.field];
+  const v = resolveField(ctx, cond.field);
   switch (cond.op) {
     case "present":
       return v !== null && v !== undefined && v !== "";
@@ -86,6 +98,7 @@ export function claimContextFromForm({
   expenseDate,
   supplierGstRegNumber = null,
   hasFile = false,
+  details = {},
 }) {
   return {
     category,
@@ -94,5 +107,6 @@ export function claimContextFromForm({
     receiptUrl: receiptUrl || (hasFile ? "pending-upload" : null),
     expenseDate,
     supplierGstRegNumber,
+    details: details || {},
   };
 }

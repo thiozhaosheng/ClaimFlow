@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import * as claimModel from '../models/claim.model';
 import * as auditModel from '../models/auditLog.model';
+import * as notifModel from '../models/notification.model';
+import * as userModel from '../models/user.model';
 import { ClaimStatus, Role } from '@prisma/client';
 import { parseReceipt } from '../services/receiptParser';
 import {
@@ -17,108 +19,137 @@ import { evaluateClaim } from '../services/policyEngine';
  *     Claim:
  *       type: object
  *       properties:
- *         id:
- *           type: integer
- *         userId:
- *           type: integer
- *         amount:
- *           type: number
- *         category:
- *           type: string
- *         expenseDate:
- *           type: string
- *           format: date-time
- *         receiptUrl:
- *           type: string
- *           nullable: true
- *         status:
- *           type: string
- *           enum: [Pending, Endorsed, Rejected, Paid]
- *         createdAt:
- *           type: string
- *           format: date-time
- *         updatedAt:
- *           type: string
- *           format: date-time
+ *         id: { type: integer }
+ *         userId: { type: integer }
+ *         amount: { type: number }
+ *         category: { type: string }
+ *         expenseDate: { type: string, format: date-time }
+ *         receiptUrl: { type: string, nullable: true }
+ *         ocrSource: { type: string, nullable: true, enum: [azure, mock, unavailable] }
+ *         status: { type: string, enum: [Pending, Endorsed, Rejected, Paid] }
+ *         createdAt: { type: string, format: date-time }
+ *         updatedAt: { type: string, format: date-time }
  */
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const CLM = (id: number) => `CLM-${String(id).padStart(3, '0')}`;
+
+const formatSGD = (amount: number) =>
+  `S$${amount.toLocaleString('en-SG', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+async function notifyDepartmentManager(args: {
+  submitterId: number;
+  submitterDepartment: string | null;
+  claimId: number;
+  kind: 'auto-endorsed' | 'route-to-human' | 'ocr-unavailable';
+  category: string;
+  amount: number;
+  merchant: string | null;
+  submitterName: string;
+  ruleId: string;
+  ruleMessage: string;
+}) {
+  // Find managers in the same department; fall back to any manager.
+  const managers = await userModel.findAll();
+  const sameDept = managers.filter(
+    (u) =>
+      u.role === Role.Manager &&
+      args.submitterDepartment !== null &&
+      u.department === args.submitterDepartment,
+  );
+  const candidates = sameDept.length > 0 ? sameDept : managers.filter((u) => u.role === Role.Manager);
+  if (candidates.length === 0) return;
+
+  const titlePrefix = {
+    'auto-endorsed': 'Auto-endorsed',
+    'route-to-human': 'New claim to review',
+    'ocr-unavailable': 'Manual review needed',
+  }[args.kind];
+
+  const body = `${args.category} · ${args.merchant ?? '—'} · ${formatSGD(args.amount)}`;
+  const hint =
+    args.kind === 'ocr-unavailable'
+      ? 'OCR could not read the receipt — verify the receipt image matches the entered amount and date.'
+      : `Rule: ${args.ruleId} — ${args.ruleMessage}`;
+
+  await Promise.all(
+    candidates.map((manager) =>
+      notifModel.createNotification({
+        recipientId: manager.id,
+        claimId: args.claimId,
+        kind: args.kind,
+        title: `${titlePrefix}: ${args.submitterName}`,
+        body,
+        hint,
+      }),
+    ),
+  );
+}
+
+async function notifySubmitter(args: {
+  submitterId: number;
+  claimId: number;
+  kind: 'claim-endorsed' | 'claim-rejected' | 'claim-paid' | 'claim-edited';
+  title: string;
+  body: string;
+  hint?: string;
+}) {
+  await notifModel.createNotification({
+    recipientId: args.submitterId,
+    claimId: args.claimId,
+    kind: args.kind,
+    title: args.title,
+    body: args.body,
+    hint: args.hint,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Endpoints
+// ---------------------------------------------------------------------------
 
 /**
  * @swagger
  * /api/claims:
  *   post:
  *     summary: Submit a new expense claim
+ *     description: |
+ *       Runs the company approval policy against the incoming claim. Outcomes:
+ *       - `block` → 422 with the policy message
+ *       - `auto-approve` AND OCR was successful → status set to Endorsed, audit
+ *         entry written, dept. manager notified for visibility
+ *       - `auto-approve` BUT OCR source is `unavailable` → suppressed; claim
+ *         goes to Pending and dept. manager is asked to manually verify
+ *       - `route-to-human` → Pending; dept. manager notified with the matched
+ *         rule as a hint
  *     tags: [Claims]
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [amount, category, expenseDate]
- *             properties:
- *               amount:
- *                 type: number
- *               category:
- *                 type: string
- *               expenseDate:
- *                 type: string
- *                 format: date
- *               receiptUrl:
- *                 type: string
- *     responses:
- *       201:
- *         description: Claim created successfully
- *   get:
- *     summary: Get all claims (Manager/Finance Admin only)
- *     tags: [Claims]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of all claims
  */
-
-/**
- * @swagger
- * /api/claims/my:
- *   get:
- *     summary: Get claims submitted by the current user
- *     tags: [Claims]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: User's claims retrieved successfully
- */
-
-/**
- * @swagger
- * /api/claims/{id}:
- *   get:
- *     summary: Get a specific claim by ID
- *     tags: [Claims]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Claim details
- *       403:
- *         description: Access denied (if Employee tries to view another user's claim)
- */
-
 export const createClaim = async (req: Request, res: Response) => {
   try {
-    const { amount, gstAmount, merchant, category, expenseDate, receiptUrl } = req.body;
+    const {
+      amount,
+      gstAmount,
+      merchant,
+      category,
+      expenseDate,
+      receiptUrl,
+      ocrSource,
+      details,
+    } = req.body;
 
-    // Run company policy against the incoming claim before we persist anything.
+    const submitter = await userModel.findById(req.user!.id);
+    if (!submitter) return res.status(404).json({ message: 'Submitter not found' });
+
+    // Policy engine needs access to the details object for rules that
+    // target nested paths (e.g. "details.businessJustification").
     const policy = evaluateClaim({
       amount: Number(amount),
       gstAmount: gstAmount ?? null,
@@ -126,10 +157,10 @@ export const createClaim = async (req: Request, res: Response) => {
       category,
       expenseDate,
       receiptUrl: receiptUrl ?? null,
+      details: details ?? {},
     } as any);
 
-    // Block outcome — refuse the submission with the same shape callers
-    // already expect for validation errors.
+    // Block outcome — refuse the submission.
     if (policy.outcome === 'block') {
       return res.status(422).json({
         status: 'error',
@@ -138,7 +169,13 @@ export const createClaim = async (req: Request, res: Response) => {
       });
     }
 
-    const autoApprove = policy.outcome === 'auto-approve';
+    // OCR-failure suppression: even if the rule says auto-approve, an
+    // unreadable receipt means the manager must double-check the manually
+    // entered fields against the receipt image.
+    const ocrUnavailable = ocrSource === 'unavailable';
+    const wouldAutoApprove = policy.outcome === 'auto-approve';
+    const autoApprove = wouldAutoApprove && !ocrUnavailable;
+
     const initialStatus = autoApprove ? ClaimStatus.Endorsed : ClaimStatus.Pending;
 
     const newClaim = await claimModel.createClaim({
@@ -148,12 +185,13 @@ export const createClaim = async (req: Request, res: Response) => {
       category,
       expenseDate: new Date(expenseDate),
       receiptUrl,
+      ocrSource: ocrSource ?? null,
+      details: details ?? undefined,
       userId: req.user!.id,
       status: initialStatus,
     });
 
-    // Audit trail: every auto-approval is recorded so the finance audit
-    // log stays symmetric with manager approvals.
+    // ---- audit + notifications -----------------------------------------
     if (autoApprove) {
       await auditModel.createAuditLog({
         claimId: newClaim.id,
@@ -163,12 +201,69 @@ export const createClaim = async (req: Request, res: Response) => {
         newStatus: ClaimStatus.Endorsed,
         remarks: policy.ruleId,
       });
+      await notifyDepartmentManager({
+        submitterId: submitter.id,
+        submitterDepartment: submitter.department,
+        claimId: newClaim.id,
+        kind: 'auto-endorsed',
+        category,
+        amount: Number(amount),
+        merchant: merchant ?? null,
+        submitterName: submitter.name,
+        ruleId: policy.ruleId,
+        ruleMessage: policy.message,
+      });
+    } else if (wouldAutoApprove && ocrUnavailable) {
+      // Auto-approve was suppressed by OCR failure — log + notify so the
+      // approver knows to do a manual check.
+      await auditModel.createAuditLog({
+        claimId: newClaim.id,
+        action: 'AUTO_APPROVAL_SUPPRESSED_OCR_UNAVAILABLE',
+        performedBy: req.user!.id,
+        oldStatus: ClaimStatus.Pending,
+        newStatus: ClaimStatus.Pending,
+        remarks: `${policy.ruleId} (suppressed because OCR did not read the receipt)`,
+      });
+      await notifyDepartmentManager({
+        submitterId: submitter.id,
+        submitterDepartment: submitter.department,
+        claimId: newClaim.id,
+        kind: 'ocr-unavailable',
+        category,
+        amount: Number(amount),
+        merchant: merchant ?? null,
+        submitterName: submitter.name,
+        ruleId: policy.ruleId,
+        ruleMessage: policy.message,
+      });
+    } else {
+      // route-to-human (or default) — log + notify approver with rule hint.
+      await auditModel.createAuditLog({
+        claimId: newClaim.id,
+        action: 'ROUTED_TO_HUMAN',
+        performedBy: req.user!.id,
+        oldStatus: ClaimStatus.Pending,
+        newStatus: ClaimStatus.Pending,
+        remarks: policy.ruleId,
+      });
+      await notifyDepartmentManager({
+        submitterId: submitter.id,
+        submitterDepartment: submitter.department,
+        claimId: newClaim.id,
+        kind: 'route-to-human',
+        category,
+        amount: Number(amount),
+        merchant: merchant ?? null,
+        submitterName: submitter.name,
+        ruleId: policy.ruleId,
+        ruleMessage: policy.message,
+      });
     }
 
     res.status(201).json({
       status: 'success',
       data: { claim: newClaim },
-      policy,
+      policy: { ...policy, autoApproveSuppressedByOcr: wouldAutoApprove && ocrUnavailable },
     });
   } catch (error: any) {
     res.status(400).json({ status: 'error', message: error.message });
@@ -202,38 +297,6 @@ export const getClaimById = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * @swagger
- * /api/claims/{id}:
- *   patch:
- *     summary: Edit a Pending claim
- *     description: Submitter can correct claim details before review. Once the claim leaves Pending the record is locked. Only the original submitter is authorised.
- *     tags: [Claims]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               category:    { type: string }
- *               amount:      { type: number }
- *               gstAmount:   { type: number, nullable: true }
- *               merchant:    { type: string, nullable: true }
- *               expenseDate: { type: string, format: date }
- *     responses:
- *       200: { description: Updated claim }
- *       403: { description: Not the submitter }
- *       404: { description: Claim not found }
- *       422: { description: Claim is no longer in Pending status }
- */
 export const editClaim = async (req: Request, res: Response) => {
   try {
     const claim = await claimModel.findById(Number(req.params.id));
@@ -242,12 +305,10 @@ export const editClaim = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'Only the submitter can edit this claim' });
     }
     if (claim.status !== ClaimStatus.Pending) {
-      return res
-        .status(422)
-        .json({ message: 'Only pending claims can be edited' });
+      return res.status(422).json({ message: 'Only pending claims can be edited' });
     }
     const updates: any = {};
-    const allowed = ['amount', 'gstAmount', 'merchant', 'category', 'expenseDate'];
+    const allowed = ['amount', 'gstAmount', 'merchant', 'category', 'expenseDate', 'details'];
     for (const key of allowed) {
       if (key in req.body) updates[key] = req.body[key];
     }
@@ -260,27 +321,6 @@ export const editClaim = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * @swagger
- * /api/claims/{id}/withdraw:
- *   patch:
- *     summary: Withdraw a Pending claim (soft-delete)
- *     description: Marks the claim withdrawn=true. The row stays in storage so finance and infra can retrieve it for dispute handling, but active queues skip it. Audit log records the withdrawal. Only the submitter can withdraw; only Pending claims are eligible.
- *     tags: [Claims]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200: { description: Withdrawn claim (with withdrawn=true, withdrawnAt set) }
- *       403: { description: Not the submitter }
- *       404: { description: Claim not found }
- *       422: { description: Claim is not in Pending status }
- */
 export const withdrawClaim = async (req: Request, res: Response) => {
   try {
     const claim = await claimModel.findById(Number(req.params.id));
@@ -289,9 +329,7 @@ export const withdrawClaim = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'Only the submitter can withdraw this claim' });
     }
     if (claim.status !== ClaimStatus.Pending) {
-      return res
-        .status(422)
-        .json({ message: 'Only pending claims can be withdrawn' });
+      return res.status(422).json({ message: 'Only pending claims can be withdrawn' });
     }
     const updated = await claimModel.updateClaim(Number(req.params.id), {
       withdrawn: true,
@@ -311,30 +349,6 @@ export const withdrawClaim = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * @swagger
- * /api/claims/parse-receipt:
- *   post:
- *     summary: Extract structured fields from a receipt image
- *     description: Accepts a receipt image (JPEG/PNG) and returns merchant, total, GST, date, and a category guess. Backed by Azure Document Intelligence when configured, falls back to a deterministic mock otherwise.
- *     tags: [Claims]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               receipt:
- *                 type: string
- *                 format: binary
- *     responses:
- *       200:
- *         description: Parsed receipt fields
- *       400:
- *         description: No file uploaded or file too large
- */
 export const parseReceiptUpload = async (req: Request, res: Response) => {
   const file = (req as any).file as
     | { buffer: Buffer; mimetype: string; originalname: string }
@@ -343,7 +357,6 @@ export const parseReceiptUpload = async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'No receipt file uploaded' });
   }
   try {
-    // Run upload and OCR in parallel — they share the same buffer and don't depend on each other.
     const [parseResult, uploadResult] = await Promise.all([
       parseReceipt(file.buffer, file.mimetype),
       isBlobStorageConfigured
@@ -364,35 +377,10 @@ export const parseReceiptUpload = async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error('[parseReceiptUpload]', err?.message ?? err);
-    return res
-      .status(500)
-      .json({ status: 'error', message: 'Receipt parsing failed' });
+    return res.status(500).json({ status: 'error', message: 'Receipt parsing failed' });
   }
 };
 
-/**
- * @swagger
- * /api/claims/{id}/receipt:
- *   get:
- *     summary: Mint a short-lived SAS URL for viewing the claim's receipt image
- *     description: Returns a 15-minute signed URL pointing at the blob. Employees can only view their own claims' receipts; Manager/FinanceAdmin can view any.
- *     tags: [Claims]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Signed view URL
- *       403:
- *         description: Access denied
- *       404:
- *         description: Claim not found or has no receipt
- */
 export const getReceiptViewUrl = async (req: Request, res: Response) => {
   try {
     const claim = await claimModel.findById(Number(req.params.id));
@@ -420,3 +408,6 @@ export const getAllClaims = async (req: Request, res: Response) => {
     res.status(500).json({ status: 'error', message: error.message });
   }
 };
+
+// re-export helper so the workflow controller can use it
+export { notifySubmitter };

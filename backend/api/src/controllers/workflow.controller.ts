@@ -1,7 +1,15 @@
 import { Request, Response } from 'express';
 import * as claimModel from '../models/claim.model';
 import * as auditModel from '../models/auditLog.model';
+import * as notifModel from '../models/notification.model';
+import * as userModel from '../models/user.model';
 import { ClaimStatus } from '@prisma/client';
+
+const formatSGD = (amount: number) =>
+  `S$${amount.toLocaleString('en-SG', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 
 /**
  * @swagger
@@ -11,28 +19,6 @@ import { ClaimStatus } from '@prisma/client';
  *     tags: [Workflow]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: false
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               remarks:
- *                 type: string
- *     responses:
- *       200:
- *         description: Claim marked as Paid and audited
- *       400:
- *         description: Claim is not in an Endorsed state
- *       404:
- *         description: Claim not found
  */
 export const markAsPaid = async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -62,6 +48,15 @@ export const markAsPaid = async (req: Request, res: Response) => {
       remarks: remarks || '',
     });
 
+    // Notify submitter the money is on the way.
+    await notifModel.createNotification({
+      recipientId: claim.userId,
+      claimId: claim.id,
+      kind: 'claim-paid',
+      title: 'Reimbursed',
+      body: `${formatSGD(Number(claim.amount))} for ${claim.merchant ?? claim.category} has been credited to your bank account.`,
+    });
+
     return res.status(200).json({
       status: 'success',
       message: 'Claim marked as Paid',
@@ -81,9 +76,6 @@ export const markAsPaid = async (req: Request, res: Response) => {
  *     tags: [Workflow]
  *     security:
  *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of all audit log entries with executor metadata
  */
 export const getAuditTrail = async (_req: Request, res: Response) => {
   try {
@@ -104,35 +96,9 @@ export const getAuditTrail = async (_req: Request, res: Response) => {
  * /api/workflow/review/{id}:
  *   patch:
  *     summary: Endorse or Reject a claim
- *     description: Updates claim status and records an entry in the audit_logs table.
  *     tags: [Workflow]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [action]
- *             properties:
- *               action:
- *                 type: string
- *                 enum: [approve, reject]
- *               remarks:
- *                 type: string
- *                 description: Required for rejections, optional for approvals.
- *     responses:
- *       200:
- *         description: Claim status updated and audited successfully
- *       404:
- *         description: Claim not found
  */
 export const reviewClaim = async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -141,6 +107,9 @@ export const reviewClaim = async (req: Request, res: Response) => {
   try {
     const claim = await claimModel.findById(Number(id));
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
+
+    const reviewer = await userModel.findById(req.user!.id);
+    const reviewerName = reviewer?.name ?? 'Your approving officer';
 
     const oldStatus = claim.status;
     const newStatus = action === 'approve' ? ClaimStatus.Endorsed : ClaimStatus.Rejected;
@@ -153,13 +122,33 @@ export const reviewClaim = async (req: Request, res: Response) => {
       performedBy: req.user!.id,
       oldStatus: oldStatus,
       newStatus: newStatus,
-      remarks: remarks || ''
+      remarks: remarks || '',
     });
+
+    // Notify submitter — endorsed or rejected.
+    if (action === 'approve') {
+      await notifModel.createNotification({
+        recipientId: claim.userId,
+        claimId: claim.id,
+        kind: 'claim-endorsed',
+        title: 'Claim endorsed',
+        body: `${reviewerName} endorsed your ${formatSGD(Number(claim.amount))} ${claim.category.toLowerCase()} claim. Awaiting finance disbursement.`,
+      });
+    } else {
+      await notifModel.createNotification({
+        recipientId: claim.userId,
+        claimId: claim.id,
+        kind: 'claim-rejected',
+        title: 'Claim returned for fix',
+        body: remarks || 'No reason given — please contact your approving officer.',
+        hint: 'Open the claim to see the reason and submit a corrected one.',
+      });
+    }
 
     res.status(200).json({
       status: 'success',
       message: `Claim ${newStatus} successfully`,
-      data: { claim: updatedClaim }
+      data: { claim: updatedClaim },
     });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: error.message });
