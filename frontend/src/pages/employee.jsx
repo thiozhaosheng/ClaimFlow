@@ -223,11 +223,11 @@ export default function Employee() {
           </div>
         </div>
       )}
-      <div className="row g-4">
-        <div className="col-lg-8">
-          <div className="workspace-card p-4">
-            <h2 className="workspace-card-title mb-4">
-              <span className="plus-icon-badge me-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8">
+          <div className="workspace-card p-6">
+            <h2 className="workspace-card-title mb-4 flex items-center">
+              <span className="plus-icon-badge mr-2">
                 <i className="fa-solid fa-plus"></i>
               </span>
               Submit New Claim
@@ -253,11 +253,11 @@ export default function Employee() {
                 </div>
               )}
               {extracted && extracted.source === "unavailable" && (
-                <div className="alert alert-warning d-flex gap-2 align-items-start" role="alert">
+                <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-md bg-warning-bg text-warning-text border border-warning/20" role="alert">
                   <i className="fa-solid fa-circle-info mt-1"></i>
                   <div>
                     <strong>OCR couldn't read this receipt.</strong>
-                    <div className="small">
+                    <div className="text-xs mt-1">
                       The image is stored against your claim — please fill in the fields
                       manually. Common causes: PDF over 4 MB, encrypted PDF, very small
                       screenshot, or a layout the model doesn't recognise.
@@ -267,14 +267,14 @@ export default function Employee() {
               )}
 
               {categoryDisallowed && (
-                <div className="alert alert-danger d-flex gap-2 align-items-start" role="alert">
+                <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-md bg-danger-bg text-danger-text border border-danger/20" role="alert">
                   <i className="fa-solid fa-ban mt-1"></i>
                   <div>
                     <strong>This category cannot be claimed.</strong>
-                    <div className="small">
+                    <div className="text-xs mt-1">
                       {policies.rules.find((r) => r.id === "block-disallowed-category")?.message}
                     </div>
-                    <div className="small text-muted mt-1">
+                    <div className="text-xs text-text-tertiary mt-1">
                       Rule: <code>block-disallowed-category</code> — see{" "}
                       <Link to="/policies">approval policy</Link>.
                     </div>
@@ -283,17 +283,17 @@ export default function Employee() {
               )}
 
               {fullTaxInvoiceRequired && !categoryDisallowed && (
-                <div className="alert alert-warning d-flex gap-2 align-items-start" role="alert">
+                <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-md bg-warning-bg text-warning-text border border-warning/20" role="alert">
                   <i className="fa-solid fa-circle-exclamation mt-1"></i>
                   <div>
                     <strong>Full tax invoice required.</strong>
-                    <div className="small">
+                    <div className="text-xs mt-1">
                       Claims above {formatSGD(FULL_TAX_INVOICE_OVER)} need the supplier's GST
                       registration number and tax invoice serial number per IRAS rules. Please
                       attach the full tax invoice as your receipt — finance will verify the fields
                       before approval.
                     </div>
-                    <div className="small text-muted mt-1">
+                    <div className="text-xs text-text-tertiary mt-1">
                       Rule: <code>route-tax-invoice-required</code> — see{" "}
                       <Link to="/policies">approval policy</Link>.
                     </div>
@@ -324,8 +324,8 @@ export default function Employee() {
                 />
               </div>
 
-              <div className="row">
-                <div className="col-md-6 mb-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div>
                   <label className="form-label">Expense Date</label>
                   <input
                     type="date"
@@ -336,14 +336,14 @@ export default function Employee() {
                     onChange={(e) => setDate(e.target.value)}
                     required
                   />
-                  <div className="form-text">
+                  <div className="mt-1 text-xs text-text-tertiary">
                     Claims must be within the last {MAX_AGE_DAYS} days. Future dates are not accepted.
                   </div>
                 </div>
-                <div className="col-md-6 mb-3">
+                <div>
                   <label className="form-label">Category</label>
                   <select
-                    className={`form-select ${categoryDisallowed ? "is-invalid" : ""}`}
+                    className={`form-select ${categoryDisallowed ? "border-danger" : ""}`}
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                   >
@@ -357,18 +357,18 @@ export default function Employee() {
                 </div>
               </div>
 
-              <div className="row">
-                <div className="col-md-7 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4">
+                <div className="md:col-span-7">
                   <label className="form-label">Total amount (incl. GST)</label>
                   <div className="input-group">
-                    <span className="input-group-text bg-white border-end-0 text-secondary">
+                    <span className="input-group-text bg-card border-r-0 text-text-secondary">
                       S$
                     </span>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
-                      className="form-control border-start-0 ps-1"
+                      className="form-control border-l-0 pl-1"
                       placeholder="0.00"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
@@ -376,19 +376,19 @@ export default function Employee() {
                     />
                   </div>
                 </div>
-                <div className="col-md-5 mb-4">
+                <div className="md:col-span-5">
                   <label className="form-label">
                     GST (9%) <span className="form-label-hint">optional</span>
                   </label>
                   <div className="input-group">
-                    <span className="input-group-text bg-white border-end-0 text-secondary">
+                    <span className="input-group-text bg-card border-r-0 text-text-secondary">
                       S$
                     </span>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
-                      className="form-control border-start-0 ps-1"
+                      className="form-control border-l-0 pl-1"
                       placeholder="0.00"
                       value={gstAmount}
                       onChange={(e) => setGstAmount(e.target.value)}
@@ -401,7 +401,7 @@ export default function Employee() {
                 <label className="form-label">
                   Receipt{" "}
                   {receiptRequired ? (
-                    <span className="text-danger small">required for this amount</span>
+                    <span className="text-danger text-xs">required for this amount</span>
                   ) : (
                     <span className="form-label-hint">we auto-fill the form from this</span>
                   )}
@@ -409,7 +409,7 @@ export default function Employee() {
                 <input
                   type="file"
                   ref={fileInputRef}
-                  className="d-none"
+                  className="hidden"
                   accept="image/*,.pdf"
                   onChange={handleFileChange}
                 />
@@ -432,7 +432,7 @@ export default function Employee() {
                       "Reading your receipt..."
                     ) : fileName ? (
                       <>
-                        <span className="text-primary">{escapeHtml(fileName)}</span> attached
+                        <span className="text-accent">{escapeHtml(fileName)}</span> attached
                       </>
                     ) : (
                       "Drop a receipt photo here or click to browse"
@@ -444,33 +444,33 @@ export default function Employee() {
                   </span>
                 </div>
                 {receiptMissing && (
-                  <div className="text-danger small mt-2">
-                    <i className="fa-solid fa-circle-exclamation me-1"></i>
+                  <div className="text-danger text-xs mt-2">
+                    <i className="fa-solid fa-circle-exclamation mr-1"></i>
                     A receipt is required for claims above {formatSGD(RECEIPT_REQUIRED_OVER)}.
                     Rule: <code>block-missing-receipt-over-threshold</code>.
                   </div>
                 )}
                 {viewUrl && (
-                  <div className="text-success small mt-2">
-                    <i className="fa-solid fa-circle-check me-1"></i>
+                  <div className="text-success text-xs mt-2">
+                    <i className="fa-solid fa-circle-check mr-1"></i>
                     Receipt stored.{" "}
                     <a href={viewUrl} target="_blank" rel="noreferrer">
                       View uploaded image
                     </a>{" "}
-                    <span className="text-muted">(link valid 15 minutes)</span>
+                    <span className="text-text-tertiary">(link valid 15 minutes)</span>
                   </div>
                 )}
               </div>
 
               <button
                 type="submit"
-                className="btn btn-primary w-100 py-2 font-medium"
+                className="btn-primary w-full py-2 font-medium"
                 disabled={submitting || formInvalid}
               >
                 {submitting ? "Submitting..." : "Submit Claim"}
               </button>
 
-              <p className="small text-muted mt-3 mb-0 text-center">
+              <p className="text-xs text-text-tertiary mt-3 mb-0 text-center">
                 By submitting, you confirm the claim is accurate and consent to the{" "}
                 <Link to="/privacy">Privacy notice</Link> and the{" "}
                 <Link to="/policies">Approval policy</Link>.
@@ -479,10 +479,10 @@ export default function Employee() {
           </div>
         </div>
 
-        <div className="col-lg-4">
-          <div className="workspace-card p-4 h-100">
+        <div className="lg:col-span-4">
+          <div className="workspace-card p-6 h-full">
             <h3 className="panel-subtitle mb-4">Recent Claims</h3>
-            <div className="vstack gap-3">
+            <div className="flex flex-col gap-3">
               {distinctClaims.length === 0 ? (
                 <EmptyState
                   variant="documents"
@@ -501,18 +501,18 @@ export default function Employee() {
                       if (e.key === "Enter" || e.key === " ") setActiveClaim(item);
                     }}
                   >
-                    <div className="d-flex justify-content-between align-items-start">
+                    <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="font-semibold text-dark m-0 small mb-1">
+                        <h4 className="font-semibold text-text-primary m-0 text-sm mb-1">
                           {escapeHtml(item.type)} Claim
                         </h4>
-                        <span className="text-secondary block-span small">{item.date}</span>
+                        <span className="text-text-secondary block text-xs">{item.date}</span>
                       </div>
-                      <div className="text-end">
+                      <div className="text-right">
                         <span className={`badge-custom badge-${item.status.toLowerCase()} mb-1`}>
                           {item.status}
                         </span>
-                        <span className="block-span font-bold text-dark small">
+                        <span className="block font-bold text-text-primary text-sm">
                           {formatSGD(item.amount)}
                         </span>
                       </div>

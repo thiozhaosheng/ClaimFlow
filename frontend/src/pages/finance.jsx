@@ -148,37 +148,37 @@ export default function Finance() {
         </div>
       )}
 
-      <ul className="nav sub-tabs-layer mb-4">
-        <li className="nav-item">
+      <ul className="flex list-none sub-tabs-layer mb-4">
+        <li>
           <button
-            className={`nav-link sub-tab-link ${activeTab === "payment" ? "active" : ""}`}
+            className={`sub-tab-link ${activeTab === "payment" ? "active" : ""}`}
             onClick={() => switchTab("payment")}
           >
-            <i className="fa-solid fa-wallet me-2"></i>Payment Queue
+            <i className="fa-solid fa-wallet mr-2"></i>Payment Queue
           </button>
         </li>
-        <li className="nav-item">
+        <li>
           <button
-            className={`nav-link sub-tab-link ${activeTab === "audit" ? "active" : ""}`}
+            className={`sub-tab-link ${activeTab === "audit" ? "active" : ""}`}
             onClick={() => switchTab("audit")}
           >
-            <i className="fa-solid fa-file-shield me-2"></i>Audit Trail
+            <i className="fa-solid fa-file-shield mr-2"></i>Audit Trail
           </button>
         </li>
       </ul>
 
       <div
-        className={`workspace-card p-4 ${activeTab !== "payment" ? "d-none" : ""}`}
+        className={`workspace-card p-6 ${activeTab !== "payment" ? "hidden" : ""}`}
       >
-        <h2 className="workspace-card-title row-heading mb-1">
+        <h2 className="workspace-card-title mb-1">
           Endorsed Claims Queue
         </h2>
-        <p className="text-secondary small mb-4">
+        <p className="text-text-secondary text-xs mb-4">
           Process endorsed claims for disbursement
         </p>
 
-        <div className="action-bar-strip d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 border mb-3 rounded-3 bg-light">
-          <div className="d-flex align-items-center gap-2">
+        <div className="action-bar-strip flex flex-wrap justify-between items-center gap-3 p-3 border border-border rounded-ds-md bg-subtle mb-3">
+          <div className="flex items-center gap-2">
             <div
               className="search-input-wrapper m-0"
               style={{ maxWidth: "280px" }}
@@ -186,39 +186,39 @@ export default function Finance() {
               <i className="fa-solid fa-magnifying-glass search-leading-icon"></i>
               <input
                 type="text"
-                className="form-control py-1 ps-5"
+                className="form-control py-1 pl-12"
                 placeholder="Search by ID or Employee Name"
                 value={searchQueue}
                 onChange={(e) => setSearchQueue(e.target.value)}
               />
             </div>
-            <button className="btn btn-outline-secondary btn-sm px-3 py-2 bg-white">
-              <i className="fa-solid fa-filter me-1"></i>Filter
+            <button className="btn px-3 py-2 bg-card border border-border text-text-secondary hover:bg-subtle">
+              <i className="fa-solid fa-filter mr-1"></i>Filter
             </button>
           </div>
 
-          <div className="d-flex align-items-center gap-3">
-            <div className="text-end">
-              <span className="text-secondary small block-span">
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <span className="text-text-secondary text-xs block">
                 Selected Total
               </span>
-              <span className="font-bold fs-5 text-dark">
+              <span className="font-bold text-lg text-text-primary">
                 {formatSGD(selectedTotal)}
               </span>
             </div>
             <button
-              className={`btn btn-mark-paid ${selectedClaims.size === 0 || paying ? "disabled" : ""}`}
+              className="btn-mark-paid"
               disabled={selectedClaims.size === 0 || paying}
               onClick={handleMarkAsPaid}
             >
-              <i className="fa-regular fa-circle-check me-2"></i>Mark as Paid (
+              <i className="fa-regular fa-circle-check mr-2"></i>Mark as Paid (
               <span>{selectedClaims.size}</span>)
             </button>
           </div>
         </div>
 
-        <div className="table-responsive">
-          <table className="table data-table align-middle">
+        <div className="overflow-x-auto">
+          <table className="data-table align-middle">
             <thead>
               <tr>
                 <th width="40" className="text-center">
@@ -232,7 +232,7 @@ export default function Finance() {
                 <th>CLAIM ID</th>
                 <th>Employee</th>
                 <th>Bank Account</th>
-                <th className="text-end">Endorsed Amount</th>
+                <th className="text-right">Endorsed Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -268,28 +268,28 @@ export default function Finance() {
                       />
                     </td>
                     <td data-label="Claim">
-                      <strong className="text-dark">{item.id}</strong>
+                      <strong className="text-text-primary">{item.id}</strong>
                       <br />
-                      <span className="text-secondary small">{item.date}</span>
+                      <span className="text-text-secondary text-xs">{item.date}</span>
                     </td>
                     <td data-label="Employee">
                       <span className="font-semibold">
                         {escapeHtml(item.employee)}
                       </span>
                       <br />
-                      <span className="text-secondary small">
+                      <span className="text-text-secondary text-xs">
                         {item.department}
                       </span>
                     </td>
                     <td data-label="Bank">
-                      <span className="badge badge-role text-dark py-1 px-2">
-                        <i className="fa-solid fa-building-columns me-1 text-secondary"></i>
+                      <span className="badge-custom badge-role py-1 px-2">
+                        <i className="fa-solid fa-building-columns mr-1 text-text-secondary"></i>
                         {item.bank}
                       </span>
                     </td>
                     <td
                       data-label="Amount"
-                      className="text-end font-bold text-dark"
+                      className="text-right font-bold text-text-primary"
                     >
                       {formatSGD(item.amount)}
                     </td>
@@ -302,28 +302,28 @@ export default function Finance() {
       </div>
 
       <div
-        className={`workspace-card p-4 ${activeTab !== "audit" ? "d-none" : ""}`}
+        className={`workspace-card p-6 ${activeTab !== "audit" ? "hidden" : ""}`}
       >
-        <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-1">
+        <div className="flex justify-between items-start flex-wrap gap-3 mb-1">
           <div>
-            <h2 className="workspace-card-title row-heading mb-1">
+            <h2 className="workspace-card-title mb-1">
               Audit Trail & Export
             </h2>
-            <p className="text-secondary small">
+            <p className="text-text-secondary text-xs">
               Read-only log of all claim status changes and actions
             </p>
           </div>
           <button
-            className="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 font-medium shadow-sm"
+            className="btn-primary flex items-center gap-2 px-3 py-2 font-medium shadow-ds-sm"
             onClick={exportCsv}
           >
             <i className="fa-solid fa-download"></i> Export to CSV
           </button>
         </div>
 
-        <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 my-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 my-4">
           <div
-            className="search-input-wrapper m-0 flex-grow-1"
+            className="search-input-wrapper m-0 flex-1"
             style={{ maxWidth: "500px" }}
           >
             <i className="fa-solid fa-magnifying-glass search-leading-icon"></i>
@@ -349,23 +349,23 @@ export default function Finance() {
           </div>
         </div>
 
-        <div className="table-responsive">
-          <table className="table data-table align-middle">
+        <div className="overflow-x-auto">
+          <table className="data-table align-middle">
             <thead>
               <tr>
                 <th>
-                  <i className="fa-regular fa-calendar me-2"></i>Timestamp
+                  <i className="fa-regular fa-calendar mr-2"></i>Timestamp
                 </th>
                 <th>
-                  <i className="fa-regular fa-file-lines me-2"></i>Claim ID
+                  <i className="fa-regular fa-file-lines mr-2"></i>Claim ID
                 </th>
                 <th>Employee</th>
-                <th className="text-end">Amount</th>
+                <th className="text-right">Amount</th>
                 <th>
-                  <i className="fa-solid fa-chart-line me-2"></i>Action
+                  <i className="fa-solid fa-chart-line mr-2"></i>Action
                 </th>
                 <th>
-                  <i className="fa-regular fa-user me-2"></i>Actor
+                  <i className="fa-regular fa-user mr-2"></i>Actor
                 </th>
                 <th>Role</th>
               </tr>
@@ -383,13 +383,14 @@ export default function Finance() {
                 </tr>
               ) : (
                 filteredLogs.map((log, idx) => {
-                  let roleBadgeClass = "bg-light text-dark border";
+                  let roleBadgeClass =
+                    "bg-subtle text-text-primary border border-border";
                   if (log.role === "approving")
                     roleBadgeClass =
-                      "text-primary bg-primary-subtle border border-primary-subtle";
+                      "text-accent bg-accent-subtle border border-accent-subtle";
                   if (log.role === "finance")
                     roleBadgeClass =
-                      "text-info bg-info-subtle border border-info-subtle";
+                      "text-info-text bg-info-bg border border-info-bg";
 
                   return (
                     <tr
@@ -399,19 +400,19 @@ export default function Finance() {
                     >
                       <td
                         data-label="Timestamp"
-                        className="text-nowrap text-secondary font-medium"
+                        className="whitespace-nowrap text-text-secondary font-medium"
                       >
                         {log.date}{" "}
-                        <span className="ms-1 text-muted small fw-normal">
+                        <span className="ml-1 text-text-tertiary text-xs font-normal">
                           {log.time}
                         </span>
                       </td>
                       <td data-label="Claim">
-                        <span className="text-primary font-semibold">
+                        <span className="text-accent font-semibold">
                           {log.id}
                         </span>
                         <br />
-                        <span className="text-muted small">
+                        <span className="text-text-tertiary text-xs">
                           {escapeHtml(log.type)}
                         </span>
                       </td>
@@ -420,12 +421,12 @@ export default function Finance() {
                       </td>
                       <td
                         data-label="Amount"
-                        className="text-end font-bold text-dark"
+                        className="text-right font-bold text-text-primary"
                       >
                         {formatSGD(log.amount)}
                       </td>
                       <td data-label="Action">
-                        <span className="text-dark font-medium">
+                        <span className="text-text-primary font-medium">
                           {escapeHtml(log.action)}
                         </span>
                       </td>
@@ -434,7 +435,7 @@ export default function Finance() {
                       </td>
                       <td data-label="Role">
                         <span
-                          className={`badge ${roleBadgeClass}`}
+                          className={`badge-custom ${roleBadgeClass}`}
                           style={{ fontSize: "0.75rem", fontWeight: 500 }}
                         >
                           {log.role}
@@ -448,7 +449,7 @@ export default function Finance() {
           </table>
         </div>
 
-        <div className="d-flex justify-content-between align-items-center border-top pt-3 mt-3 text-secondary small">
+        <div className="flex justify-between items-center border-t border-border-subtle pt-3 mt-3 text-text-secondary text-xs">
           <span>
             Showing {filteredLogs.length} of {claimsDb.length} total entries
           </span>

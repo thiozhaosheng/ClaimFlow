@@ -42,63 +42,66 @@ const EXTERNAL_DOCS = [
 
 export default function Compliance() {
   return (
-    <div className="container py-5" style={{ maxWidth: 960 }}>
+    <div className="mx-auto px-4 py-12" style={{ maxWidth: 960 }}>
       <nav aria-label="breadcrumb" className="mb-3">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><Link to="/">Sign in</Link></li>
-          <li className="breadcrumb-item active" aria-current="page">Compliance</li>
+        <ol className="flex flex-wrap items-center gap-2 text-sm text-text-secondary list-none p-0 m-0">
+          <li><Link to="/" className="hover:underline">Sign in</Link></li>
+          <li aria-hidden="true">/</li>
+          <li aria-current="page" className="text-text-primary">Compliance</li>
         </ol>
       </nav>
 
-      <h1 className="mb-2">Compliance</h1>
-      <p className="text-muted">
+      <h1 className="text-3xl font-bold tracking-tight mb-2">Compliance</h1>
+      <p className="text-text-tertiary">
         ClaimFlow is built for Singapore SMEs. The pages and documents linked here cover how it meets
         Personal Data Protection Act and IRAS GST obligations, and the company-policy layer that keeps the
         approval queue manageable.
       </p>
 
-      <h2 className="h5 text-uppercase text-muted fw-semibold mt-5">In the portal</h2>
-      <div className="row g-3 mt-1">
+      <h2 className="text-xs uppercase tracking-wider text-text-tertiary font-semibold mt-10 mb-2">In the portal</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {SECTIONS.map((s) => (
-          <div key={s.to} className="col-md-6">
-            <Link to={s.to} className="text-decoration-none text-body">
-              <div className="card h-100 shadow-sm border-0">
-                <div className="card-body">
-                  <div className="d-flex align-items-center gap-2 mb-2">
-                    <i className={`fa-solid ${s.icon} text-primary`}></i>
-                    <h3 className="h5 mb-0">{s.title}</h3>
-                  </div>
-                  <p className="text-muted mb-2">{s.summary}</p>
-                  <span className="small">Open page <i className="fa-solid fa-arrow-right ms-1"></i></span>
-                </div>
+          <Link
+            key={s.to}
+            to={s.to}
+            className="no-underline text-text-primary"
+          >
+            <div className="bg-card border border-border-subtle rounded-ds-lg shadow-ds-sm h-full p-4 transition hover:border-border hover:shadow-ds-md">
+              <div className="flex items-center gap-2 mb-2">
+                <i className={`fa-solid ${s.icon} text-accent`}></i>
+                <h3 className="text-base font-semibold m-0">{s.title}</h3>
               </div>
-            </Link>
-          </div>
+              <p className="text-text-tertiary mb-2">{s.summary}</p>
+              <span className="text-xs text-accent">Open page <i className="fa-solid fa-arrow-right ml-1"></i></span>
+            </div>
+          </Link>
         ))}
       </div>
 
-      <h2 className="h5 text-uppercase text-muted fw-semibold mt-5">Reference documents</h2>
-      <div className="row g-3 mt-1">
+      <h2 className="text-xs uppercase tracking-wider text-text-tertiary font-semibold mt-10 mb-2">Reference documents</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {EXTERNAL_DOCS.map((d) => (
-          <div key={d.href} className="col-md-6">
-            <a href={d.href} target="_blank" rel="noreferrer" className="text-decoration-none text-body">
-              <div className="card h-100 shadow-sm border-0">
-                <div className="card-body">
-                  <div className="d-flex align-items-center gap-2 mb-2">
-                    <i className="fa-solid fa-file-lines text-secondary"></i>
-                    <h3 className="h5 mb-0">{d.title}</h3>
-                  </div>
-                  <p className="text-muted mb-2">{d.summary}</p>
-                  <span className="small">Read on GitHub <i className="fa-solid fa-arrow-up-right-from-square ms-1"></i></span>
-                </div>
+          <a
+            key={d.href}
+            href={d.href}
+            target="_blank"
+            rel="noreferrer"
+            className="no-underline text-text-primary"
+          >
+            <div className="bg-card border border-border-subtle rounded-ds-lg shadow-ds-sm h-full p-4 transition hover:border-border hover:shadow-ds-md">
+              <div className="flex items-center gap-2 mb-2">
+                <i className="fa-solid fa-file-lines text-text-secondary"></i>
+                <h3 className="text-base font-semibold m-0">{d.title}</h3>
               </div>
-            </a>
-          </div>
+              <p className="text-text-tertiary mb-2">{d.summary}</p>
+              <span className="text-xs text-accent">Read on GitHub <i className="fa-solid fa-arrow-up-right-from-square ml-1"></i></span>
+            </div>
+          </a>
         ))}
       </div>
 
-      <hr className="my-5" />
-      <p className="small text-muted">
+      <hr className="my-12 border-border-subtle" />
+      <p className="text-xs text-text-tertiary">
         Gaps and follow-ups are tracked at the bottom of each compliance document. Owners are named so the
         team can pick them up at the next sprint.
       </p>
