@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import AppShell from "./components/appshell.jsx";
 import ProtectedRoute from "./components/protectedroute.jsx";
+import ResourceLayout from "./components/resourcelayout.jsx";
 import SignIn from "./pages/signin.jsx";
 import Employee from "./pages/employee.jsx";
 import Approving from "./pages/approving.jsx";
@@ -13,9 +14,11 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<SignIn />} />
-      <Route path="/compliance" element={<Compliance />} />
-      <Route path="/policies" element={<Policies />} />
-      <Route path="/privacy" element={<Privacy />} />
+      <Route element={<ResourceLayout />}>
+        <Route path="/compliance" element={<Compliance />} />
+        <Route path="/policies" element={<Policies />} />
+        <Route path="/privacy" element={<Privacy />} />
+      </Route>
       <Route
         element={
           <ProtectedRoute>

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import ResourceHomeLink from "../components/resourcehomelink.jsx";
 
 function H2({ children }) {
   return (
@@ -28,9 +29,7 @@ export default function Privacy() {
       <nav aria-label="breadcrumb" className="mb-4">
         <ol className="flex flex-wrap items-center gap-2 text-[13px] text-text-tertiary list-none p-0 m-0">
           <li>
-            <Link to="/" className="hover:text-text-primary transition-colors">
-              Sign in
-            </Link>
+            <ResourceHomeLink />
           </li>
           <li aria-hidden="true">/</li>
           <li>
