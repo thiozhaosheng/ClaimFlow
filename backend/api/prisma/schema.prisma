@@ -1,0 +1,93 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  name          String
+  email         String         @unique
+  passwordHash  String         @map("password_hash")
+  role          Role
+  department    String?
+  avatarUrl     String?        @map("avatar_url")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  claims        Claim[]        @relation("UserClaims")
+  auditActions  AuditLog[]     @relation("UserAudits")
+  notifications Notification[] @relation("UserNotifications")
+}
+
+model Claim {
+  id            Int            @id @default(autoincrement())
+  user          User           @relation(fields: [userId], references: [id], name: "UserClaims")
+  userId        Int            @map("user_id")
+  amount        Decimal        @db.Decimal(10, 2)
+  gstAmount     Decimal?       @db.Decimal(10, 2) @map("gst_amount")
+  merchant      String?
+  category      String
+  expenseDate   DateTime       @map("expense_date")
+  receiptUrl    String?        @map("receipt_url")
+  // OCR provenance: 'azure' | 'mock' | 'unavailable' | null (manual entry, no OCR attempted)
+  ocrSource     String?        @map("ocr_source")
+  // Category-specific structured fields (varies per category — see
+  // frontend/src/data/categoryFields.json for the schema each category
+  // expects). Stored as Json so we don't need a migration per category.
+  details       Json?
+  status        ClaimStatus    @default(Pending)
+  // Soft-delete: when the submitter withdraws a Pending claim it is hidden
+  // from active views but the row stays in storage for dispute retrieval.
+  withdrawn     Boolean        @default(false)
+  withdrawnAt   DateTime?      @map("withdrawn_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  auditLogs     AuditLog[]
+  notifications Notification[] @relation("ClaimNotifications")
+}
+
+model AuditLog {
+  id          Int         @id @default(autoincrement())
+  claim       Claim       @relation(fields: [claimId], references: [id])
+  claimId     Int         @map("claim_id")
+  action      String
+  executor    User        @relation(fields: [performedBy], references: [id], name: "UserAudits")
+  performedBy Int         @map("performed_by")
+  oldStatus   ClaimStatus @map("old_status")
+  newStatus   ClaimStatus @map("new_status")
+  remarks     String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+}
+
+model Notification {
+  id          Int       @id @default(autoincrement())
+  recipient   User      @relation(fields: [recipientId], references: [id], name: "UserNotifications")
+  recipientId Int       @map("recipient_id")
+  claim       Claim?    @relation(fields: [claimId], references: [id], name: "ClaimNotifications")
+  claimId     Int?      @map("claim_id")
+  kind        String    // 'auto-endorsed' | 'route-to-human' | 'claim-endorsed' | 'claim-rejected' | 'claim-paid' | 'ocr-unavailable' | 'claim-edited'
+  title       String
+  body        String
+  // Optional inline hint shown when the recipient opens the claim — surfaces
+  // the matched rule and which field tripped it (e.g. "amount > S$500").
+  hint        String?
+  readAt      DateTime? @map("read_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([recipientId, readAt])
+}
+
+enum Role {
+  Employee
+  Manager
+  FinanceAdmin
+}
+
+enum ClaimStatus {
+  Pending
+  Endorsed
+  Rejected
+  Paid
+}

@@ -1,10 +1,12 @@
 # Dependency directories
 node_modules/
 
-# Local environment files
+# Local environment files (any directory)
 .env
-backend/.env
 .env.local
+.env.*.local
+**/.env
+**/.env.local
 
 # Build output
 dist/
@@ -12,3 +14,16 @@ build/
 
 # Vercel build output
 .vercel/
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Prisma local artifacts
+backend/api/prisma/migrations/.lock
+
+# Logs
+*.log
+npm-debug.log*

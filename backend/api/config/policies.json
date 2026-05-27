@@ -1,0 +1,126 @@
+{
+  "version": "2026-05-27.b",
+  "currency": "SGD",
+  "rules": [
+    {
+      "id": "block-disallowed-category",
+      "label": "Disallowed category",
+      "when": [
+        {
+          "field": "category",
+          "op": "in",
+          "value": [
+            "Club Subscription",
+            "Medical (non-statutory)",
+            "Family Benefit",
+            "Motor Car (non-commercial)"
+          ]
+        }
+      ],
+      "then": "block",
+      "message": "This category is not eligible for reimbursement under IRAS Regulations 26/27. Talk to finance if you believe this is a special case."
+    },
+    {
+      "id": "block-future-date",
+      "label": "Future-dated claim",
+      "when": [
+        { "field": "expenseDate", "op": ">", "value": "today" }
+      ],
+      "then": "block",
+      "message": "The expense date is in the future — submit again after the expense actually happens."
+    },
+    {
+      "id": "block-missing-receipt-over-threshold",
+      "label": "Missing receipt over S$50",
+      "when": [
+        { "field": "amount", "op": ">", "value": 50 },
+        { "field": "receiptUrl", "op": "missing" }
+      ],
+      "then": "block",
+      "message": "A receipt image is required for claims above S$50."
+    },
+    {
+      "id": "block-entertainment-missing-context",
+      "label": "Client Entertainment without justification",
+      "when": [
+        { "field": "category", "op": "==", "value": "Client Entertainment" },
+        { "field": "details.businessJustification", "op": "missing" }
+      ],
+      "then": "block",
+      "message": "Client entertainment claims must include a business justification — IRAS requires this on the record."
+    },
+    {
+      "id": "block-entertainment-missing-client",
+      "label": "Client Entertainment without named client",
+      "when": [
+        { "field": "category", "op": "==", "value": "Client Entertainment" },
+        { "field": "details.clientCompany", "op": "missing" }
+      ],
+      "then": "block",
+      "message": "Client entertainment claims must name the client company and contacts present."
+    },
+    {
+      "id": "block-training-missing-justification",
+      "label": "Training without justification",
+      "when": [
+        { "field": "category", "op": "==", "value": "Training" },
+        { "field": "details.businessJustification", "op": "missing" }
+      ],
+      "then": "block",
+      "message": "Training claims must describe how the course supports your role — required for IRAS deductibility."
+    },
+    {
+      "id": "route-late-night-transport",
+      "label": "Late-night transport",
+      "when": [
+        { "field": "category", "op": "==", "value": "Transport" },
+        { "field": "details.travelWindow", "op": "==", "value": "Late night (22-06)" },
+        { "field": "amount", "op": ">", "value": 25 }
+      ],
+      "then": "route-to-human",
+      "message": "Late-night transport over S$25 needs a quick manager check (verifies it's a genuine OT return)."
+    },
+    {
+      "id": "auto-approve-small-meal",
+      "label": "Small meal — within allowance",
+      "when": [
+        { "field": "category", "op": "==", "value": "Meal" },
+        { "field": "amount", "op": "<=", "value": 30 },
+        { "field": "receiptUrl", "op": "present" }
+      ],
+      "then": "auto-approve",
+      "message": "Within the standard meal allowance — no manager review needed."
+    },
+    {
+      "id": "auto-approve-transport",
+      "label": "Local transport — within allowance",
+      "when": [
+        { "field": "category", "op": "==", "value": "Transport" },
+        { "field": "amount", "op": "<=", "value": 50 },
+        { "field": "receiptUrl", "op": "present" }
+      ],
+      "then": "auto-approve",
+      "message": "Within the local transport allowance — no manager review needed."
+    },
+    {
+      "id": "route-meal-missing-attendees-context",
+      "label": "Large meal without attendee context",
+      "when": [
+        { "field": "category", "op": "==", "value": "Meal" },
+        { "field": "amount", "op": ">", "value": 50 },
+        { "field": "details.attendeeNotes", "op": "missing" }
+      ],
+      "then": "route-to-human",
+      "message": "Meals over S$50 need a short note on who attended so the approver can confirm it's a working meal."
+    },
+    {
+      "id": "route-large-amount",
+      "label": "Above auto-approve ceiling",
+      "when": [
+        { "field": "amount", "op": ">", "value": 500 }
+      ],
+      "then": "route-to-human",
+      "message": "Above the auto-approval ceiling of S$500 — manager review required."
+    }
+  ]
+}
