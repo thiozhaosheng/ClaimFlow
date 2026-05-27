@@ -1,14 +1,14 @@
 # ClaimFlow
 
-Role-based expense claim portal for Singapore SMEs. Submitted as the capstone for NP-CET DFS IP Run 2.
+Role-based expense claim portal for Singapore SMEs. Capstone project for NP-CET DFS IP Run 2.
 
-Three roles, one workflow:
+The app has three roles:
 
-- **Employee** submits a claim (snap a receipt → OCR pulls amount, merchant, GST, date, route, time → form auto-fills the per-category extras).
-- **Approving Officer** sees the claim land in their queue with a "where to look" hint (which policy rule fired and why) and endorses or returns it.
-- **Finance Admin** sees the dashboard, batch-pays endorsed claims, and exports the audit trail. Spend, policy outcomes, top claimants — all from the live data.
+- **Employee** uploads a receipt. OCR reads the amount, merchant, GST, date, route and time, then auto-fills the per-category fields on the claim form.
+- **Approving Officer** gets pending claims in a queue. Each one shows which policy rule was triggered and why, and the officer can endorse or return it.
+- **Finance Admin** has a dashboard, batch-pays endorsed claims, and exports the audit trail. Spend totals, policy outcomes and top claimants are computed from live data.
 
-A company-policy engine routes every submission: small in-budget claims auto-endorse with a notification to the approver for spot-check; missing receipts, IRAS-disallowed categories, future-dated claims and OCR-failure paths are blocked or routed for manual review.
+A policy engine routes every submission. Small in-budget claims auto-endorse and notify the approver for spot-checking. Claims with missing receipts, IRAS-disallowed categories, future dates, or OCR failures are either blocked or sent for manual review.
 
 ## Team
 
@@ -55,7 +55,7 @@ A company-policy engine routes every submission: small in-budget claims auto-end
 
 ## Run it locally
 
-You need Node.js 20 LTS (or newer) and npm. The backend talks to a Postgres database — either the project's Azure Postgres Flexible Server (you'll be given a `DATABASE_URL`) or your own local Postgres 14+. The OCR + receipt storage features need Azure keys; without them, OCR falls back to a deterministic mock and uploads aren't archived.
+Requirements: Node.js 20 LTS (or newer), npm, and Postgres 14+. You can point at the project's Azure Postgres Flexible Server using a `DATABASE_URL`, or run a local Postgres. The OCR and receipt storage features need Azure keys; without them, OCR falls back to a deterministic mock and uploads aren't archived.
 
 ```bash
 git clone https://github.com/thiozhaosheng/ClaimFlow.git
@@ -76,11 +76,9 @@ cp .env.example .env
 
 npm install
 
-# One-shot: generate the Prisma client, push the schema to the database
-# (uses db push with advisory-lock disabled — supported workaround for
-# Azure Postgres Flexible Server, which hangs on `prisma migrate dev`),
-# then seed 28 named users + ~135 demo claims with realistic per-category
-# details. Same as running the three scripts individually.
+# Generates the Prisma client, pushes the schema (db push with advisory-lock
+# disabled, since `prisma migrate dev` hangs on Azure Postgres Flexible
+# Server), then seeds 28 users and ~135 demo claims.
 npm run db:setup
 
 # Make sure PORT in .env is 4000 (the frontend expects this). If you change
@@ -95,12 +93,11 @@ The API will print `Database connected successfully.` and `ClaimFlow API listeni
 ```bash
 cd ../../frontend           # from backend/api
 cp .env.example .env
-# Default .env points at VITE_API_BASE_URL=http://localhost:4000 — leave as-is
-# if you ran the backend with the steps above.
+# Default .env points at VITE_API_BASE_URL=http://localhost:4000. Leave it
+# as-is if you ran the backend with the steps above.
 #
-# Make sure VITE_MOCK_API is NOT set to "true" (or that file .env.local
-# doesn't override it to true). The mock bypasses the real backend AND
-# Azure OCR — useful for offline browsing, wrong for a real demo.
+# Don't set VITE_MOCK_API=true (and check that .env.local doesn't override
+# it). The mock bypasses the real backend and Azure OCR.
 
 npm install
 npm run dev   # http://localhost:3004 (vite.config.js — change there if the port is taken)
@@ -118,17 +115,17 @@ The seed creates 28 users in total. Three are stable demo accounts used in the s
 | Approving Officer | demo.manager@claimflow.com | claimflow-demo |
 | Finance Admin | demo.finance@claimflow.com | claimflow-demo |
 
-The other 25 named users (across Sales, Engineering, Marketing, Operations, Customer Success and HR) populate the queues and the finance dashboard so it looks like a real workforce, not a demo. Avatars are served from `pravatar.cc` per email.
+The other 25 named users (across Sales, Engineering, Marketing, Operations, Customer Success and HR) populate the queues and the finance dashboard. Avatars are served from `pravatar.cc` per email.
 
-## What to try (suggested walk-through for evaluators)
+## Walk-through
 
-1. **Sign in as Employee** (demo.employee@claimflow.com). Open the "Demo fixtures" panel on the right column and download `grab-transport.pdf`. Submit a new claim: drop the PDF on the receipt area, watch the form auto-fill (merchant, amount, GST, date, From/To, time-of-day). Submit — you should get a green "Auto-endorsed" toast because the rule `auto-approve-transport` fired.
-2. **Click the bell** at the top right. You'll see notifications for prior auto-endorsements + status updates on past claims.
-3. **Try a blocked path.** Pick category "Client Entertainment", fill the amount but leave the business justification empty, submit — the API returns `422` with the matched-rule message. Now fill the justification and re-submit; it goes to Pending.
-4. **Sign out, sign in as Approving Officer** (demo.manager@claimflow.com). The queue is pre-populated with Sales department claims. Open any pending one — the "Where to look" panel tells you exactly which field triggered review (e.g. "Amount above S$500 ceiling — verify business justification").
-5. **Sign in as Finance Admin** (demo.finance@claimflow.com). Switch between Dashboard / Payment Queue / Audit Trail tabs. Select a few endorsed claims and mark them paid — the submitter gets a "Reimbursed" notification on their next poll.
-6. **Forgot password.** Back on sign-in, type any email and click "Forgot password?". A new temporary password is generated, displayed under the button and pre-filled — press Sign in.
-7. **Oversized upload.** From the Demo fixtures panel, try `oversized.pdf` (~11 MB) — the backend rejects it cleanly with the 10 MB upload limit.
+1. **Sign in as Employee** (demo.employee@claimflow.com). Open the "Demo fixtures" panel on the right and download `grab-transport.pdf`. Start a new claim, drop the PDF on the receipt area, and the form should auto-fill the merchant, amount, GST, date, From/To and time-of-day. Submit. You'll get an "Auto-endorsed" toast because the rule `auto-approve-transport` matches.
+2. **Click the bell** at the top right. You'll see notifications for prior auto-endorsements and status updates on past claims.
+3. **Try a blocked path.** Pick category "Client Entertainment", fill the amount but leave the business justification empty and submit. The API returns `422` with the matched-rule message. Fill the justification, re-submit, and the claim moves to Pending.
+4. **Sign out, sign in as Approving Officer** (demo.manager@claimflow.com). The queue is pre-populated with Sales department claims. Open any pending one. The "Where to look" panel shows which field triggered review (for example, "Amount above S$500 ceiling, verify business justification").
+5. **Sign in as Finance Admin** (demo.finance@claimflow.com). Switch between the Dashboard, Payment Queue and Audit Trail tabs. Select a few endorsed claims and mark them paid. The submitter gets a "Reimbursed" notification on their next poll.
+6. **Forgot password.** On sign-in, type any email and click "Forgot password?". A new temporary password is generated, displayed under the button and pre-filled. Click Sign in.
+7. **Oversized upload.** From the Demo fixtures panel, try `oversized.pdf` (~11 MB). The backend rejects it with the 10 MB upload limit error.
 
 ## What's in the policy engine
 
@@ -147,7 +144,7 @@ Single source of truth: `backend/api/config/policies.json` (mirrored to `fronten
 | `route-meal-missing-attendees-context` | Meal > S$50 without an attendee note routed for review. |
 | `route-large-amount` | Anything > S$500 routed for human approval. |
 
-Auto-approve is suppressed when the receipt's OCR source is `unavailable` — the manager has to double-check the manually-entered fields against the receipt image.
+Auto-approve is suppressed when the receipt's OCR source is `unavailable`. In that case the manager checks the manually-entered fields against the receipt image.
 
 ## Where to find things
 
@@ -157,7 +154,6 @@ Auto-approve is suppressed when the receipt's OCR source is `unavailable` — th
 - **Policy rules** — `backend/api/config/policies.json` (single source of truth)
 - **Compliance docs** — `docs/compliance/*.md` (PDPA, GST/IRAS, retention, approval policy)
 - **Test receipt fixtures** — `frontend/public/test-receipts/`
-- **Full report and design rationale** — the submitted project document
 
 ## Layout
 
@@ -182,6 +178,6 @@ frontend/                 Web client — React + Vite + Tailwind + shadcn/ui
 ## Troubleshooting
 
 - **`P1002: timed out trying to acquire a postgres advisory lock`** when running `prisma migrate dev` against Azure Postgres Flexible Server. Use `PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 npx prisma db push --accept-data-loss` for schema changes during development.
-- **Frontend can reach the API but receipt uploads return mock data.** Check `frontend/.env.local`. If `VITE_MOCK_API=true`, the entire API layer is bypassed by the local-storage mock — set it to `false` (or delete the file) and reload.
+- **Frontend can reach the API but receipt uploads return mock data.** Check `frontend/.env.local`. If `VITE_MOCK_API=true`, the entire API layer is bypassed by the local-storage mock. Set it to `false` (or delete the file) and reload.
 - **`EADDRINUSE` on port 4000.** A previous `npm run dev` left an orphaned ts-node. Run `netstat -ano | grep :4000` to find the PID and `taskkill /PID <pid> /F` (Windows) or `kill -9 <pid>` (Mac/Linux), then restart.
 - **OCR returns `source: "unavailable"`** on a receipt that should work. Azure Document Intelligence rejects very small images (<50×50px) and password-protected PDFs. Try a phone photo of the original; manual entry always remains available.
