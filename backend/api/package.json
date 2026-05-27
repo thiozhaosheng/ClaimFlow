@@ -8,9 +8,11 @@
     "build": "tsc",
     "start": "npm run build && node dist/index.js",
     "dev": "nodemon --watch \"src/**/*.ts\" --exec \"ts-node\" src/index.ts",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:generate": "npx prisma generate",
+    "prisma:push": "cross-env PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 npx prisma db push --accept-data-loss",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "db:setup": "npm run prisma:generate && npm run prisma:push && npm run prisma:seed"
   },
   "keywords": [],
   "author": "",
@@ -44,6 +46,7 @@
     "@types/node": "^20.11.24",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.6",
+    "cross-env": "^10.1.0",
     "nodemon": "^3.1.0",
     "prisma": "^5.10.0",
     "ts-node": "^10.9.2",

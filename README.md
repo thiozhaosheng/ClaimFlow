@@ -75,17 +75,16 @@ cp .env.example .env
 #   AZURE_STORAGE_CONNECTION_STRING, AZURE_STORAGE_CONTAINER
 
 npm install
-npx prisma generate
 
-# First-time setup against an empty database. We use db push (not migrate)
-# because Azure Postgres Flexible Server can hang on Prisma's migration
-# advisory lock; db push is the supported workaround for prototyping.
-PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 npx prisma db push --accept-data-loss
+# One-shot: generate the Prisma client, push the schema to the database
+# (uses db push with advisory-lock disabled — supported workaround for
+# Azure Postgres Flexible Server, which hangs on `prisma migrate dev`),
+# then seed 28 named users + ~135 demo claims with realistic per-category
+# details. Same as running the three scripts individually.
+npm run db:setup
 
-# Seed: 28 named users across 6 departments + ~135 demo claims spread
-# over the last 60 days, with realistic per-category details.
-npm run prisma:seed
-
+# Make sure PORT in .env is 4000 (the frontend expects this). If you change
+# it, also update VITE_API_BASE_URL in frontend/.env to match.
 npm run dev   # http://localhost:4000
 ```
 
@@ -104,7 +103,7 @@ cp .env.example .env
 # Azure OCR — useful for offline browsing, wrong for a real demo.
 
 npm install
-npm run dev   # http://localhost:3000 (or 3001 if 3000 is taken)
+npm run dev   # http://localhost:3004 (vite.config.js — change there if the port is taken)
 ```
 
 Open the URL Vite prints. The sign-in page has three one-click demo accounts.
