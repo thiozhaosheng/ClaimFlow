@@ -98,12 +98,49 @@ cp .env.example .env
 #
 # Don't set VITE_MOCK_API=true (and check that .env.local doesn't override
 # it). The mock bypasses the real backend and Azure OCR.
-
 npm install
 npm run dev   # http://localhost:3004 (vite.config.js — change there if the port is taken)
 ```
 
 Open the URL Vite prints. The sign-in page has three one-click demo accounts.
+
+## Run with Docker
+
+The Docker stack keeps the browser-facing API URL consistent with local setup:
+
+- API: `http://localhost:4000`
+- Auth gateway: `http://localhost:3001`
+- Frontend: `http://localhost:8080`
+
+Prepare runtime secrets locally; the `.env` files are ignored by Git and are passed to containers at startup:
+
+```bash
+cp backend/api/.env.example backend/api/.env
+cp backend/auth-gateway/.env.example backend/auth-gateway/.env
+```
+
+Set a real `JWT_SECRET` with the same value in both files. Set `DATABASE_URL` in
+`backend/api/.env` to a PostgreSQL database reachable from the API container. If
+Postgres runs on the host, use `host.docker.internal` instead of `localhost` in
+that connection string.
+
+Start the stack:
+
+```bash
+docker compose up --build
+```
+
+The frontend calls the API directly at `http://localhost:4000`. The auth gateway
+is exposed separately and proxies its supported legacy routes to the API across
+Docker's private network. Azure OCR and blob-storage settings remain runtime
+variables in `backend/api/.env`.
+
+For alternate published ports or cloud-specific public URLs, set Compose
+interpolation values before building, for example:
+
+```bash
+VITE_API_BASE_URL=https://api.example.com docker compose up --build
+```
 
 ### Demo accounts
 

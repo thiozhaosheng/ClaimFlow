@@ -1,0 +1,50 @@
+services:
+  api:
+    build:
+      context: ./backend/api
+    env_file:
+      - ./backend/api/.env
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${API_PORT:-4000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:3004,http://localhost:5173}
+    ports:
+      - "${API_HOST_PORT:-4000}:${API_PORT:-4000}"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:' + process.env.PORT + '/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  auth-gateway:
+    build:
+      context: ./backend/auth-gateway
+    env_file:
+      - ./backend/auth-gateway/.env
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${GATEWAY_PORT:-3001}
+      BASE_SERVICE_HOST: api
+      BASE_SERVICE_PORT: ${API_PORT:-4000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:3004,http://localhost:5173}
+    ports:
+      - "${GATEWAY_HOST_PORT:-3001}:${GATEWAY_PORT:-3001}"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:4000}
+        VITE_MOCK_API: ${VITE_MOCK_API:-false}
+    ports:
+      - "${FRONTEND_HOST_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
