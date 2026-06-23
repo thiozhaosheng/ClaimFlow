@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+/* Class-based dark mode (.dark on <html>) instead of prefers-color-scheme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ==========================================================================
+   DESIGN TOKENS — premium cool neutrals (Linear/Vercel), semantic color only
+   ========================================================================== */
+:root {
+  --canvas: #f8fafc;          /* slate-50 — never pure white */
+  --card: #ffffff;
+  --surface: #f1f5f9;         /* slate-100 */
+  --surface-strong: #e2e8f0;  /* slate-200 */
+
+  --fg: #18181b;              /* zinc-900 */
+  --fg-secondary: #52525b;    /* zinc-600 */
+  --fg-tertiary: #a1a1aa;     /* zinc-400 */
+
+  --border: #eef0f3;
+  --border-strong: #e4e4e7;   /* zinc-200 */
+
+  --accent: #4f46e5;          /* indigo-600 */
+  --accent-hover: #4338ca;    /* indigo-700 */
+  --accent-fg: #ffffff;
+  --accent-subtle: #eef2ff;   /* indigo-50 */
+  --accent-ring: rgb(79 70 229 / 0.16);
+
+  --success: #059669;
+  --success-bg: #ecfdf5;
+  --success-fg: #047857;
+
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+  --warning-fg: #b45309;
+
+  --danger: #e11d48;
+  --danger-bg: #fff1f2;
+  --danger-fg: #be123c;
+
+  --shadow-card: 0 8px 30px rgb(0 0 0 / 0.025);
+  --shadow-pop: 0 16px 50px rgb(0 0 0 / 0.08);
+}
+
+.dark {
+  --canvas: #09090b;          /* zinc-950 */
+  --card: #18181b;            /* zinc-900 */
+  --surface: #27272a;         /* zinc-800 */
+  --surface-strong: #3f3f46;  /* zinc-700 */
+
+  --fg: #fafafa;
+  --fg-secondary: #a1a1aa;
+  --fg-tertiary: #71717a;
+
+  --border: #232328;
+  --border-strong: #3f3f46;
+
+  --accent: #818cf8;
+  --accent-hover: #a5b4fc;
+  --accent-fg: #0b1020;
+  --accent-subtle: rgb(129 140 248 / 0.14);
+  --accent-ring: rgb(165 180 252 / 0.28);
+
+  --success: #34d399;
+  --success-bg: rgb(16 185 129 / 0.14);
+  --success-fg: #6ee7b7;
+
+  --warning: #fbbf24;
+  --warning-bg: rgb(245 158 11 / 0.14);
+  --warning-fg: #fcd34d;
+
+  --danger: #fb7185;
+  --danger-bg: rgb(244 63 94 / 0.14);
+  --danger-fg: #fda4af;
+
+  --shadow-card: 0 8px 30px rgb(0 0 0 / 0.4);
+  --shadow-pop: 0 16px 50px rgb(0 0 0 / 0.6);
+}
+
+/* Map tokens → Tailwind utilities (bg-card, text-fg-secondary, border-border…) */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-card: var(--card);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+
+  --color-fg: var(--fg);
+  --color-fg-secondary: var(--fg-secondary);
+  --color-fg-tertiary: var(--fg-tertiary);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-subtle: var(--accent-subtle);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-success-fg: var(--success-fg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-fg: var(--warning-fg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-fg: var(--danger-fg);
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--canvas);
+  color: var(--fg);
+  font-feature-settings: "cv11", "ss01";
+  letter-spacing: -0.006em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Keyboard focus ring (a11y) */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
