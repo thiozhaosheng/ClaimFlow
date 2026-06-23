@@ -151,9 +151,14 @@ export default function Finance() {
         subtitle="See spend at a glance, disburse endorsed claims, and review the audit trail. GST 9% is captured per claim where applicable for IRAS reporting."
       />
 
-      <div className="border-b border-border-subtle mb-6 -mt-3">
+      {/* No negative top margin — it tucked the tab row under the sticky,
+          opaque PageHeader (z-20) and clipped the tab tops. */}
+      <div className="border-b border-border-subtle mb-6">
+        {/* Scroll only kicks in below lg; making it an overflow container at all
+            widths forces overflow-y to clip too, which cut off the tab labels /
+            underline. On desktop the row fits, so keep overflow visible. */}
         <div
-          className="flex items-center gap-1 overflow-x-auto no-scrollbar"
+          className="flex items-center gap-1 max-lg:overflow-x-auto max-lg:pb-px no-scrollbar"
           role="tablist"
         >
           {[
