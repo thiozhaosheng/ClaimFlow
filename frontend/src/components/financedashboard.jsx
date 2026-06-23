@@ -26,6 +26,15 @@ import {
   TrendingUp,
   Users,
   Wallet,
+  Car,
+  Utensils,
+  Wine,
+  Package,
+  Plane,
+  GraduationCap,
+  Heart,
+  Dumbbell,
+  Tag,
 } from "lucide-react";
 import {
   Card,
@@ -34,6 +43,45 @@ import {
   CardTitle,
 } from "./ui/card.jsx";
 import { Badge } from "./ui/badge.jsx";
+import { categoryColor } from "../lib/categoryColors.js";
+
+// Maps the icon keys from categoryColors.js to lucide components.
+const CAT_ICON = {
+  car: Car,
+  utensils: Utensils,
+  wine: Wine,
+  package: Package,
+  plane: Plane,
+  graduation: GraduationCap,
+  heart: Heart,
+  dumbbell: Dumbbell,
+  users: Users,
+  tag: Tag,
+};
+
+// Fundly-style two-tone colorful tile: light tinted body + saturated amount
+// strip, with the category's own hue driving every shade via --cat.
+function CategoryTile({ category, amount }) {
+  const meta = categoryColor(category);
+  const Icon = CAT_ICON[meta.icon] || Tag;
+  return (
+    <div className="cat-tile" style={{ "--cat": meta.color }}>
+      <div className="cat-tile-head">
+        <span className="cat-tile-icon">
+          <Icon className="h-5 w-5" />
+        </span>
+        <span className="cat-tile-arrow">
+          <ArrowUpRight className="h-4 w-4" />
+        </span>
+      </div>
+      <div>
+        <div className="cat-tile-label">Total spent in</div>
+        <div className="cat-tile-name">{category}</div>
+      </div>
+      <div className="cat-tile-strip">{formatSGD(amount)}</div>
+    </div>
+  );
+}
 import {
   Select,
   SelectContent,
@@ -83,11 +131,11 @@ function formatPct(n) {
   return `${sign}${(n * 100).toFixed(0)}%`;
 }
 
-function StatTile({ icon: Icon, label, value, delta, hint, onClick }) {
+function StatTile({ icon: Icon, label, value, delta, hint, onClick, color }) {
   const positive = delta != null && delta >= 0;
   const interactive = typeof onClick === "function";
   return (
-    <Card
+    <div
       onClick={interactive ? onClick : undefined}
       role={interactive ? "button" : undefined}
       tabIndex={interactive ? 0 : undefined}
@@ -101,53 +149,46 @@ function StatTile({ icon: Icon, label, value, delta, hint, onClick }) {
             }
           : undefined
       }
-      className={
-        interactive
-          ? "cursor-pointer transition hover:shadow-ds-md hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-          : undefined
-      }
+      className={`stat-color-card ${interactive ? "clickable" : ""} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1`}
+      style={color ? { "--cat": color } : undefined}
     >
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            {label}
-          </span>
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent-subtle text-accent">
-            <Icon className="h-4 w-4" />
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {label}
+        </span>
+        <span className="stat-color-icon">
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+      <div className="text-2xl font-bold tracking-tight tabular-nums">
+        {value}
+      </div>
+      {delta != null && (
+        <div
+          className={`mt-1 flex items-center gap-1 text-xs font-medium ${
+            positive ? "text-success-text" : "text-danger-text"
+          }`}
+        >
+          {positive ? (
+            <ArrowUpRight className="h-3 w-3" />
+          ) : (
+            <ArrowDownRight className="h-3 w-3" />
+          )}
+          <span>{formatPct(delta)}</span>
+          <span className="text-muted-foreground font-normal">
+            vs previous period
           </span>
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="text-2xl font-bold tracking-tight tabular-nums">
-          {value}
+      )}
+      {hint && !delta && (
+        <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
+      )}
+      {interactive && (
+        <div className="mt-1 text-[10px] text-text-tertiary">
+          Click to see contributing claims
         </div>
-        {delta != null && (
-          <div
-            className={`mt-1 flex items-center gap-1 text-xs font-medium ${
-              positive ? "text-success-text" : "text-danger-text"
-            }`}
-          >
-            {positive ? (
-              <ArrowUpRight className="h-3 w-3" />
-            ) : (
-              <ArrowDownRight className="h-3 w-3" />
-            )}
-            <span>{formatPct(delta)}</span>
-            <span className="text-muted-foreground font-normal">
-              vs previous period
-            </span>
-          </div>
-        )}
-        {hint && !delta && (
-          <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
-        )}
-        {interactive && (
-          <div className="mt-1 text-[10px] text-text-tertiary">
-            Click to see contributing claims
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }
 
@@ -320,6 +361,7 @@ export default function FinanceDashboard({ claims, loading }) {
         <StatTile
           icon={Receipt}
           label="Total claims"
+          color="#6366f1"
           value={view.totals.count.toLocaleString()}
           delta={view.totals.countDelta}
           onClick={() => setDrillKey("count")}
@@ -327,6 +369,7 @@ export default function FinanceDashboard({ claims, loading }) {
         <StatTile
           icon={TrendingUp}
           label="Total spend"
+          color="#8b5cf6"
           value={formatSGD(view.totals.spend)}
           delta={view.totals.spendDelta}
           onClick={() => setDrillKey("spend")}
@@ -334,6 +377,7 @@ export default function FinanceDashboard({ claims, loading }) {
         <StatTile
           icon={Wallet}
           label="Disbursed"
+          color="#10b981"
           value={formatSGD(view.totals.disbursed)}
           hint={`${view.totals.disbursedCount} paid claims`}
           onClick={() => setDrillKey("disbursed")}
@@ -341,11 +385,35 @@ export default function FinanceDashboard({ claims, loading }) {
         <StatTile
           icon={Clock}
           label="In flight"
+          color="#f59e0b"
           value={(view.totals.pendingEndorsement + view.totals.awaitingPayout).toString()}
           hint={`${view.totals.pendingEndorsement} pending · ${view.totals.awaitingPayout} awaiting payout`}
           onClick={() => setDrillKey("inflight")}
         />
       </div>
+
+      {/* Spend by category — colorful Fundly-style tiles */}
+      {view.byCategory && view.byCategory.length > 0 && (
+        <div>
+          <div className="flex items-baseline justify-between mb-2">
+            <h3 className="text-sm font-semibold tracking-tight">
+              Spend by category
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              Total spent per category in range
+            </span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+            {view.byCategory.slice(0, 8).map((c) => (
+              <CategoryTile
+                key={c.category}
+                category={c.category}
+                amount={c.amount}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* submission trend */}
       <Card>
