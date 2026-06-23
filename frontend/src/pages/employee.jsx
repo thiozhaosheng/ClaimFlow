@@ -38,6 +38,7 @@ import {
 } from "../components/ocrfeedback.jsx";
 import { extractedFieldKeys, isLiveOcr } from "../lib/ocr.js";
 import { useCountUp } from "../hooks/useCountUp.js";
+import CategoryIcon from "../components/categoryicon.jsx";
 
 const DISALLOWED_CATEGORIES = (() => {
   const rule = policies.rules.find((r) => r.id === "block-disallowed-category");
@@ -932,11 +933,14 @@ export default function Employee() {
                         if (e.key === "Enter" || e.key === " ") setActiveClaim(item);
                       }}
                     >
-                      <div className="min-w-0">
-                        <h4 className="font-semibold text-text-primary m-0 text-sm mb-1">
-                          {escapeHtml(item.type)} Claim
-                        </h4>
-                        <span className="text-text-secondary block text-xs">{item.date}</span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <CategoryIcon category={item.type} size={34} />
+                        <div className="min-w-0">
+                          <h4 className="font-semibold text-text-primary m-0 text-sm mb-0.5">
+                            {escapeHtml(item.type)} Claim
+                          </h4>
+                          <span className="text-text-secondary block text-xs">{item.date}</span>
+                        </div>
                       </div>
                       <div className="text-right flex flex-col items-end gap-1">
                         <span className={`badge-custom badge-${item.status.toLowerCase()}`}>

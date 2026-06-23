@@ -1319,13 +1319,25 @@ header {
 
 .badge-custom {
   font-size: 0.7rem;
-  font-weight: 500;
-  padding: 0.18rem 0.55rem;
-  border-radius: 4px;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
   display: inline-block;
   letter-spacing: -0.003em;
   border: 1px solid transparent;
   font-variant-numeric: tabular-nums;
+}
+
+/* round, tinted category icon badge (used on claim rows/cards) */
+.cat-dot {
+  --cat: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 999px;
+  color: var(--cat);
+  background: color-mix(in srgb, var(--cat) 16%, var(--bg-card));
 }
 
 .badge-pending {
@@ -3250,3 +3262,25 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   .cat-tile, .stat-color-card { transition: none; }
   .cat-tile:hover, .stat-color-card:hover { transform: none; }
 }
+
+/* Decorative color blobs behind the auth brand panel (sits above the panel
+   background, below the content which is z-index:1). */
+.auth-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.45;
+  z-index: 0;
+  pointer-events: none;
+}
+.auth-blob-a {
+  width: 360px; height: 360px;
+  top: -80px; left: -60px;
+  background: radial-gradient(circle, #818cf8, transparent 70%);
+}
+.auth-blob-b {
+  width: 320px; height: 320px;
+  bottom: -90px; right: 8%;
+  background: radial-gradient(circle, #2dd4bf, transparent 70%);
+}
+.dark .auth-blob { opacity: 0.24; }
