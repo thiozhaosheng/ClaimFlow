@@ -152,7 +152,10 @@ export default function Finance() {
       />
 
       <div className="border-b border-border-subtle mb-6 -mt-3">
-        <div className="flex items-center gap-1" role="tablist">
+        <div
+          className="flex items-center gap-1 overflow-x-auto no-scrollbar"
+          role="tablist"
+        >
           {[
             { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
             { key: "payment", label: "Payment queue", icon: Wallet },
@@ -163,7 +166,7 @@ export default function Finance() {
               type="button"
               role="tab"
               aria-selected={activeTab === key}
-              className={`relative inline-flex items-center gap-1.5 px-3 h-9 text-[13px] font-medium transition-colors border-b-2 -mb-px ${
+              className={`relative inline-flex shrink-0 items-center gap-1.5 px-3 h-9 text-[13px] font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
                 activeTab === key
                   ? "text-foreground border-accent"
                   : "text-text-secondary border-transparent hover:text-foreground"
