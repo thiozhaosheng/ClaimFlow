@@ -1,20 +1,26 @@
-import { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
-import { PanelLeft } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
+import { PanelLeft, Search } from "lucide-react";
 import Sidebar from "./sidebar.jsx";
 import NotificationBell from "./notificationbell.jsx";
+import CommandPalette from "./commandpalette.jsx";
+import ShortcutsHelp from "./shortcutshelp.jsx";
 import { Sheet, SheetContent } from "./ui/sheet.jsx";
+import { useShortcuts } from "../hooks/useShortcuts.js";
 import { cn } from "../lib/utils.js";
 
 const STORAGE_KEY = "claimflow-nav-open";
 
 export default function AppShell() {
+  const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(() => {
     if (typeof window === "undefined") return true;
     const stored = window.localStorage.getItem(STORAGE_KEY);
     return stored === null ? true : stored === "true";
   });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, navOpen ? "true" : "false");
@@ -30,6 +36,10 @@ export default function AppShell() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
+
+  const openPalette = useCallback(() => setPaletteOpen(true), []);
+  const openHelp = useCallback(() => setHelpOpen(true), []);
+  useShortcuts({ openPalette, openHelp, navigate });
 
   return (
     // h-screen locks the whole app to the viewport so the sidebar + topbar
@@ -72,6 +82,18 @@ export default function AppShell() {
 
           <div className="flex-1" />
 
+          <button
+            type="button"
+            onClick={openPalette}
+            className="cmdk-trigger"
+            aria-label="Open command palette"
+            title="Command palette (⌘K)"
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span className="cmdk-trigger-label">Search</span>
+            <kbd className="cmdk-trigger-kbd">⌘K</kbd>
+          </button>
+
           <NotificationBell />
         </div>
 
@@ -87,6 +109,13 @@ export default function AppShell() {
           <Sidebar onNavigate={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onOpenHelp={openHelp}
+      />
+      <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }

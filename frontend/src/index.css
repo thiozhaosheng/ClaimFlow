@@ -2639,6 +2639,263 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 /* ==========================================================================
+   COMMAND PALETTE (⌘K) + KEYBOARD SHORTCUTS
+   ========================================================================== */
+
+/* topbar trigger */
+.cmdk-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 28px;
+  padding: 0 0.5rem 0 0.6rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-app);
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.cmdk-trigger:hover {
+  background-color: var(--bg-subtle);
+  color: var(--text-secondary);
+  border-color: var(--border-strong);
+}
+
+.cmdk-trigger-label { font-weight: 500; }
+
+.cmdk-trigger-kbd {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+}
+
+@media (max-width: 640px) {
+  .cmdk-trigger-label,
+  .cmdk-trigger-kbd { display: none; }
+  .cmdk-trigger { width: 28px; padding: 0; justify-content: center; }
+}
+
+/* palette overlay */
+.cmdk-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  background-color: rgba(12, 10, 9, 0.4);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 1rem 1rem;
+  animation: modal-fade 0.14s var(--ease);
+}
+
+.cmdk-panel {
+  width: 100%;
+  max-width: 560px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+  animation: cmdk-rise 0.18s var(--ease);
+}
+
+@keyframes cmdk-rise {
+  from { opacity: 0; transform: translateY(-8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cmdk-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.cmdk-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.cmdk-input::placeholder { color: var(--text-tertiary); }
+
+.cmdk-esc {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.64rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+}
+
+.cmdk-list {
+  overflow-y: auto;
+  padding: 0.4rem;
+}
+
+.cmdk-group { margin-bottom: 0.2rem; }
+
+.cmdk-group-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  padding: 0.5rem 0.6rem 0.3rem;
+}
+
+.cmdk-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.cmdk-item.is-active {
+  background-color: var(--accent-subtle);
+  color: var(--text-primary);
+}
+
+.cmdk-item-icon { color: var(--text-tertiary); flex-shrink: 0; }
+.cmdk-item.is-active .cmdk-item-icon { color: var(--accent); }
+
+.cmdk-item-label { flex: 1; min-width: 0; letter-spacing: -0.005em; }
+
+.cmdk-chord {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.64rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+}
+
+.cmdk-item-enter { color: var(--accent); flex-shrink: 0; }
+
+.cmdk-empty {
+  padding: 1.5rem 0.6rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+.cmdk-footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.55rem 1rem;
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--bg-app);
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+}
+
+.cmdk-footer kbd {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+  margin-right: 0.15rem;
+}
+
+/* shortcuts help */
+.shortcuts-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.shortcuts-group-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-tertiary);
+  margin: 0 0 0.5rem;
+}
+
+.shortcuts-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.shortcuts-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.shortcuts-row:last-child { border-bottom: none; }
+
+.shortcuts-label {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+.shortcuts-keys { display: inline-flex; gap: 0.25rem; flex-shrink: 0; }
+
+.shortcuts-kbd {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  padding: 0.12rem 0.45rem;
+  min-width: 22px;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmdk-backdrop,
+  .cmdk-panel { animation: none; }
+}
+
+/* ==========================================================================
    LOADING SCREEN
    ========================================================================== */
 
