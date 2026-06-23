@@ -66,6 +66,19 @@ export default function CommandPalette({ open, onClose, onOpenHelp }) {
     return undefined;
   }, [open]);
 
+  // Global Escape — closes even if focus has left the search input.
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose?.();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   // Clamp the active index whenever the result set shrinks.
   useEffect(() => {
     setActive((i) => Math.min(i, Math.max(0, results.length - 1)));
