@@ -59,26 +59,26 @@ const CAT_ICON = {
   tag: Tag,
 };
 
-// Fundly-style two-tone colorful tile: light tinted body + saturated amount
-// strip, with the category's own hue driving every shade via --cat.
-function CategoryTile({ category, amount }) {
+// Ranked spend-by-category row: neutral category icon + proportional bar so
+// the LENGTH (not a random hue) encodes magnitude. One accent color only.
+function CategorySpendRow({ category, amount, max }) {
   const meta = categoryColor(category);
   const Icon = CAT_ICON[meta.icon] || Tag;
+  const pct = max > 0 ? Math.max(4, Math.round((amount / max) * 100)) : 0;
   return (
-    <div className="cat-tile" style={{ "--cat": meta.color }}>
-      <div className="cat-tile-head">
-        <span className="cat-tile-icon">
-          <Icon className="h-5 w-5" />
-        </span>
-        <span className="cat-tile-arrow">
-          <ArrowUpRight className="h-4 w-4" />
-        </span>
+    <div className="spend-row">
+      <span className="spend-row-icon">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="spend-row-main">
+        <div className="spend-row-head">
+          <span className="spend-row-name">{category}</span>
+          <span className="spend-row-amount">{formatSGD(amount)}</span>
+        </div>
+        <div className="spend-row-track">
+          <div className="spend-row-fill" style={{ width: `${pct}%` }} />
+        </div>
       </div>
-      <div>
-        <div className="cat-tile-label">Total spent in</div>
-        <div className="cat-tile-name">{category}</div>
-      </div>
-      <div className="cat-tile-strip">{formatSGD(amount)}</div>
     </div>
   );
 }
@@ -91,7 +91,7 @@ import {
 } from "./ui/select.jsx";
 import { Skeleton } from "./ui/skeleton.jsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs.jsx";
-import { Sheet, SheetContent } from "./ui/sheet.jsx";
+import { Sheet, SheetContent, SheetTitle } from "./ui/sheet.jsx";
 import { useFinanceInsights } from "../hooks/useFinanceInsights.js";
 import { formatSGD } from "../utils/helpers.js";
 
@@ -361,7 +361,6 @@ export default function FinanceDashboard({ claims, loading }) {
         <StatTile
           icon={Receipt}
           label="Total claims"
-          color="#6366f1"
           value={view.totals.count.toLocaleString()}
           delta={view.totals.countDelta}
           onClick={() => setDrillKey("count")}
@@ -369,7 +368,6 @@ export default function FinanceDashboard({ claims, loading }) {
         <StatTile
           icon={TrendingUp}
           label="Total spend"
-          color="#8b5cf6"
           value={formatSGD(view.totals.spend)}
           delta={view.totals.spendDelta}
           onClick={() => setDrillKey("spend")}
@@ -377,7 +375,6 @@ export default function FinanceDashboard({ claims, loading }) {
         <StatTile
           icon={Wallet}
           label="Disbursed"
-          color="#10b981"
           value={formatSGD(view.totals.disbursed)}
           hint={`${view.totals.disbursedCount} paid claims`}
           onClick={() => setDrillKey("disbursed")}
@@ -385,34 +382,36 @@ export default function FinanceDashboard({ claims, loading }) {
         <StatTile
           icon={Clock}
           label="In flight"
-          color="#f59e0b"
           value={(view.totals.pendingEndorsement + view.totals.awaitingPayout).toString()}
           hint={`${view.totals.pendingEndorsement} pending · ${view.totals.awaitingPayout} awaiting payout`}
           onClick={() => setDrillKey("inflight")}
         />
       </div>
 
-      {/* Spend by category — colorful Fundly-style tiles */}
+      {/* Spend by category — ranked bars (length encodes magnitude) */}
       {view.byCategory && view.byCategory.length > 0 && (
-        <div>
-          <div className="flex items-baseline justify-between mb-2">
-            <h3 className="text-sm font-semibold tracking-tight">
-              Spend by category
-            </h3>
-            <span className="text-xs text-muted-foreground">
-              Total spent per category in range
-            </span>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-            {view.byCategory.slice(0, 8).map((c) => (
-              <CategoryTile
-                key={c.category}
-                category={c.category}
-                amount={c.amount}
-              />
-            ))}
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <div className="flex items-baseline justify-between">
+              <CardTitle>Spend by category</CardTitle>
+              <span className="text-xs text-muted-foreground">
+                Total per category in range
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3">
+              {view.byCategory.slice(0, 8).map((c) => (
+                <CategorySpendRow
+                  key={c.category}
+                  category={c.category}
+                  amount={c.amount}
+                  max={view.byCategory[0].amount}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* submission trend */}
@@ -773,9 +772,9 @@ export default function FinanceDashboard({ claims, loading }) {
                 <div className="text-[10px] uppercase tracking-wider font-semibold text-text-tertiary">
                   Breakdown
                 </div>
-                <h3 className="text-base font-semibold tracking-tight mt-0.5">
+                <SheetTitle className="text-base font-semibold tracking-tight mt-0.5">
                   {DRILL_DEFS[drillKey].title}
-                </h3>
+                </SheetTitle>
                 <p className="text-xs text-muted-foreground mt-1">
                   {drillClaims.length} claim{drillClaims.length === 1 ? "" : "s"}
                   {" · "}
