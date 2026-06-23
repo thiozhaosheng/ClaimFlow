@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
 import { useClaims } from "../hooks/useclaims.js";
@@ -13,6 +14,7 @@ import {
   AlertTriangle,
   Building2,
   CheckCircle2,
+  ChevronRight,
   Download,
   Filter,
   LayoutDashboard,
@@ -22,6 +24,7 @@ import {
 } from "lucide-react";
 
 export default function Finance() {
+  const navigate = useNavigate();
   const { session, setFinanceTab } = useAuth();
   const { addToast } = useToast();
   const { claimsDb, latestMap, batchMarkAsPaid, error, loading } = useClaims();
@@ -255,92 +258,73 @@ export default function Finance() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="data-table align-middle">
-            <thead>
-              <tr>
-                <th width="40" className="text-center">
-                  <input
-                    type="checkbox"
-                    className="form-check-input"
-                    checked={selectAll}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    aria-label="Select all endorsed claims"
-                  />
-                </th>
-                <th>CLAIM ID</th>
-                <th>Employee</th>
-                <th>Bank Account</th>
-                <th className="text-right">Endorsed Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {endorsedClaims.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="py-3">
-                    <EmptyState
-                      variant="queue"
-                      title="Nothing pending payout"
-                      message="Endorsed claims from approvers will queue up here for disbursement."
+        {endorsedClaims.length === 0 ? (
+          <EmptyState
+            variant="queue"
+            title="Nothing pending payout"
+            message="Endorsed claims from approvers will queue up here for disbursement."
+          />
+        ) : (
+          <>
+            <label className="flex items-center gap-2 px-1 mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-tertiary cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="form-check-input"
+                checked={selectAll}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+                aria-label="Select all endorsed claims"
+              />
+              Select all
+            </label>
+            <div className="claim-rows">
+              {endorsedClaims.map((item) => (
+                <div
+                  key={item.id}
+                  className={`claim-row stagger-item ${
+                    selectedClaims.has(item.id) ? "claim-row-selected" : ""
+                  }`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/claim/${item.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ")
+                      navigate(`/claim/${item.id}`);
+                  }}
+                >
+                  <span onClick={(e) => e.stopPropagation()} className="flex">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      checked={selectedClaims.has(item.id)}
+                      onChange={(e) => handleRowSelect(item.id, e.target.checked)}
+                      aria-label={`Select claim ${item.id}`}
                     />
-                  </td>
-                </tr>
-              ) : (
-                endorsedClaims.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="row-clickable"
-                    onClick={() => setActiveClaim(item)}
-                  >
-                    <td
-                      data-label="Select"
-                      className="text-center"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        checked={selectedClaims.has(item.id)}
-                        onChange={(e) =>
-                          handleRowSelect(item.id, e.target.checked)
-                        }
-                        aria-label={`Select claim ${item.id}`}
-                      />
-                    </td>
-                    <td data-label="Claim">
-                      <div className="flex items-center gap-2">
-                        <strong className="text-text-primary">{item.id}</strong>
+                  </span>
+                  <div className="claim-row-id">
+                    <div className="avatar-dot">{item.employee.charAt(0)}</div>
+                    <div className="min-w-0">
+                      <div className="claim-row-name">
+                        {escapeHtml(item.employee)}
                         <PolicyFlag claim={item} variant="dot" />
                       </div>
-                      <span className="text-text-secondary text-xs">{item.date}</span>
-                    </td>
-                    <td data-label="Employee">
-                      <span className="font-semibold">
-                        {escapeHtml(item.employee)}
-                      </span>
-                      <br />
-                      <span className="text-text-secondary text-xs">
-                        {item.department}
-                      </span>
-                    </td>
-                    <td data-label="Bank">
-                      <span className="badge-custom badge-role inline-flex items-center gap-1.5">
-                        <Building2 className="h-3 w-3 text-text-tertiary" />
-                        {item.bank}
-                      </span>
-                    </td>
-                    <td
-                      data-label="Amount"
-                      className="text-right font-bold text-text-primary"
-                    >
-                      {formatSGD(item.amount)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                      <div className="claim-row-sub">
+                        {item.id} · {item.date} · {item.department}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="claim-row-tags">
+                    <span className="claim-chip claim-chip-file">
+                      <Building2 className="h-3 w-3" />
+                      {item.bank}
+                    </span>
+                  </div>
+                  <div className="claim-row-amount">{formatSGD(item.amount)}</div>
+                  <ChevronRight className="h-4 w-4 claim-row-chevron" />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div

@@ -1,10 +1,13 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   Check,
   Filter,
   Search,
   X,
+  Paperclip,
+  ChevronRight,
 } from "lucide-react";
 import { useClaims } from "../hooks/useclaims.js";
 import { useToast } from "../context/toastcontext.jsx";
@@ -14,8 +17,10 @@ import EmptyState from "../components/emptystate.jsx";
 import RejectionModal from "../components/rejectionmodal.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import PolicyFlag from "../components/policyflag.jsx";
+import CategoryIcon from "../components/categoryicon.jsx";
 
 export default function Approving() {
+  const navigate = useNavigate();
   const { latestMap, updateClaimStatus, claimsDb, error } = useClaims();
   const { addToast } = useToast();
   const [activeClaim, setActiveClaim] = useState(null);
@@ -250,102 +255,94 @@ export default function Approving() {
               />
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="data-table align-middle">
-                <thead>
-                  <tr>
-                    <th>EMPLOYEE NAME</th>
-                    <th>SUBMISSION DATE</th>
-                    <th>CLAIM TYPE</th>
-                    <th>FLAG</th>
-                    <th>DEPARTMENT</th>
-                    <th className="text-right">TOTAL AMOUNT</th>
-                    <th className="text-center">ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {matchingClaims.length === 0 ? (
-                    <tr>
-                      <td colSpan="7" className="py-3">
-                        <EmptyState
-                          variant="queue"
-                          title="All caught up"
-                          message="No claims match your filters right now. New submissions will appear here."
-                        />
-                      </td>
-                    </tr>
-                  ) : (
-                    matchingClaims.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="row-clickable"
-                        onClick={() => setActiveClaim(item)}
-                      >
-                        <td data-label="Employee">
-                          <div className="flex items-center gap-2">
-                            <div className="avatar-dot">
-                              {item.employee.charAt(0)}
-                            </div>
-                            <span className="font-medium">
-                              {escapeHtml(item.employee)}
-                            </span>
-                          </div>
-                        </td>
-                        <td data-label="Date">{item.date}</td>
-                        <td data-label="Category">
-                          <span className="badge-custom badge-role">
-                            {escapeHtml(item.type)}
-                          </span>
-                        </td>
-                        <td data-label="Flag">
-                          <PolicyFlag claim={item} variant="chip" hideAutoApproved />
-                        </td>
-                        <td data-label="Department">
-                          <span className="text-text-secondary">
-                            {item.department}
-                          </span>
-                        </td>
-                        <td data-label="Amount" className="text-right font-bold">
-                          {formatSGD(item.amount)}
-                        </td>
-                        <td
-                          data-label="Action"
-                          className="text-center"
-                          onClick={(e) => e.stopPropagation()}
+            {matchingClaims.length === 0 ? (
+              <EmptyState
+                variant="queue"
+                title="All caught up"
+                message="No claims match your filters right now. New submissions will appear here."
+              />
+            ) : (
+              <div className="claim-rows">
+                {matchingClaims.map((item) => (
+                  <div
+                    key={item.id}
+                    className="claim-row stagger-item"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/claim/${item.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ")
+                        navigate(`/claim/${item.id}`);
+                    }}
+                  >
+                    {/* identity */}
+                    <div className="claim-row-id">
+                      <div className="avatar-dot">{item.employee.charAt(0)}</div>
+                      <div className="min-w-0">
+                        <div className="claim-row-name">
+                          {escapeHtml(item.employee)}
+                        </div>
+                        <div className="claim-row-sub">
+                          {item.id} · {item.date} · {item.department}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* tags */}
+                    <div className="claim-row-tags">
+                      <span className="claim-chip">
+                        <CategoryIcon category={item.type} size={20} />
+                        {escapeHtml(item.type)}
+                      </span>
+                      {item.receiptUrl && (
+                        <span className="claim-chip claim-chip-file">
+                          <Paperclip className="h-3 w-3" />
+                          Receipt
+                        </span>
+                      )}
+                      <PolicyFlag claim={item} variant="chip" hideAutoApproved />
+                    </div>
+
+                    {/* amount */}
+                    <div className="claim-row-amount">{formatSGD(item.amount)}</div>
+
+                    {/* action / status */}
+                    <div
+                      className="claim-row-action"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {item.status === "Pending" ? (
+                        <>
+                          <button
+                            className="row-btn row-btn-approve"
+                            onClick={() => handleEndorse(item)}
+                            title="Endorse"
+                          >
+                            <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                            <span>Endorse</span>
+                          </button>
+                          <button
+                            className="row-btn row-btn-reject"
+                            onClick={() => setRejectingClaim(item)}
+                            aria-label="Reject claim"
+                            title="Reject"
+                          >
+                            <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+                          </button>
+                        </>
+                      ) : (
+                        <span
+                          className={`badge-custom badge-${item.status.toLowerCase()}`}
                         >
-                          {item.status === "Pending" ? (
-                            <div className="flex justify-center gap-1.5">
-                              <button
-                                className="action-icon-btn btn-action-approve"
-                                onClick={() => handleEndorse(item)}
-                                aria-label="Endorse claim"
-                                title="Endorse"
-                              >
-                                <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
-                              </button>
-                              <button
-                                className="action-icon-btn btn-action-reject"
-                                onClick={() => setRejectingClaim(item)}
-                                aria-label="Reject claim"
-                                title="Reject"
-                              >
-                                <X className="h-3.5 w-3.5" strokeWidth={2.5} />
-                              </button>
-                            </div>
-                          ) : (
-                            <span
-                              className={`badge-custom badge-${item.status.toLowerCase()}`}
-                            >
-                              {item.status}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                          {item.status}
+                        </span>
+                      )}
+                      <ChevronRight className="h-4 w-4 claim-row-chevron" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

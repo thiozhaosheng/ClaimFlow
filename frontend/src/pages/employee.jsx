@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   Ban,
@@ -38,6 +38,7 @@ import {
 } from "../components/ocrfeedback.jsx";
 import { extractedFieldKeys, isLiveOcr } from "../lib/ocr.js";
 import { useCountUp } from "../hooks/useCountUp.js";
+import CategoryIcon from "../components/categoryicon.jsx";
 
 const DISALLOWED_CATEGORIES = (() => {
   const rule = policies.rules.find((r) => r.id === "block-disallowed-category");
@@ -190,6 +191,7 @@ export default function Employee() {
     withdrawClaim,
   } = useClaims();
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const [activeClaim, setActiveClaim] = useState(null);
   const [editingClaim, setEditingClaim] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -925,18 +927,22 @@ export default function Employee() {
                   >
                     <div
                       className="flex justify-between items-start gap-2 cursor-pointer"
-                      onClick={() => setActiveClaim(item)}
+                      onClick={() => navigate(`/claim/${item.id}`)}
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") setActiveClaim(item);
+                        if (e.key === "Enter" || e.key === " ")
+                          navigate(`/claim/${item.id}`);
                       }}
                     >
-                      <div className="min-w-0">
-                        <h4 className="font-semibold text-text-primary m-0 text-sm mb-1">
-                          {escapeHtml(item.type)} Claim
-                        </h4>
-                        <span className="text-text-secondary block text-xs">{item.date}</span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <CategoryIcon category={item.type} size={34} />
+                        <div className="min-w-0">
+                          <h4 className="font-semibold text-text-primary m-0 text-sm mb-0.5">
+                            {escapeHtml(item.type)} Claim
+                          </h4>
+                          <span className="text-text-secondary block text-xs">{item.date}</span>
+                        </div>
                       </div>
                       <div className="text-right flex flex-col items-end gap-1">
                         <span className={`badge-custom badge-${item.status.toLowerCase()}`}>
