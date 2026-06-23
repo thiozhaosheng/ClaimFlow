@@ -108,13 +108,20 @@ export function ClaimList() {
       )}
 
       {!isLoading && !isError && claims.length > 0 && (
-        <ul className="flex flex-col gap-2.5">
-          {claims.map((c) => (
-            <li key={c.id}>
-              <ClaimRow claim={c} />
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+          <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-tertiary">
+              {claims.length} {claims.length === 1 ? "claim" : "claims"}
+            </span>
+          </div>
+          <ul className="divide-y divide-border">
+            {claims.map((c) => (
+              <li key={c.id}>
+                <ClaimRow claim={c} />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );

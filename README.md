@@ -2,6 +2,11 @@
 
 Role-based expense claim portal for Singapore SMEs. Capstone project for NP-CET DFS IP Run 2.
 
+> **Frontends in this repo**
+> - [`web/`](web/) — **new Next.js 16 + TypeScript rebuild** (premium enterprise UI, Clean Architecture, Vitest). See [web/README.md](web/README.md). Run: `cd web && npm install && npm run dev`.
+> - [`frontend/`](frontend/) — original Vite + React client (kept as the source of the proven domain logic ported into `web/`).
+> - [`backend/`](backend/) — Express + Prisma API and auth gateway.
+
 The app has three roles:
 
 - **Employee** uploads a receipt. OCR reads the amount, merchant, GST, date, route and time, then auto-fills the per-category fields on the claim form.
