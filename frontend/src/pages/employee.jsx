@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   Ban,
@@ -191,6 +191,7 @@ export default function Employee() {
     withdrawClaim,
   } = useClaims();
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const [activeClaim, setActiveClaim] = useState(null);
   const [editingClaim, setEditingClaim] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -926,11 +927,12 @@ export default function Employee() {
                   >
                     <div
                       className="flex justify-between items-start gap-2 cursor-pointer"
-                      onClick={() => setActiveClaim(item)}
+                      onClick={() => navigate(`/claim/${item.id}`)}
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") setActiveClaim(item);
+                        if (e.key === "Enter" || e.key === " ")
+                          navigate(`/claim/${item.id}`);
                       }}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">

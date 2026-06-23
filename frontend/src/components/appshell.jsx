@@ -5,7 +5,7 @@ import Sidebar from "./sidebar.jsx";
 import NotificationBell from "./notificationbell.jsx";
 import CommandPalette from "./commandpalette.jsx";
 import ShortcutsHelp from "./shortcutshelp.jsx";
-import { Sheet, SheetContent } from "./ui/sheet.jsx";
+import { Sheet, SheetContent, SheetTitle } from "./ui/sheet.jsx";
 import { useShortcuts } from "../hooks/useShortcuts.js";
 import { cn } from "../lib/utils.js";
 
@@ -106,6 +106,7 @@ export default function AppShell() {
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="p-0 w-64">
+          <SheetTitle className="sr-only">Navigation</SheetTitle>
           <Sidebar onNavigate={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
