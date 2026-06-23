@@ -6,8 +6,6 @@ import {
   CheckCircle2,
   Download,
   FlaskConical,
-  Info,
-  Loader2,
   Pencil,
   Plus,
   ShieldCheck,
@@ -33,6 +31,12 @@ import PolicyFlag from "../components/policyflag.jsx";
 import CategoryFields, {
   missingRequiredCategoryFields,
 } from "../components/categoryfields.jsx";
+import {
+  OcrSourceBadge,
+  OcrFieldTag,
+  OcrProgress,
+} from "../components/ocrfeedback.jsx";
+import { extractedFieldKeys, isLiveOcr } from "../lib/ocr.js";
 
 const DISALLOWED_CATEGORIES = (() => {
   const rule = policies.rules.find((r) => r.id === "block-disallowed-category");
@@ -202,8 +206,21 @@ export default function Employee() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [extracted, setExtracted] = useState(null);
+  // Which top-level fields OCR auto-filled, so we can mark them and clear the
+  // mark once the user overrides the value.
+  const [ocrFields, setOcrFields] = useState(() => new Set());
   const [details, setDetails] = useState({});
   const fileInputRef = useRef(null);
+
+  const ocrLive = isLiveOcr(extracted?.source);
+  // Remove a field's "auto-filled" mark once the user edits it themselves.
+  const clearOcrField = (key) =>
+    setOcrFields((prev) => {
+      if (!prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
 
   const numericAmount = useMemo(() => {
     const n = parseFloat(amount);
@@ -278,6 +295,11 @@ export default function Employee() {
       if (data.receiptUrl) setReceiptUrl(data.receiptUrl);
       if (data.viewUrl) setViewUrl(data.viewUrl);
       setExtracted(data);
+      // Mark exactly the fields OCR populated. If the user already chose a
+      // category, don't claim OCR filled it.
+      const filled = new Set(extractedFieldKeys(data));
+      if (categoryTouched) filled.delete("category");
+      setOcrFields(filled);
 
       // Best-effort prefill of per-category details from what OCR extracted.
       // Only fills empty keys — never overwrites something the user typed.
@@ -303,14 +325,17 @@ export default function Employee() {
           message:
             "The image was uploaded but the parser couldn't extract details. Please fill in the fields manually.",
         });
+      } else if (data.source === "azure") {
+        addToast({
+          variant: "success",
+          title: "Read by Azure Document Intelligence",
+          message: "We pre-filled the form — review each field before submitting.",
+        });
       } else {
         addToast({
           variant: "info",
-          title:
-            data.source === "azure"
-              ? "Receipt analysed"
-              : "Receipt parsed (demo data)",
-          message: "Review the extracted details and confirm before submitting.",
+          title: "Filled with demo data",
+          message: "No live OCR ran — verify each field before submitting.",
         });
       }
     } catch (err) {
@@ -386,6 +411,7 @@ export default function Employee() {
       setReceiptUrl(null);
       setViewUrl(null);
       setExtracted(null);
+      setOcrFields(new Set());
       setDetails({});
       setCategoryTouched(false);
     } catch (err) {
@@ -503,37 +529,7 @@ export default function Employee() {
             </h2>
 
             <form onSubmit={handleSubmit}>
-              {extracted && extracted.source !== "unavailable" && (
-                <div className="extracted-banner" role="status">
-                  <div className="extracted-banner-icon">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="extracted-banner-text">
-                    <strong>
-                      {extracted.source === "azure"
-                        ? "Receipt analysed"
-                        : "Receipt parsed (demo data)"}
-                    </strong>
-                    <span>
-                      We pre-filled the form below. Review each field and adjust
-                      anything that looks off before submitting.
-                    </span>
-                  </div>
-                </div>
-              )}
-              {extracted && extracted.source === "unavailable" && (
-                <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-sm bg-warning-bg text-warning-text border border-border-subtle" role="alert">
-                  <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <strong>OCR couldn't read this receipt.</strong>
-                    <div className="text-xs mt-1">
-                      The image is stored against your claim — please fill in the fields
-                      manually. Common causes: PDF over 4 MB, encrypted PDF, very small
-                      screenshot, or a layout the model doesn't recognise.
-                    </div>
-                  </div>
-                </div>
-              )}
+              {extracted && <OcrSourceBadge source={extracted.source} />}
 
               {categoryDisallowed && (
                 <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-sm bg-danger-bg text-danger-text border border-border-subtle" role="alert">
@@ -583,27 +579,39 @@ export default function Employee() {
                   />
                 </div>
                 <div>
-                  <label className="form-label">Merchant</label>
+                  <label className="form-label">
+                    Merchant
+                    {ocrFields.has("merchant") && <OcrFieldTag live={ocrLive} />}
+                  </label>
                   <input
                     type="text"
                     className="form-control"
                     placeholder="e.g., Grab, NTUC FairPrice, Toast Box"
                     value={merchant}
-                    onChange={(e) => setMerchant(e.target.value)}
+                    onChange={(e) => {
+                      setMerchant(e.target.value);
+                      clearOcrField("merchant");
+                    }}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
                 <div>
-                  <label className="form-label">Expense Date</label>
+                  <label className="form-label">
+                    Expense Date
+                    {ocrFields.has("expenseDate") && <OcrFieldTag live={ocrLive} />}
+                  </label>
                   <input
                     type="date"
                     className="form-control"
                     value={date}
                     min={minDate}
                     max={today}
-                    onChange={(e) => setDate(e.target.value)}
+                    onChange={(e) => {
+                      setDate(e.target.value);
+                      clearOcrField("expenseDate");
+                    }}
                     required
                   />
                   <div className="mt-1 text-xs text-text-tertiary">
@@ -611,13 +619,17 @@ export default function Employee() {
                   </div>
                 </div>
                 <div>
-                  <label className="form-label">Category</label>
+                  <label className="form-label">
+                    Category
+                    {ocrFields.has("category") && <OcrFieldTag live={ocrLive} />}
+                  </label>
                   <select
                     className={`form-select ${categoryDisallowed ? "border-danger" : ""}`}
                     value={category}
                     onChange={(e) => {
                       setCategory(e.target.value);
                       setCategoryTouched(true);
+                      clearOcrField("category");
                     }}
                   >
                     {CATEGORY_OPTIONS.map((opt) => (
@@ -638,7 +650,10 @@ export default function Employee() {
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
                 <div className="md:col-span-7">
-                  <label className="form-label">Total amount (incl. GST)</label>
+                  <label className="form-label">
+                    Total amount (incl. GST)
+                    {ocrFields.has("amount") && <OcrFieldTag live={ocrLive} />}
+                  </label>
                   <div className="input-group">
                     <span className="input-group-text bg-card border-r-0 text-text-secondary">
                       S$
@@ -650,7 +665,10 @@ export default function Employee() {
                       className="form-control border-l-0 pl-1"
                       placeholder="0.00"
                       value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
+                      onChange={(e) => {
+                        setAmount(e.target.value);
+                        clearOcrField("amount");
+                      }}
                       required
                     />
                   </div>
@@ -658,6 +676,7 @@ export default function Employee() {
                 <div className="md:col-span-5">
                   <label className="form-label">
                     GST (9%) <span className="form-label-hint">optional</span>
+                    {ocrFields.has("gstAmount") && <OcrFieldTag live={ocrLive} />}
                   </label>
                   <div className="input-group">
                     <span className="input-group-text bg-card border-r-0 text-text-secondary">
@@ -670,7 +689,10 @@ export default function Employee() {
                       className="form-control border-l-0 pl-1"
                       placeholder="0.00"
                       value={gstAmount}
-                      onChange={(e) => setGstAmount(e.target.value)}
+                      onChange={(e) => {
+                        setGstAmount(e.target.value);
+                        clearOcrField("gstAmount");
+                      }}
                     />
                   </div>
                 </div>
@@ -704,30 +726,30 @@ export default function Employee() {
                   aria-label={fileName ? `Receipt ${fileName} attached. Click to replace.` : "Upload receipt"}
                   disabled={parsing}
                 >
-                  <div className="flex justify-center mb-2">
-                    {parsing ? (
-                      <Loader2 className="h-6 w-6 text-text-tertiary animate-spin" />
-                    ) : (
-                      <UploadCloud className="h-6 w-6 text-text-tertiary" strokeWidth={1.5} />
-                    )}
-                  </div>
-                  <p className="m-0 text-sm">
-                    {parsing ? (
-                      "Reading your receipt…"
-                    ) : fileName ? (
-                      <>
-                        <span className="text-accent font-medium">
-                          {escapeHtml(fileName)}
-                        </span>{" "}
-                        attached
-                      </>
-                    ) : (
-                      "Drop a receipt here or click to browse"
-                    )}
-                  </p>
-                  <span className="dropzone-subtext">
-                    Photos, Grab / PayNow / SimplyGo screenshots. JPG, PNG, PDF up to 10&nbsp;MB.
-                  </span>
+                  {parsing ? (
+                    <OcrProgress />
+                  ) : (
+                    <>
+                      <div className="flex justify-center mb-2">
+                        <UploadCloud className="h-6 w-6 text-text-tertiary" strokeWidth={1.5} />
+                      </div>
+                      <p className="m-0 text-sm">
+                        {fileName ? (
+                          <>
+                            <span className="text-accent font-medium">
+                              {escapeHtml(fileName)}
+                            </span>{" "}
+                            attached
+                          </>
+                        ) : (
+                          "Drop a receipt here or click to browse"
+                        )}
+                      </p>
+                      <span className="dropzone-subtext">
+                        Photos, Grab / PayNow / SimplyGo screenshots. JPG, PNG, PDF up to 10&nbsp;MB.
+                      </span>
+                    </>
+                  )}
                 </button>
                 {receiptMissing && (
                   <div className="text-danger-text text-xs mt-2 flex items-start gap-1.5">
