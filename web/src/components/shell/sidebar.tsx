@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/cn";
 
 const NAV = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/claims", label: "Claims", icon: ReceiptText },
   { href: "/approvals", label: "Approvals", icon: CheckSquare },
   { href: "/payouts", label: "Payouts", icon: Wallet },
@@ -38,8 +38,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </p>
         <ul className="flex flex-col gap-0.5">
           {NAV.map(({ href, label, icon: Icon }) => {
-            const active =
-              href === "/" ? pathname === "/" : pathname.startsWith(href);
+            const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
               <li key={href}>
                 <Link

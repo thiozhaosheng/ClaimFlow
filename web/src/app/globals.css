@@ -148,3 +148,27 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ===== Marketing homepage motion ===== */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes aurora-drift {
+  0%   { transform: translateX(-50%) translateY(0) rotate(0deg); }
+  50%  { transform: translateX(-48%) translateY(30px) rotate(8deg); }
+  100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+}
+
+.aurora {
+  background:
+    radial-gradient(40% 40% at 30% 30%, rgba(99, 102, 241, 0.55), transparent 70%),
+    radial-gradient(40% 40% at 70% 40%, rgba(56, 189, 248, 0.45), transparent 70%),
+    radial-gradient(40% 40% at 50% 70%, rgba(168, 85, 247, 0.45), transparent 70%);
+  animation: aurora-drift 18s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora { animation: none; }
+}
