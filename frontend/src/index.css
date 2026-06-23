@@ -9,21 +9,21 @@
    ========================================================================== */
 
 :root {
-  /* Surfaces — warm off-white, paper-like */
-  --bg-app: #fafaf9;
+  /* Surfaces — cool, premium (Linear/Vercel). Canvas is never pure white. */
+  --bg-app: #f8fafc;        /* slate-50 */
   --bg-card: #ffffff;
-  --bg-subtle: #f5f5f4;
-  --bg-muted: #e7e5e4;
+  --bg-subtle: #f1f5f9;     /* slate-100 */
+  --bg-muted: #e2e8f0;      /* slate-200 */
 
-  /* Text — warm near-black, never pure */
-  --text-primary: #1c1917;
-  --text-secondary: #57534e;
-  --text-tertiary: #a8a29e;
+  /* Text — cool near-black zinc/slate */
+  --text-primary: #18181b;  /* zinc-900 */
+  --text-secondary: #52525b;/* zinc-600 */
+  --text-tertiary: #a1a1aa; /* zinc-400 */
 
-  /* Borders — stone, hairline-first */
-  --border-subtle: #ececea;
-  --border-default: #d6d3d1;
-  --border-strong: #a8a29e;
+  /* Borders — ultra-thin hairlines */
+  --border-subtle: #f1f1f3; /* ~zinc-100 */
+  --border-default: #e4e4e7;/* zinc-200 */
+  --border-strong: #d4d4d8; /* zinc-300 */
 
   /* Accent — vibrant indigo-violet (refreshed for a livelier, modern feel) */
   --accent: #4f46e5;
@@ -31,36 +31,36 @@
   --accent-subtle: #eef2ff;
   --accent-ring: rgba(79, 70, 229, 0.18);
 
-  /* Status — journalistic, not neon */
-  --success: #15803d;
-  --success-bg: #ecfdf5;
-  --success-text: #14532d;
+  /* Status — desaturated premium pastels (emerald / amber / rose) */
+  --success: #059669;        /* emerald-600 */
+  --success-bg: #ecfdf5;     /* emerald-50 */
+  --success-text: #047857;   /* emerald-700 */
 
-  --warning: #b45309;
-  --warning-bg: #fef3c7;
-  --warning-text: #78350f;
+  --warning: #d97706;        /* amber-600 */
+  --warning-bg: #fffbeb;     /* amber-50 */
+  --warning-text: #b45309;   /* amber-700 */
 
-  --danger: #b91c1c;
-  --danger-bg: #fef2f2;
-  --danger-text: #7f1d1d;
+  --danger: #e11d48;         /* rose-600 */
+  --danger-bg: #fff1f2;      /* rose-50 */
+  --danger-text: #be123c;    /* rose-700 */
 
-  --info: #1d4ed8;
-  --info-bg: #eef2ff;
-  --info-text: #1e3a8a;
+  --info: #4f46e5;           /* indigo-600 */
+  --info-bg: #eef2ff;        /* indigo-50 */
+  --info-text: #4338ca;      /* indigo-700 */
 
-  /* Radii — rounder & friendlier (refreshed toward a softer, modern feel) */
+  /* Radii — generous, modern (cards 2xl/3xl, controls xl/lg) */
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 26px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
 
-  /* Shadows — soft, lifted (refreshed: cards now float a little) */
-  --shadow-xs: 0 1px 2px rgba(17, 12, 46, 0.04);
-  --shadow-sm: 0 2px 6px -1px rgba(17, 12, 46, 0.06);
-  --shadow-md: 0 8px 24px -10px rgba(17, 12, 46, 0.12);
-  --shadow-lg: 0 18px 40px -16px rgba(17, 12, 46, 0.18);
-  --shadow-xl: 0 28px 60px -20px rgba(17, 12, 46, 0.24);
-  --shadow-soft: 0 6px 24px -12px rgba(17, 12, 46, 0.16);
+  /* Shadows — wide, ambient, barely-there depth (premium "floating" look) */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 24px 70px rgba(0, 0, 0, 0.08);
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.025);
 
   /* Motion — restrained, 120/180/220ms. Lists explicit properties to avoid
      `transition: all` (which animates expensive layout props like width). */
@@ -83,39 +83,39 @@
 .dark { color-scheme: dark; }
 
 .dark {
-  --bg-app: #0c0a09;
-  --bg-card: #1c1917;
-  --bg-subtle: #292524;
-  --bg-muted: #44403c;
+  --bg-app: #09090b;        /* zinc-950 */
+  --bg-card: #18181b;       /* zinc-900 */
+  --bg-subtle: #27272a;     /* zinc-800 */
+  --bg-muted: #3f3f46;      /* zinc-700 */
 
-  --text-primary: #fafaf9;
-  --text-secondary: #a8a29e;
-  --text-tertiary: #78716c;
+  --text-primary: #fafafa;  /* zinc-50 */
+  --text-secondary: #a1a1aa;/* zinc-400 */
+  --text-tertiary: #71717a; /* zinc-500 */
 
-  --border-subtle: #292524;
-  --border-default: #44403c;
-  --border-strong: #57534e;
+  --border-subtle: #1f1f23;
+  --border-default: #27272a;/* zinc-800 */
+  --border-strong: #3f3f46; /* zinc-700 */
 
   --accent: #a5b4fc;
   --accent-hover: #c7d2fe;
-  --accent-subtle: rgba(165, 180, 252, 0.12);
+  --accent-subtle: rgba(129, 140, 248, 0.14);
   --accent-ring: rgba(165, 180, 252, 0.28);
 
-  --success: #4ade80;
-  --success-bg: rgba(74, 222, 128, 0.12);
-  --success-text: #86efac;
+  --success: #34d399;
+  --success-bg: rgba(16, 185, 129, 0.14);
+  --success-text: #6ee7b7;
 
   --warning: #fbbf24;
-  --warning-bg: rgba(251, 191, 36, 0.12);
+  --warning-bg: rgba(245, 158, 11, 0.14);
   --warning-text: #fcd34d;
 
-  --danger: #f87171;
-  --danger-bg: rgba(248, 113, 113, 0.12);
-  --danger-text: #fca5a5;
+  --danger: #fb7185;
+  --danger-bg: rgba(244, 63, 94, 0.14);
+  --danger-text: #fda4af;
 
-  --info: #93c5fd;
-  --info-bg: rgba(147, 197, 253, 0.12);
-  --info-text: #bfdbfe;
+  --info: #a5b4fc;
+  --info-bg: rgba(129, 140, 248, 0.14);
+  --info-text: #c7d2fe;
 
   --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.3);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -1343,21 +1343,25 @@ header {
 .badge-pending {
   background-color: var(--warning-bg);
   color: var(--warning-text);
+  border-color: color-mix(in srgb, var(--warning) 22%, transparent);
 }
 
 .badge-endorsed {
   background-color: var(--accent-subtle);
   color: var(--accent);
+  border-color: var(--accent-ring);
 }
 
 .badge-paid {
   background-color: var(--success-bg);
   color: var(--success-text);
+  border-color: color-mix(in srgb, var(--success) 22%, transparent);
 }
 
 .badge-rejected {
   background-color: var(--danger-bg);
   color: var(--danger-text);
+  border-color: color-mix(in srgb, var(--danger) 22%, transparent);
 }
 
 .badge-role {

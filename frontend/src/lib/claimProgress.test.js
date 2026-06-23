@@ -7,9 +7,20 @@ import {
 const NOW = new Date("2024-12-01T00:00:00Z");
 
 describe("deriveStages", () => {
-  it("marks the current stage by status", () => {
+  it("models the 4-step SG payout flow and marks the current stage", () => {
     const s = deriveStages({ status: "Pending" });
-    expect(s.map((x) => x.state)).toEqual(["done", "current", "upcoming"]);
+    expect(s.map((x) => x.key)).toEqual([
+      "submitted",
+      "manager",
+      "hr",
+      "payout",
+    ]);
+    expect(s.map((x) => x.state)).toEqual([
+      "done",
+      "current",
+      "upcoming",
+      "upcoming",
+    ]);
   });
 
   it("advances as the claim progresses", () => {
@@ -17,23 +28,28 @@ describe("deriveStages", () => {
       "done",
       "done",
       "current",
+      "upcoming",
     ]);
     expect(deriveStages({ status: "Paid" }).map((x) => x.state)).toEqual([
+      "done",
       "done",
       "done",
       "done",
     ]);
   });
 
-  it("shows a terminal rejected path", () => {
+  it("shows a rejected manager-approval step", () => {
     const s = deriveStages({ status: "Rejected" });
-    expect(s[s.length - 1]).toMatchObject({ key: "rejected", state: "rejected" });
+    expect(s.find((x) => x.key === "manager")).toMatchObject({
+      state: "rejected",
+    });
   });
 
   it("defaults to Pending when status is missing", () => {
     expect(deriveStages({}).map((x) => x.state)).toEqual([
       "done",
       "current",
+      "upcoming",
       "upcoming",
     ]);
   });

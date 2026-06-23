@@ -26,16 +26,18 @@ export function deriveStages(claim) {
   if (status === "Rejected") {
     return [
       { key: "submitted", label: "Submitted", state: "done" },
-      { key: "review", label: "Reviewed", state: "done" },
-      { key: "rejected", label: "Rejected", state: "rejected" },
+      { key: "manager", label: "Manager approval", state: "rejected" },
+      { key: "hr", label: "HR verification", state: "upcoming" },
+      { key: "payout", label: "GIRO / PayNow payout", state: "upcoming" },
     ];
   }
 
-  // Forward path: Submitted → Endorsed → Paid. `rank` is the index of the
-  // stage currently in progress, so every earlier stage reads as done.
-  // Pending → awaiting endorsement (1); Endorsed → awaiting payout (2);
-  // Paid → everything done (3, past the last index).
-  const rank = { Pending: 1, Endorsed: 2, Paid: 3 }[status] ?? 1;
+  // Singapore SME reimbursement flow:
+  //   Submitted → Manager approval → HR verification → GIRO/PayNow payout
+  // `rank` is the index of the stage currently in progress, so earlier stages
+  // read as done. Pending → awaiting manager (1); Endorsed → manager done, HR
+  // verifying (2); Paid → all done (4, past the last index).
+  const rank = { Pending: 1, Endorsed: 2, Paid: 4 }[status] ?? 1;
   const stage = (key, label, index) => ({
     key,
     label,
@@ -44,8 +46,9 @@ export function deriveStages(claim) {
 
   return [
     stage("submitted", "Submitted", 0),
-    stage("endorsed", "Endorsed", 1),
-    stage("paid", "Paid", 2),
+    stage("manager", "Manager approval", 1),
+    stage("hr", "HR verification", 2),
+    stage("payout", "GIRO / PayNow payout", 3),
   ];
 }
 
