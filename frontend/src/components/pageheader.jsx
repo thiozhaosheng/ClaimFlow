@@ -3,8 +3,8 @@ export default function PageHeader({ title, subtitle, actions, eyebrow }) {
     // Sticks to the top of the scrollable <main> area in AppShell so the
     // title + actions stay visible while the user scrolls the form below.
     // bg-app + a faint border-b so content scrolling under it doesn't bleed.
-    <header className="sticky top-0 z-20 -mt-4 lg:-mt-5 mb-4 pt-3 pb-3 bg-app border-b border-border-subtle flex flex-wrap items-end justify-between gap-3">
-      <div className="min-w-0 flex-1">
+    <header className="sticky top-0 z-20 -mt-4 lg:-mt-5 mb-4 pt-3 pb-3 bg-app border-b border-border-subtle flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div className="min-w-0 w-full md:flex-1">
         {eyebrow && (
           <p className="mb-0.5 text-[10.5px] uppercase tracking-[0.12em] font-medium text-text-tertiary">
             {eyebrow}
@@ -20,7 +20,7 @@ export default function PageHeader({ title, subtitle, actions, eyebrow }) {
         )}
       </div>
       {actions && (
-        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">{actions}</div>
       )}
     </header>
   );
