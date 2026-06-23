@@ -169,6 +169,14 @@ code,
   font-variant-numeric: tabular-nums;
 }
 
+/* Hide scrollbars on horizontally-scrollable strips (tab rows, chip rows)
+   while keeping them swipeable on touch. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 /* Global focus ring for keyboard users only. Buttons/links rely on this
    when no specific focus style is set. */
 :focus-visible {
