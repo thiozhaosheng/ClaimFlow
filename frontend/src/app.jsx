@@ -8,6 +8,7 @@ import Finance from "./pages/finance.jsx";
 import Compliance from "./pages/compliance.jsx";
 import Policies from "./pages/policies.jsx";
 import Privacy from "./pages/privacy.jsx";
+import ClaimDetail from "./pages/claimdetail.jsx";
 
 export default function App() {
   return (
@@ -44,6 +45,14 @@ export default function App() {
           element={
             <ProtectedRoute role="finance">
               <Finance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/claim/:id"
+          element={
+            <ProtectedRoute>
+              <ClaimDetail />
             </ProtectedRoute>
           }
         />

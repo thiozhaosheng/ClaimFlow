@@ -26,6 +26,15 @@ import {
   TrendingUp,
   Users,
   Wallet,
+  Car,
+  Utensils,
+  Wine,
+  Package,
+  Plane,
+  GraduationCap,
+  Heart,
+  Dumbbell,
+  Tag,
 } from "lucide-react";
 import {
   Card,
@@ -34,6 +43,45 @@ import {
   CardTitle,
 } from "./ui/card.jsx";
 import { Badge } from "./ui/badge.jsx";
+import { categoryColor } from "../lib/categoryColors.js";
+
+// Maps the icon keys from categoryColors.js to lucide components.
+const CAT_ICON = {
+  car: Car,
+  utensils: Utensils,
+  wine: Wine,
+  package: Package,
+  plane: Plane,
+  graduation: GraduationCap,
+  heart: Heart,
+  dumbbell: Dumbbell,
+  users: Users,
+  tag: Tag,
+};
+
+// Ranked spend-by-category row: neutral category icon + proportional bar so
+// the LENGTH (not a random hue) encodes magnitude. One accent color only.
+function CategorySpendRow({ category, amount, max }) {
+  const meta = categoryColor(category);
+  const Icon = CAT_ICON[meta.icon] || Tag;
+  const pct = max > 0 ? Math.max(4, Math.round((amount / max) * 100)) : 0;
+  return (
+    <div className="spend-row">
+      <span className="spend-row-icon">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="spend-row-main">
+        <div className="spend-row-head">
+          <span className="spend-row-name">{category}</span>
+          <span className="spend-row-amount">{formatSGD(amount)}</span>
+        </div>
+        <div className="spend-row-track">
+          <div className="spend-row-fill" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+    </div>
+  );
+}
 import {
   Select,
   SelectContent,
@@ -43,7 +91,7 @@ import {
 } from "./ui/select.jsx";
 import { Skeleton } from "./ui/skeleton.jsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs.jsx";
-import { Sheet, SheetContent } from "./ui/sheet.jsx";
+import { Sheet, SheetContent, SheetTitle } from "./ui/sheet.jsx";
 import { useFinanceInsights } from "../hooks/useFinanceInsights.js";
 import { formatSGD } from "../utils/helpers.js";
 
@@ -83,11 +131,11 @@ function formatPct(n) {
   return `${sign}${(n * 100).toFixed(0)}%`;
 }
 
-function StatTile({ icon: Icon, label, value, delta, hint, onClick }) {
+function StatTile({ icon: Icon, label, value, delta, hint, onClick, color }) {
   const positive = delta != null && delta >= 0;
   const interactive = typeof onClick === "function";
   return (
-    <Card
+    <div
       onClick={interactive ? onClick : undefined}
       role={interactive ? "button" : undefined}
       tabIndex={interactive ? 0 : undefined}
@@ -101,53 +149,46 @@ function StatTile({ icon: Icon, label, value, delta, hint, onClick }) {
             }
           : undefined
       }
-      className={
-        interactive
-          ? "cursor-pointer transition hover:shadow-ds-md hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-          : undefined
-      }
+      className={`stat-color-card ${interactive ? "clickable" : ""} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1`}
+      style={color ? { "--cat": color } : undefined}
     >
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            {label}
-          </span>
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent-subtle text-accent">
-            <Icon className="h-4 w-4" />
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {label}
+        </span>
+        <span className="stat-color-icon">
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+      <div className="text-2xl font-bold tracking-tight tabular-nums">
+        {value}
+      </div>
+      {delta != null && (
+        <div
+          className={`mt-1 flex items-center gap-1 text-xs font-medium ${
+            positive ? "text-success-text" : "text-danger-text"
+          }`}
+        >
+          {positive ? (
+            <ArrowUpRight className="h-3 w-3" />
+          ) : (
+            <ArrowDownRight className="h-3 w-3" />
+          )}
+          <span>{formatPct(delta)}</span>
+          <span className="text-muted-foreground font-normal">
+            vs previous period
           </span>
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="text-2xl font-bold tracking-tight tabular-nums">
-          {value}
+      )}
+      {hint && !delta && (
+        <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
+      )}
+      {interactive && (
+        <div className="mt-1 text-[10px] text-text-tertiary">
+          Click to see contributing claims
         </div>
-        {delta != null && (
-          <div
-            className={`mt-1 flex items-center gap-1 text-xs font-medium ${
-              positive ? "text-success-text" : "text-danger-text"
-            }`}
-          >
-            {positive ? (
-              <ArrowUpRight className="h-3 w-3" />
-            ) : (
-              <ArrowDownRight className="h-3 w-3" />
-            )}
-            <span>{formatPct(delta)}</span>
-            <span className="text-muted-foreground font-normal">
-              vs previous period
-            </span>
-          </div>
-        )}
-        {hint && !delta && (
-          <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
-        )}
-        {interactive && (
-          <div className="mt-1 text-[10px] text-text-tertiary">
-            Click to see contributing claims
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }
 
@@ -346,6 +387,32 @@ export default function FinanceDashboard({ claims, loading }) {
           onClick={() => setDrillKey("inflight")}
         />
       </div>
+
+      {/* Spend by category — ranked bars (length encodes magnitude) */}
+      {view.byCategory && view.byCategory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-baseline justify-between">
+              <CardTitle>Spend by category</CardTitle>
+              <span className="text-xs text-muted-foreground">
+                Total per category in range
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3">
+              {view.byCategory.slice(0, 8).map((c) => (
+                <CategorySpendRow
+                  key={c.category}
+                  category={c.category}
+                  amount={c.amount}
+                  max={view.byCategory[0].amount}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* submission trend */}
       <Card>
@@ -705,9 +772,9 @@ export default function FinanceDashboard({ claims, loading }) {
                 <div className="text-[10px] uppercase tracking-wider font-semibold text-text-tertiary">
                   Breakdown
                 </div>
-                <h3 className="text-base font-semibold tracking-tight mt-0.5">
+                <SheetTitle className="text-base font-semibold tracking-tight mt-0.5">
                   {DRILL_DEFS[drillKey].title}
-                </h3>
+                </SheetTitle>
                 <p className="text-xs text-muted-foreground mt-1">
                   {drillClaims.length} claim{drillClaims.length === 1 ? "" : "s"}
                   {" · "}

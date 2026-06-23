@@ -138,6 +138,8 @@ export default function SignIn() {
 
       <div className="auth-split">
         <div className="auth-brand-panel">
+          <span className="auth-blob auth-blob-a" aria-hidden="true" />
+          <span className="auth-blob auth-blob-b" aria-hidden="true" />
           <div className="auth-brand-panel-content">
             <span className="auth-eyebrow">
               <Sparkles className="h-3 w-3" />
