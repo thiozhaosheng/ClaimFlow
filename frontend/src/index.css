@@ -897,6 +897,20 @@ header {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Staggered list entrance — set animation-delay inline per item index. */
+.stagger-item {
+  animation: stagger-rise 0.32s var(--ease) both;
+}
+
+@keyframes stagger-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger-item { animation: none; }
+}
+
 /* ==========================================================================
    FILE DROPZONE
    ========================================================================== */
