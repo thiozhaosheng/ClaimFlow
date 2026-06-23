@@ -37,6 +37,7 @@ import {
   OcrProgress,
 } from "../components/ocrfeedback.jsx";
 import { extractedFieldKeys, isLiveOcr } from "../lib/ocr.js";
+import { useCountUp } from "../hooks/useCountUp.js";
 
 const DISALLOWED_CATEGORIES = (() => {
   const rule = policies.rules.find((r) => r.id === "block-disallowed-category");
@@ -470,6 +471,11 @@ export default function Employee() {
     };
   }, [allClaims]);
 
+  // Count-up the headline figures so they animate as data loads/changes.
+  const countSubmitted = useCountUp(stats.submittedThisMonth);
+  const countInFlight = useCountUp(stats.inFlight);
+  const countPaid = useCountUp(stats.paidThisMonth, { decimals: 2 });
+
   return (
     <section id="view-employee" className="role-workspace">
       <PageHeader
@@ -840,7 +846,7 @@ export default function Employee() {
                   Submitted
                 </span>
                 <span className="text-lg font-bold tabular-nums leading-tight">
-                  {stats.submittedThisMonth}
+                  {countSubmitted}
                 </span>
                 <span className="text-[10px] text-text-secondary">
                   this month
@@ -851,7 +857,7 @@ export default function Employee() {
                   In flight
                 </span>
                 <span className="text-lg font-bold tabular-nums leading-tight">
-                  {stats.inFlight}
+                  {countInFlight}
                 </span>
                 <span className="text-[10px] text-text-secondary">
                   {stats.pending}P · {stats.endorsed}E
@@ -862,7 +868,7 @@ export default function Employee() {
                   Paid
                 </span>
                 <span className="text-lg font-bold tabular-nums text-success-text leading-tight">
-                  {formatSGD(stats.paidThisMonth).replace("S$", "")}
+                  {formatSGD(countPaid).replace("S$", "")}
                 </span>
                 <span className="text-[10px] text-text-secondary">
                   this month
@@ -911,10 +917,11 @@ export default function Employee() {
                   message="Submitted claims will appear here once you upload a receipt."
                 />
               ) : (
-                distinctClaims.map((item) => (
+                distinctClaims.map((item, i) => (
                   <div
                     key={item.id}
-                    className={`claim-mini-card clickable ${item.status.toLowerCase()}`}
+                    className={`claim-mini-card clickable stagger-item ${item.status.toLowerCase()}`}
+                    style={{ animationDelay: `${i * 55}ms` }}
                   >
                     <div
                       className="flex justify-between items-start gap-2 cursor-pointer"
