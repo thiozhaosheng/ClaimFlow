@@ -495,13 +495,13 @@ function DashboardGreetingHero({
           id: "gst-typo",
           title: "AI Assistant suggestion",
           description: "I scanned receipt #1042 and found a GST typo. Autofill the correct value?",
-          actionLabel: updateClaimFieldsMutation.isSuccess ? "Corrected ✓" : "Autofill S$26.27",
+          actionLabel: updateClaimFieldsMutation.isSuccess ? "Corrected ✓" : "Autofill S$26.29",
           isLoading: updateClaimFieldsMutation.isPending && fixingId === "CLM-1042",
           onAction: () => {
             setFixingId("CLM-1042");
             updateClaimFieldsMutation.mutate({
               id: "CLM-1042",
-              fields: { gstAmount: 26.27 }
+              fields: { gstAmount: 26.29 }
             }, {
               onSuccess: () => setFixingId(null)
             });
@@ -512,22 +512,22 @@ function DashboardGreetingHero({
               <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-400 line-through bg-zinc-100 dark:bg-zinc-800 border border-zinc-250 dark:border-zinc-800">S$28.00</span>
               <span className="text-[10px] text-zinc-450">→</span>
               <span className="text-[10px] text-zinc-400 font-semibold font-sans ml-1">Receipt:</span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono text-zinc-850 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800">S$26.27</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono text-zinc-850 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800">S$26.29</span>
             </div>
           )
         });
       }
 
       list.push({
-        id: "dbs-sync",
-        title: "DBS CardSync Activity",
-        description: "You have an unfiled corporate card charge of S$14.50 at Starbucks. Create claim?",
+        id: "citi-sync",
+        title: "Citibank CardSync Activity",
+        description: "You have an unfiled corporate card charge of S$24.80 at Starbucks. Create claim?",
         actionLabel: "Autofill Starbucks Claim",
         onAction: onNewClaimClick,
         customContent: (
           <div className="flex items-center gap-1.5 mt-1.5">
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-650 dark:text-indigo-400 border border-indigo-500/20">DBS VISA</span>
-            <span className="text-[10px] font-mono text-fg-tertiary">2026-06-25 · S$14.50</span>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-650 dark:text-indigo-400 border border-indigo-500/20">CITIBANK VISA</span>
+            <span className="text-[10px] font-mono text-fg-tertiary">2026-06-24 · S$24.80</span>
           </div>
         )
       });
@@ -567,7 +567,7 @@ function DashboardGreetingHero({
       list.push({
         id: "duplicate-check",
         title: "Compliance Shield Alert",
-        description: "Potential double-billing detected: Jumbo Seafood client dinner matches a DBS Visa Sync txn. Resolve?",
+        description: "Potential double-billing detected: Jumbo Seafood client dinner matches a Citibank Visa Sync txn. Resolve?",
         actionLabel: "Compare Receipts",
         onAction: () => alert("Opening receipt compare panel...")
       });

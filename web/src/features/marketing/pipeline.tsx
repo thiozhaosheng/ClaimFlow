@@ -28,7 +28,7 @@ const STEPS = [
 const FIELDS = [
   { k: "Merchant", v: "Jumbo Seafood" },
   { k: "Amount", v: "S$318.40" },
-  { k: "GST (9%)", v: "S$26.27" },
+  { k: "GST (9%)", v: "S$26.29" },
   { k: "Date", v: "18 Jun 2026" },
 ];
 

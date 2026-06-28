@@ -605,7 +605,7 @@ export default function ClaimDetailPage({
                         <div className="flex items-center gap-1 bg-white/40 dark:bg-black/40 border border-black/5 dark:border-white/5 rounded px-1.5 py-0.5">
                           <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 font-mono line-through">S$28.00</span>
                           <span className="text-[10px] text-zinc-400 dark:text-zinc-650 font-bold">→</span>
-                          <span className="text-[10px] font-bold text-zinc-800 dark:text-zinc-200 font-mono">S$26.27</span>
+                          <span className="text-[10px] font-bold text-zinc-800 dark:text-zinc-200 font-mono">S$26.29</span>
                         </div>
                         <span className="text-[10px] font-bold text-rose-600 dark:text-rose-450 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/15">Mismatch</span>
                       </div>
@@ -650,7 +650,7 @@ export default function ClaimDetailPage({
             <ShieldCheck className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500 stroke-[2px]" />
             Recommended Action Plan
           </h4>
-          {claim.id === "CLM-1042" && claim.gstAmount !== 26.27 ? (
+          {claim.id === "CLM-1042" && claim.gstAmount !== 26.29 ? (
             <div className="flex flex-wrap items-center gap-1.5 mt-1 select-none">
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 border border-zinc-950">1. Correct GST</span>
               <span className="text-[10px] text-fg-tertiary">→</span>
@@ -668,7 +668,7 @@ export default function ClaimDetailPage({
         </div>
 
         {/* Instant Self-Correction Action */}
-        {claim.status === "Pending" && claim.id === "CLM-1042" && claim.gstAmount !== 26.27 && (
+        {claim.status === "Pending" && claim.id === "CLM-1042" && claim.gstAmount !== 26.29 && (
           <div className="border-t border-border pt-4 flex flex-col gap-2 shrink-0">
             <h4 className="text-xs font-bold uppercase tracking-wider text-fg-tertiary">
               Instant Self-Correction
@@ -684,10 +684,10 @@ export default function ClaimDetailPage({
               />
               <button 
                 type="button"
-                onClick={() => setEditingGst("26.27")}
+                onClick={() => setEditingGst("26.29")}
                 className="text-[10px] text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-850 rounded-lg px-2 py-1 font-bold hover:bg-zinc-100 dark:hover:bg-zinc-800 bg-surface active:scale-[0.97] transition-all cursor-pointer shrink-0"
               >
-                Autofill scanned S$26.27
+                Autofill scanned S$26.29
               </button>
               <Button 
                 size="sm" 
@@ -935,11 +935,11 @@ export default function ClaimDetailPage({
           </div>
           <div>
             <span className="text-[9px] font-bold uppercase tracking-wider text-fg-tertiary block">GST (9%)</span>
-            {claim.flagged && claim.status === "Pending" && claim.id === "CLM-1042" && claim.gstAmount !== 26.27 ? (
+            {claim.flagged && claim.status === "Pending" && claim.id === "CLM-1042" && claim.gstAmount !== 26.29 ? (
               <div className="flex items-center gap-1.5 mt-0.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2 py-0.5">
                 <span className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 font-mono line-through">S$28.00</span>
                 <span className="text-xs text-zinc-400 dark:text-zinc-600 font-bold">→</span>
-                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-mono">S$26.27</span>
+                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-mono">S$26.29</span>
               </div>
             ) : (
               <p className="text-sm font-semibold text-fg-secondary font-mono mt-0.5">
@@ -1116,19 +1116,18 @@ function getReceiptItems(claim: any) {
   switch (claim.id) {
     case "CLM-1042": // Jumbo Seafood
       return [
-        { desc: "1x Chili Crab Set A (2 Pax)", qty: 1, rate: 268.00, amount: 268.00 },
+        { desc: "1x Chili Crab Set A (2 Pax)", qty: 1, rate: 247.55, amount: 247.55 },
         { desc: "2x Chinese Tea", qty: 2, rate: 2.00, amount: 4.00 },
         { desc: "1x Coconut Water", qty: 1, rate: 6.00, amount: 6.00 },
         { desc: "1x Fried Man Tou (6pcs)", qty: 1, rate: 8.00, amount: 8.00 },
-        { desc: "Service Charge (10%)", qty: 1, rate: 28.60, amount: 28.60 },
-        { desc: "GST (9% Included)", qty: 1, rate: 26.27, amount: 26.27 },
+        { desc: "Service Charge (10%)", qty: 1, rate: 26.56, amount: 26.56 },
+        { desc: "GST (9% Included)", qty: 1, rate: 26.29, amount: 26.29 },
       ];
     case "CLM-1041": // Grab
       return [
-        { desc: "1x GrabCar Premium ride", qty: 1, rate: 19.50, amount: 19.50 },
-        { desc: "1x Toll (Keppel Road ERP)", qty: 1, rate: 2.00, amount: 2.00 },
-        { desc: "1x Platform Fee", qty: 1, rate: 0.55, amount: 0.55 },
-        { desc: "GST (9% Included)", qty: 1, rate: 1.05, amount: 1.05 },
+        { desc: "1x GrabCar Premium ride", qty: 1, rate: 20.55, amount: 20.55 },
+        { desc: "1x Platform Fee", qty: 1, rate: 0.64, amount: 0.64 },
+        { desc: "GST (9% Included)", qty: 1, rate: 1.91, amount: 1.91 },
       ];
     case "CLM-1039": // AWS Training
       return [
@@ -1142,9 +1141,9 @@ function getReceiptItems(claim: any) {
       ];
     case "CLM-1035": // Toast Box
       return [
-        { desc: "1x Laksa Set (with Barley)", qty: 1, rate: 9.80, amount: 9.80 },
-        { desc: "2x Kaya Toast Traditional Set", qty: 2, rate: 6.20, amount: 12.40 },
-        { desc: "1x Mee Rebus", qty: 1, rate: 6.30, amount: 6.30 },
+        { desc: "1x Laksa Set (with Barley)", qty: 1, rate: 9.00, amount: 9.00 },
+        { desc: "2x Kaya Toast Traditional Set", qty: 2, rate: 5.67, amount: 11.35 },
+        { desc: "1x Mee Rebus", qty: 1, rate: 5.80, amount: 5.80 },
         { desc: "GST (9% Included)", qty: 1, rate: 2.35, amount: 2.35 },
       ];
     default: {
@@ -1213,7 +1212,7 @@ function DigitizedReceipt({
       name: "GST (9%)",
       value: gstStr,
       confidence: "99.0%",
-      status: claim.id === "CLM-1042" && claim.gstAmount !== 26.27 ? `Mismatch: OCR S$26.27 vs Form S$${claim.gstAmount?.toFixed(2) || "28.00"}` : "Verified",
+      status: claim.id === "CLM-1042" && claim.gstAmount !== 26.29 ? `Mismatch: OCR S$26.29 vs Form S$${claim.gstAmount?.toFixed(2) || "28.00"}` : "Verified",
       mappingId: "gst",
       style: { top: "58%", left: "45%", width: "40%", height: "5%" }
     },
@@ -1395,7 +1394,7 @@ function DigitizedReceipt({
                   <div
                     className={cn(
                       "px-2 py-0.5 rounded-lg border transition-all cursor-pointer font-bold",
-                      claim.id === "CLM-1042" && claim.gstAmount !== 26.27
+                      claim.id === "CLM-1042" && claim.gstAmount !== 26.29
                         ? hoveredCheckId === "gst" || activeBoxId === "gst"
                           ? "bg-amber-500/[0.08] border-amber-500/40 text-amber-700 dark:text-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.15)] scale-[1.02]"
                           : "bg-amber-500/5 border-amber-500/20 text-amber-600 dark:text-amber-400"
@@ -1487,7 +1486,7 @@ function DigitizedReceipt({
               }
               
               const isWarning = 
-                (activeBox.id === "gst" && claim.id === "CLM-1042" && claim.gstAmount !== 26.27) ||
+                (activeBox.id === "gst" && claim.id === "CLM-1042" && claim.gstAmount !== 26.29) ||
                 (activeBox.id === "erp" && claim.id === "CLM-1041") ||
                 (activeBox.id === "clientCompany" && !claim.details?.clientCompany);
 
@@ -1549,10 +1548,10 @@ function DigitizedReceipt({
                   <span>GST (9%):</span>
                   <span className="font-mono">{gstStr}</span>
                 </div>
-                {claim.id === "CLM-1042" && claim.gstAmount !== 26.27 && (
+                {claim.id === "CLM-1042" && claim.gstAmount !== 26.29 && (
                   <div className="border-l border-amber-500 pl-3.5 py-1.5 text-xs text-amber-700 dark:text-amber-450 font-semibold text-left flex items-start gap-2 bg-amber-500/[0.04] dark:bg-amber-500/[0.06] rounded-r-lg">
                     <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0 mt-1.5" />
-                    <span>GST Mismatch: Scanned receipt GST is S$26.27 (Form lists S${claim.gstAmount?.toFixed(2) || "28.00"})</span>
+                    <span>GST Mismatch: Scanned receipt GST is S$26.29 (Form lists S${claim.gstAmount?.toFixed(2) || "28.00"})</span>
                   </div>
                 )}
               </div>
