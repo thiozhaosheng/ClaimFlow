@@ -152,59 +152,59 @@ export function ClaimList() {
   }, [filteredClaims]);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4 sm:gap-5">
       {/* 1. Dynamic Claims Metrics Banner */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         {/* Total Submissions */}
-        <div className="bg-white/40 dark:bg-black/15 backdrop-blur-md border border-white/20 dark:border-white/[0.05] p-4 rounded-xl shadow-sm flex flex-col justify-between text-left select-none relative overflow-hidden group">
+        <div className="bg-white/40 dark:bg-black/15 backdrop-blur-md border border-white/20 dark:border-white/[0.05] p-3 sm:p-4 rounded-xl shadow-sm flex flex-col justify-between text-left select-none relative overflow-hidden group">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-fg-secondary">Total Submissions</span>
-            <Coins className="h-4 w-4 text-indigo-500" />
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-fg-secondary truncate">Total Filed</span>
+            <Coins className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-indigo-500 shrink-0" />
           </div>
-          <div className="mt-3 flex items-baseline justify-between">
-            <p className="text-xl font-bold tracking-tight text-fg tabular-nums">{formatSGD(metrics.totalAmount)}</p>
-            <span className="text-[10px] text-fg-secondary font-mono">{metrics.totalCount} filed</span>
+          <div className="mt-2.5 flex items-baseline justify-between gap-1 flex-wrap">
+            <p className="text-base sm:text-xl font-bold tracking-tight text-fg tabular-nums leading-none">{formatSGD(metrics.totalAmount)}</p>
+            <span className="text-[9px] sm:text-[10px] text-fg-secondary font-mono leading-none">{metrics.totalCount} filed</span>
           </div>
-          <p className="mt-1.5 text-[10px] text-fg-tertiary font-medium">All historical claims in database</p>
+          <p className="mt-1.5 text-[8px] sm:text-[10px] text-fg-tertiary font-medium truncate">All historical claims</p>
         </div>
 
         {/* Awaiting Settlement */}
-        <div className="bg-white/40 dark:bg-black/15 backdrop-blur-md border border-white/20 dark:border-white/[0.05] p-4 rounded-xl shadow-sm flex flex-col justify-between text-left select-none relative overflow-hidden group">
+        <div className="bg-white/40 dark:bg-black/15 backdrop-blur-md border border-white/20 dark:border-white/[0.05] p-3 sm:p-4 rounded-xl shadow-sm flex flex-col justify-between text-left select-none relative overflow-hidden group">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-fg-secondary">Awaiting Settlement</span>
-            <Clock className="h-4 w-4 text-amber-500" />
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-fg-secondary truncate">Awaiting Clear</span>
+            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-500 shrink-0" />
           </div>
-          <div className="mt-3 flex items-baseline justify-between">
-            <p className="text-xl font-bold tracking-tight text-fg tabular-nums">{formatSGD(metrics.pendingAmount)}</p>
-            <span className="text-[10px] text-fg-secondary font-mono">{metrics.pendingCount} pending</span>
+          <div className="mt-2.5 flex items-baseline justify-between gap-1 flex-wrap">
+            <p className="text-base sm:text-xl font-bold tracking-tight text-fg tabular-nums leading-none">{formatSGD(metrics.pendingAmount)}</p>
+            <span className="text-[9px] sm:text-[10px] text-fg-secondary font-mono leading-none">{metrics.pendingCount} pending</span>
           </div>
-          <p className="mt-1.5 text-[10px] text-fg-tertiary font-medium">Pending Manager &amp; FAST clearances</p>
+          <p className="mt-1.5 text-[8px] sm:text-[10px] text-fg-tertiary font-medium truncate">Pending bank clearance</p>
         </div>
 
         {/* Paid / Reimbursed */}
-        <div className="bg-white/40 dark:bg-black/15 backdrop-blur-md border border-white/20 dark:border-white/[0.05] p-4 rounded-xl shadow-sm flex flex-col justify-between text-left select-none relative overflow-hidden group">
+        <div className="bg-white/40 dark:bg-black/15 backdrop-blur-md border border-white/20 dark:border-white/[0.05] p-3 sm:p-4 rounded-xl shadow-sm flex flex-col justify-between text-left select-none relative overflow-hidden group">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-fg-secondary">Paid / Reimbursed</span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-fg-secondary truncate">Reimbursed</span>
+            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 shrink-0" />
           </div>
-          <div className="mt-3 flex items-baseline justify-between">
-            <p className="text-xl font-bold tracking-tight text-fg tabular-nums">{formatSGD(metrics.paidAmount)}</p>
-            <span className="text-[10px] text-fg-secondary font-mono">{metrics.paidCount} cleared</span>
+          <div className="mt-2.5 flex items-baseline justify-between gap-1 flex-wrap">
+            <p className="text-base sm:text-xl font-bold tracking-tight text-fg tabular-nums leading-none">{formatSGD(metrics.paidAmount)}</p>
+            <span className="text-[9px] sm:text-[10px] text-fg-secondary font-mono leading-none">{metrics.paidCount} cleared</span>
           </div>
-          <p className="mt-1.5 text-[10px] text-fg-tertiary font-medium">Disbursed to bank account</p>
+          <p className="mt-1.5 text-[8px] sm:text-[10px] text-fg-tertiary font-medium truncate">Disbursed to accounts</p>
         </div>
 
         {/* Compliance Warning Flags */}
-        <div className="bg-white/40 dark:bg-black/15 backdrop-blur-md border border-white/20 dark:border-white/[0.05] p-4 rounded-xl shadow-sm flex flex-col justify-between text-left select-none relative overflow-hidden group">
+        <div className="bg-white/40 dark:bg-black/15 backdrop-blur-md border border-white/20 dark:border-white/[0.05] p-3 sm:p-4 rounded-xl shadow-sm flex flex-col justify-between text-left select-none relative overflow-hidden group">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-fg-secondary">Audit Warnings</span>
-            <ShieldAlert className="h-4 w-4 text-rose-500" />
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-fg-secondary truncate">Policy Alerts</span>
+            <ShieldAlert className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-rose-500 shrink-0" />
           </div>
-          <div className="mt-3 flex items-baseline justify-between">
-            <p className="text-xl font-bold tracking-tight text-rose-600 dark:text-rose-500 tabular-nums">{metrics.warningsCount}</p>
-            <span className="text-[10px] text-fg-secondary font-mono">Flagged policy</span>
+          <div className="mt-2.5 flex items-baseline justify-between gap-1 flex-wrap">
+            <p className="text-base sm:text-xl font-bold tracking-tight text-rose-600 dark:text-rose-500 tabular-nums leading-none">{metrics.warningsCount}</p>
+            <span className="text-[9px] sm:text-[10px] text-fg-secondary font-mono leading-none">Flagged</span>
           </div>
-          <p className="mt-1.5 text-[10px] text-fg-tertiary font-medium">Flagged items require manual audit review</p>
+          <p className="mt-1.5 text-[8px] sm:text-[10px] text-fg-tertiary font-medium truncate">Require audit review</p>
         </div>
       </div>
 
@@ -214,111 +214,117 @@ export function ClaimList() {
         backContent="This control bar allows you to search claims instantly by merchant name, employee name, or description. Filter items by status tab, date ranges, or amount brackets. Toggle layout between a list and a Kanban board, and export reports directly."
         layout="horizontal"
       >
-        <div className="bg-card border border-border p-3.5 rounded-xl shadow-sm flex flex-wrap items-center justify-between gap-3 text-left w-full h-full">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Status Tab buttons */}
-          <div className="flex bg-surface border border-border rounded-lg p-0.5" role="tablist">
-            {STATUS_FILTERS.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => setStatusFilter(f.value)}
-                className={cn(
-                  "px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer",
-                  statusFilter === f.value
-                    ? "bg-card text-fg shadow-sm border border-border"
-                    : "text-fg-tertiary hover:text-fg-secondary"
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Date range filter selector */}
-          <div className="relative shrink-0 flex items-center bg-surface border border-border rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase text-fg-secondary select-none">
-            <Calendar className="h-3.5 w-3.5 mr-1 text-fg-tertiary" />
-            <select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value as "All" | "Month" | "Quarter")}
-              className="bg-transparent focus:outline-none cursor-pointer pr-4 appearance-none font-sans font-bold"
-            >
-              <option value="All">All Dates</option>
-              <option value="Month">Last 30 Days</option>
-              <option value="Quarter">Last 90 Days</option>
-            </select>
-            <span className="ml-1 pointer-events-none text-fg-tertiary text-[8px]">&darr;</span>
-          </div>
-
-          {/* Amount range filter selector */}
-          <div className="relative shrink-0 flex items-center bg-surface border border-border rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase text-fg-secondary select-none">
-            <Filter className="h-3.5 w-3.5 mr-1 text-fg-tertiary" />
-            <select
-              value={amountFilter}
-              onChange={(e) => setAmountFilter(e.target.value as "All" | "Under100" | "100to500" | "Over500")}
-              className="bg-transparent focus:outline-none cursor-pointer pr-4 appearance-none font-sans font-bold"
-            >
-              <option value="All">All Amounts</option>
-              <option value="Under100">Under S$100</option>
-              <option value="100to500">S$100 - S$500</option>
-              <option value="Over500">Over S$500</option>
-            </select>
-            <span className="ml-1 pointer-events-none text-fg-tertiary text-[8px]">&darr;</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          {/* Query search Input */}
-          <label className="relative flex w-full md:w-56 items-center shrink-0">
-            <Search className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-fg-tertiary" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search claims…"
-              className="h-8.5 w-full rounded-lg border border-border bg-surface pl-9 pr-3 text-xs placeholder:text-fg-tertiary focus-visible:border-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/15"
-            />
-          </label>
-
-          {/* View Mode layout switches */}
-          <div className="flex bg-surface border border-border rounded-lg p-0.5 shrink-0" role="tablist">
+        <div className="bg-card border border-border p-3 sm:p-4 rounded-xl shadow-sm flex flex-col gap-3 text-left w-full h-full">
+          {/* Row 1: Search & Export */}
+          <div className="flex items-center gap-2 w-full">
+            <label className="relative flex-1 items-center min-w-0">
+              <Search className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-fg-tertiary" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search claims…"
+                className="h-8.5 w-full rounded-lg border border-border bg-surface pl-9 pr-3 text-xs placeholder:text-fg-tertiary focus-visible:border-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/15"
+              />
+            </label>
             <button
-              onClick={() => setViewMode("list")}
-              className={cn(
-                "p-1.5 rounded cursor-pointer transition-all",
-                viewMode === "list" ? "bg-card text-accent border border-border shadow-sm" : "text-fg-tertiary hover:text-fg"
-              )}
-              title="List view"
+              onClick={handleExport}
+              disabled={exporting}
+              className="bg-fg hover:opacity-90 text-canvas font-bold rounded-lg px-3 h-8.5 text-[10px] uppercase tracking-wider shadow-sm flex items-center justify-center gap-1 active:scale-[0.98] transition-transform cursor-pointer shrink-0"
             >
-              <List className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setViewMode("board")}
-              className={cn(
-                "p-1.5 rounded cursor-pointer transition-all",
-                viewMode === "board" ? "bg-card text-accent border border-border shadow-sm" : "text-fg-tertiary hover:text-fg"
+              {exporting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <>
+                  <Download className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Export</span>
+                </>
               )}
-              title="Kanban Board View"
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
             </button>
           </div>
 
-          {/* Export Report Trigger */}
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="bg-fg hover:opacity-90 text-canvas font-bold rounded-lg px-2.5 h-8.5 text-[10px] uppercase tracking-wider shadow-sm flex items-center justify-center gap-1 active:scale-[0.98] transition-transform cursor-pointer"
-          >
-            {exporting ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <>
-                <Download className="h-3.5 w-3.5" />
-                Export
-              </>
-            )}
-          </button>
+          {/* Row 2: Tabs & Dropdowns */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 w-full">
+            {/* Status Tab buttons (Scrollable on mobile) */}
+            <div className="flex bg-surface border border-border rounded-lg p-0.5 overflow-x-auto scrollbar-none flex-nowrap shrink-0 max-w-full" role="tablist">
+              {STATUS_FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setStatusFilter(f.value)}
+                  className={cn(
+                    "px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap",
+                    statusFilter === f.value
+                      ? "bg-card text-fg shadow-sm border border-border"
+                      : "text-fg-tertiary hover:text-fg-secondary"
+                  )}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Selectors and Layout switches */}
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              {/* Date selector dropdown */}
+              <div className="relative flex-1 md:flex-none flex items-center bg-surface border border-border rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase text-fg-secondary select-none justify-between">
+                <div className="flex items-center min-w-0">
+                  <Calendar className="h-3.5 w-3.5 mr-1 text-fg-tertiary shrink-0" />
+                  <select
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value as "All" | "Month" | "Quarter")}
+                    className="bg-transparent focus:outline-none cursor-pointer pr-4 appearance-none font-sans font-bold text-xs"
+                  >
+                    <option value="All">All Dates</option>
+                    <option value="Month">Last 30d</option>
+                    <option value="Quarter">Last 90d</option>
+                  </select>
+                </div>
+                <span className="pointer-events-none text-fg-tertiary text-[8px] ml-1 shrink-0">&darr;</span>
+              </div>
+
+              {/* Amount selector dropdown */}
+              <div className="relative flex-1 md:flex-none flex items-center bg-surface border border-border rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase text-fg-secondary select-none justify-between">
+                <div className="flex items-center min-w-0">
+                  <Filter className="h-3.5 w-3.5 mr-1 text-fg-tertiary shrink-0" />
+                  <select
+                    value={amountFilter}
+                    onChange={(e) => setAmountFilter(e.target.value as "All" | "Under100" | "100to500" | "Over500")}
+                    className="bg-transparent focus:outline-none cursor-pointer pr-4 appearance-none font-sans font-bold text-xs"
+                  >
+                    <option value="All">Amounts</option>
+                    <option value="Under100">&lt; S$100</option>
+                    <option value="100to500">S$100-500</option>
+                    <option value="Over500">&gt; S$500</option>
+                  </select>
+                </div>
+                <span className="pointer-events-none text-fg-tertiary text-[8px] ml-1 shrink-0">&darr;</span>
+              </div>
+
+              {/* View Switcher (Desktop/Tablet only) */}
+              <div className="flex bg-surface border border-border rounded-lg p-0.5 shrink-0 hidden sm:flex" role="tablist">
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={cn(
+                    "p-1.5 rounded cursor-pointer transition-all",
+                    viewMode === "list" ? "bg-card text-accent border border-border shadow-sm" : "text-fg-tertiary hover:text-fg"
+                  )}
+                  title="List view"
+                >
+                  <List className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setViewMode("board")}
+                  className={cn(
+                    "p-1.5 rounded cursor-pointer transition-all",
+                    viewMode === "board" ? "bg-card text-accent border border-border shadow-sm" : "text-fg-tertiary hover:text-fg"
+                  )}
+                  title="Kanban Board View"
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
       </InteractiveFlipCard>
 
       {/* 3. Claims Data Views (Flat List vs Kanban Workflow Board) */}

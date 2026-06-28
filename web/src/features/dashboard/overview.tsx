@@ -104,9 +104,9 @@ function Stat({
       }}
       onMouseEnter={() => setHovered(true)}
       className={cn(
-        "bg-white/35 dark:bg-black/25 backdrop-blur-md p-4 md:p-[18px] rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.01)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.1)] flex flex-col justify-between select-none text-left cursor-pointer relative overflow-hidden group",
+        "bg-white/35 dark:bg-black/25 backdrop-blur-md p-3 sm:p-4 md:p-[18px] rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.01)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.1)] flex flex-col justify-between select-none text-left cursor-pointer relative overflow-hidden group border",
         isActive 
-          ? "border-accent/80 bg-white/70 dark:bg-zinc-950/45 ring-1 ring-accent/10" 
+          ? "border-accent/85 bg-white/70 dark:bg-zinc-950/45 ring-1 ring-accent/10" 
           : "border-white/20 dark:border-white/[0.05] hover:border-accent/30 dark:hover:border-accent/25 hover:bg-white/45 dark:hover:bg-zinc-950/30"
       )}
     >
@@ -125,25 +125,25 @@ function Stat({
           `
         }}
       />
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-secondary">
+      <div className="flex items-center justify-between gap-2.5">
+        <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-fg-secondary truncate">
           {label}
         </span>
-        <Icon className={cn("h-4 w-4 transition-colors duration-300", isActive ? "text-accent" : "text-fg-tertiary group-hover:text-accent")} />
+        <Icon className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4 transition-colors duration-300 shrink-0", isActive ? "text-accent" : "text-fg-tertiary group-hover:text-accent")} />
       </div>
-      <div className="mt-3 flex items-baseline justify-between gap-2">
+      <div className="mt-2.5 flex items-baseline justify-between gap-1 flex-wrap">
         {loading ? (
-          <div className="h-8 w-24 animate-pulse rounded bg-surface" />
+          <div className="h-6 w-16 sm:h-8 sm:w-24 animate-pulse rounded bg-surface" />
         ) : (
-          <p className="text-2xl font-semibold leading-none tracking-tight tabular-nums text-fg">
+          <p className="text-base sm:text-2xl font-bold leading-none tracking-tight tabular-nums text-fg">
             {value}
           </p>
         )}
-        <span className="text-[10px] font-bold text-fg-secondary/50 group-hover:text-accent opacity-0 group-hover:opacity-100 transition-all">
+        <span className="text-[8px] sm:text-[10px] font-bold text-fg-secondary/50 group-hover:text-accent opacity-0 group-hover:opacity-100 transition-all hidden sm:inline">
           {isActive ? "Collapse ↑" : "Expand ↓"}
         </span>
       </div>
-      <p className="mt-2 text-[11px] text-fg-tertiary font-medium">{sub}</p>
+      <p className="mt-1.5 text-[9px] sm:text-[11px] text-fg-tertiary font-medium truncate">{sub}</p>
 
       {/* Micro-sparkline SVG graph */}
       {!loading && (
@@ -965,7 +965,7 @@ function DashboardGreetingHero({
       </div>
 
       {/* 4 Stats Cards nested within the greetings card */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 w-full mt-5.5 z-20 relative">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 w-full mt-4 sm:mt-5.5 z-20 relative">
         {stats.map((s, idx) => (
           <Stat
             key={s.label}
