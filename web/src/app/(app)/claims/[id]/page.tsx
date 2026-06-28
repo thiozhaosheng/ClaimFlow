@@ -1292,11 +1292,14 @@ function DigitizedReceipt({
         </div>
 
         {viewMode === "scan" ? (
-          <div className="bg-zinc-50 dark:bg-zinc-950/20 rounded-xl border border-border/50 p-6 flex flex-col items-center justify-center relative overflow-hidden select-none min-h-[440px] flex-grow">
+          <div className="bg-zinc-50 dark:bg-zinc-955/20 rounded-xl border border-border/50 relative overflow-hidden select-none min-h-[440px] flex-grow flex flex-col">
             {/* Apple scan station layout guidelines */}
-            <div className="absolute inset-4 border border-dashed border-zinc-200 dark:border-zinc-800/80 rounded-xl pointer-events-none opacity-40" />
+            <div className="absolute inset-4 border border-dashed border-zinc-200 dark:border-zinc-800/85 rounded-xl pointer-events-none opacity-40 z-10" />
 
-            <div className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 shadow-[0_12px_36px_rgba(0,0,0,0.03)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.22)] rounded-2xl p-6 font-mono text-[11px] leading-relaxed text-zinc-800 dark:text-zinc-300 relative select-none">
+            {/* Scrollable Receipt Area */}
+            <div className="w-full flex-grow overflow-y-auto px-6 flex flex-col items-center [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-zinc-200 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-800 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+              <div className="my-auto py-8 flex flex-col items-center w-full">
+                <div className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 shadow-[0_12px_36px_rgba(0,0,0,0.03)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.22)] rounded-2xl p-6 font-mono text-[11px] leading-relaxed text-zinc-800 dark:text-zinc-300 relative select-none">
               
               {/* Header block with Logo */}
               <div className="flex flex-col items-center pb-3 border-b border-dashed border-zinc-200 dark:border-zinc-800 mb-3 text-center">
@@ -1474,6 +1477,8 @@ function DigitizedReceipt({
               </div>
 
             </div>
+          </div>
+        </div>
 
             {/* Bounding box tooltip info */}
             {(() => {
