@@ -572,12 +572,13 @@ export default function ClaimDetailPage({
     return (
       <Card className="border border-border/80 p-6 flex flex-col gap-6 bg-card h-full justify-between rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.16)] transition-all duration-300 select-none">
         <div className="flex flex-col gap-5">
-          <div className="flex items-center gap-2 border-b border-border pb-3 shrink-0">
-            <AlertTriangle className="h-4.5 w-4.5 text-zinc-400 dark:text-zinc-500 shrink-0" />
+          <div className="flex items-center gap-2 border-b border-border pb-3 shrink-0 w-full">
+            <AlertTriangle className="h-4.5 w-4.5 text-zinc-450 dark:text-zinc-550 shrink-0" />
             <h4 className="text-xs font-bold uppercase tracking-wider text-fg-secondary">
               Compliance Review Required
             </h4>
-             <div className="flex flex-col gap-3">
+          </div>
+          <div className="flex flex-col gap-3">
             {flaggedChecks.map((check) => {
               const shortMsg = 
                 check.id === "receipt" ? "Tax invoice attachment required above S$50." :
@@ -641,7 +642,6 @@ export default function ClaimDetailPage({
                 </div>
               );
             })}
-          </div>
           </div>
         </div>
 
