@@ -62,4 +62,63 @@ describe("policy engine (ported SG rules)", () => {
     });
     expect(ctx.receiptUrl).toBe("pending-upload");
   });
+
+  it("flags a potential duplicate claim", () => {
+    const existingClaims: any[] = [
+      {
+        id: "CLM-1001",
+        employee: "Sarah Tan",
+        amount: 23.10,
+        date: "2026-06-25",
+        merchant: "Grab",
+        category: "Transport",
+      }
+    ];
+
+    const ctx = claimContextFromForm({
+      category: "Transport",
+      amount: 23.10,
+      expenseDate: "2026-06-25",
+      employee: "Sarah Tan",
+      merchant: "Grab",
+    });
+
+    const r = evaluatePolicies(ctx, existingClaims);
+    expect(r.outcome).toBe("route-to-human");
+    expect(r.ruleId).toBe("flag-potential-duplicate");
+    expect(r.duplicateFlag).toBe(true);
+  });
+
+  it("flags a GST calculation mismatch", () => {
+    const ctx = claimContextFromForm({
+      category: "Meal",
+      amount: 109,
+      expenseDate: "2026-06-01",
+      details: {
+        gstAmount: 18.00,
+      }
+    });
+
+    const r = evaluatePolicies(ctx);
+    expect(r.outcome).toBe("route-to-human");
+    expect(r.ruleId).toBe("flag-gst-mismatch");
+    expect(r.gstMatched).toBe(false);
+  });
+
+  it("passes validation on correct Singapore GST", () => {
+    const ctx = claimContextFromForm({
+      category: "Meal",
+      amount: 30,
+      receiptUrl: "blob://x",
+      expenseDate: "2026-06-01",
+      details: {
+        gstAmount: 2.48,
+      }
+    });
+
+    const r = evaluatePolicies(ctx);
+    expect(r.outcome).toBe("auto-approve");
+    expect(r.ruleId).toBe("auto-approve-small-meal");
+  });
 });
+

@@ -4,9 +4,7 @@ Production-grade frontend for the **Claims & Reimbursement** platform for
 Singapore SMEs. Receipt → OCR → policy auto-approval → manager/HR review →
 GIRO/PayNow payout, with a full audit trail.
 
-This app is a ground-up rebuild of the legacy Vite client (`../frontend`),
-which is kept intact as the source of the proven domain logic that has been
-ported here, typed.
+This app is a production-grade React/Next.js frontend using Clean Architecture, strict TypeScript typing, and responsive tailwind styles.
 
 ---
 

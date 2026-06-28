@@ -41,6 +41,7 @@ export interface ClaimActivity {
   date: string;
   time: string;
   reason?: string;
+  isComment?: boolean;
 }
 
 /** The context the policy engine evaluates. */
@@ -51,10 +52,17 @@ export interface PolicyContext {
   expenseDate: string;
   supplierGstRegNumber?: string | null;
   details: Record<string, unknown>;
+  employee?: string;
+  merchant?: string | null;
 }
 
 export interface PolicyResult {
   outcome: PolicyOutcome;
   ruleId: string;
   message: string;
+  duplicateFlag?: boolean;
+  gstMatched?: boolean;
+  details?: {
+    ruleChecks?: Array<{ ruleId: string; label: string; passed: boolean; outcome: string }>;
+  };
 }

@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { ClaimList } from "@/features/claims/components/claim-list";
 
-export const metadata = { title: "Claims · ClaimFlow" };
+export const metadata = { title: "Claims Queue & Submissions | ClaimFlow" };
 
 export default function ClaimsPage() {
   return (
@@ -11,7 +11,9 @@ export default function ClaimsPage() {
         title="Claims"
         subtitle="Track every claim from receipt capture to GIRO/PayNow payout."
       />
-      <ClaimList />
+      <div id="claims-ledger-table" className="mt-4">
+        <ClaimList />
+      </div>
     </>
   );
 }

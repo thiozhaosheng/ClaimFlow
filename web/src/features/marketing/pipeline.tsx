@@ -9,7 +9,7 @@ import {
 import {
   Receipt,
   ScanLine,
-  Sparkles,
+  FileText,
   ShieldCheck,
   GitBranch,
   CheckCircle2,
@@ -19,7 +19,7 @@ import {
 const STEPS = [
   { key: "upload", label: "Receipt uploaded", icon: Receipt },
   { key: "ocr", label: "OCR extracting", icon: ScanLine },
-  { key: "autofill", label: "AI autofill", icon: Sparkles },
+  { key: "autofill", label: "Autofill fields", icon: FileText },
   { key: "policy", label: "Policy validated", icon: ShieldCheck },
   { key: "approval", label: "Approval routed", icon: GitBranch },
   { key: "payout", label: "Payout completed", icon: CheckCircle2 },

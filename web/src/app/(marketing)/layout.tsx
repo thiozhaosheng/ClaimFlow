@@ -8,7 +8,7 @@ import { LenisProvider } from "@/features/marketing/lenis-provider";
  */
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="dark relative min-h-screen overflow-x-clip bg-zinc-950 text-white antialiased">
+    <div className="relative min-h-screen overflow-x-clip bg-canvas text-fg antialiased transition-colors duration-300">
       <LenisProvider>{children}</LenisProvider>
     </div>
   );

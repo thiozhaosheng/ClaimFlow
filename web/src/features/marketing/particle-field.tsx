@@ -31,7 +31,7 @@ export function ParticleField({ className }: { className?: string }) {
       canvas.width = w * dpr;
       canvas.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = Math.min(90, Math.floor((w * h) / 16000));
+      const count = Math.min(30, Math.floor((w * h) / 45000));
       particles = Array.from({ length: count }, () => ({
         x: Math.random() * w,
         y: Math.random() * h,
@@ -77,8 +77,9 @@ export function ParticleField({ className }: { className?: string }) {
           const b = particles[j];
           const dx = a.x - b.x;
           const dy = a.y - b.y;
-          const d = Math.hypot(dx, dy);
-          if (d < 120) {
+          const dist2 = dx * dx + dy * dy;
+          if (dist2 < 14400) { // 120 * 120
+            const d = Math.sqrt(dist2);
             ctx.strokeStyle = `rgba(129,140,248,${0.14 * (1 - d / 120)})`;
             ctx.lineWidth = 1;
             ctx.beginPath();

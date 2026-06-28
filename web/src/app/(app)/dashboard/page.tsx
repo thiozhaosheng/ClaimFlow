@@ -1,15 +1,12 @@
-import { PageHeader } from "@/components/ui/page-header";
+"use client";
+
+import { useEffect } from "react";
 import { DashboardOverview } from "@/features/dashboard/overview";
 
 export default function DashboardPage() {
-  return (
-    <>
-      <PageHeader
-        eyebrow="Overview"
-        title="Good afternoon, Sarah"
-        subtitle="Here’s where your reimbursements stand today."
-      />
-      <DashboardOverview />
-    </>
-  );
+  useEffect(() => {
+    document.title = "Dashboard | ClaimFlow";
+  }, []);
+
+  return <DashboardOverview />;
 }

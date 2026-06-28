@@ -1,39 +1,52 @@
 "use client";
-
 import { useEffect, type ReactNode } from "react";
 import Lenis from "lenis";
 
-/**
- * Lenis smooth scrolling for the marketing experience. Disabled automatically
- * when the user prefers reduced motion (native scroll then).
- */
 export function LenisProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
+    // Crucial: remove h-full classes that lock scroll viewport height to exactly screen size
+    document.documentElement.classList.remove("h-full");
+    document.body.classList.remove("h-full");
+    document.documentElement.style.height = "auto";
+    document.body.style.height = "auto";
+    document.body.style.overflow = "auto";
+
     if (
       window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-      "ontouchstart" in window // native momentum scroll on touch feels better
+      "ontouchstart" in window
     ) {
       return;
     }
 
-    const lenis = new Lenis({
-      duration: 1.1,
-      easing: (t) => 1 - Math.pow(1 - t, 3),
-      smoothWheel: true,
-    });
-
+    let lenis: Lenis | null = null;
     let raf = 0;
-    const loop = (time: number) => {
-      lenis.raf(time);
+
+    const timer = setTimeout(() => {
+      lenis = new Lenis({
+        duration: 0.8,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+      });
+
+      // Force initial resize check
+      lenis.resize();
+
+      const loop = (time: number) => {
+        lenis?.raf(time);
+        raf = requestAnimationFrame(loop);
+      };
       raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
+    }, 3000);
 
     return () => {
+      clearTimeout(timer);
       cancelAnimationFrame(raf);
-      lenis.destroy();
+      if (lenis) {
+        lenis.destroy();
+      }
     };
   }, []);
 
   return <>{children}</>;
 }
+

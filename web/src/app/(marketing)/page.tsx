@@ -1,7 +1,6 @@
 import { Nav } from "@/features/marketing/nav";
 import { Hero } from "@/features/marketing/hero";
 import {
-  TrustMarquee,
   HowItWorks,
   Features,
   Stats,
@@ -19,7 +18,6 @@ export default function HomePage() {
     <main className="relative">
       <Nav />
       <Hero />
-      <TrustMarquee />
       <HowItWorks />
       <Features />
       <Stats />

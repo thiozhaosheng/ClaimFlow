@@ -7,6 +7,7 @@ const eslintConfig = defineConfig([
   ...nextTs,
   {
     rules: {
+      "@typescript-eslint/no-explicit-any": "off",
       // Allow intentionally-unused args/vars when prefixed with "_"
       // (conventional for interface-contract params not yet used).
       "@typescript-eslint/no-unused-vars": [

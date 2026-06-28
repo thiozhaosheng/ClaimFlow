@@ -11,6 +11,8 @@
   --card: #ffffff;
   --surface: #f1f5f9;         /* slate-100 */
   --surface-strong: #e2e8f0;  /* slate-200 */
+  --bg-glass: rgba(255, 255, 255, 0.25);
+  --border-glass: rgba(0, 0, 0, 0.05);
 
   --fg: #18181b;              /* zinc-900 */
   --fg-secondary: #52525b;    /* zinc-600 */
@@ -46,6 +48,8 @@
   --card: #18181b;            /* zinc-900 */
   --surface: #27272a;         /* zinc-800 */
   --surface-strong: #3f3f46;  /* zinc-700 */
+  --bg-glass: rgba(9, 9, 11, 0.35);
+  --border-glass: rgba(255, 255, 255, 0.05);
 
   --fg: #fafafa;
   --fg-secondary: #a1a1aa;
@@ -65,7 +69,7 @@
   --success-fg: #6ee7b7;
 
   --warning: #fbbf24;
-  --warning-bg: rgb(245 158 11 / 0.14);
+  --warning-bg: rgb(245 158 11 / 0.12);
   --warning-fg: #fcd34d;
 
   --danger: #fb7185;
@@ -82,6 +86,8 @@
   --color-card: var(--card);
   --color-surface: var(--surface);
   --color-surface-strong: var(--surface-strong);
+  --color-bg-glass: var(--bg-glass);
+  --color-border-glass: var(--border-glass);
 
   --color-fg: var(--fg);
   --color-fg-secondary: var(--fg-secondary);
@@ -112,8 +118,34 @@
   --shadow-card: var(--shadow-card);
   --shadow-pop: var(--shadow-pop);
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --animate-float: float 8s ease-in-out infinite;
+  --animate-scan: scan 2.5s linear infinite;
+  --animate-scale-in: scale-in 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  --animate-fade-slide-up: fade-slide-up 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+  }
+
+  @keyframes scan {
+    0% { top: 0%; }
+    50% { top: 100%; }
+    100% { top: 0%; }
+  }
+
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes fade-slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 }
 
 * {
@@ -167,8 +199,54 @@ body {
     radial-gradient(40% 40% at 70% 40%, rgba(56, 189, 248, 0.45), transparent 70%),
     radial-gradient(40% 40% at 50% 70%, rgba(168, 85, 247, 0.45), transparent 70%);
   animation: aurora-drift 18s ease-in-out infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .aurora { animation: none; }
+}
+
+/* Glassmorphism & custom utility classes */
+.glass-effect {
+  background-color: var(--bg-glass);
+  backdrop-filter: blur(30px) saturate(210%);
+  -webkit-backdrop-filter: blur(30px) saturate(210%);
+  border: 1px solid var(--border-glass);
+}
+
+/* 3D Card Flip Utilities */
+.perspective-1000 {
+  perspective: 1000px;
+}
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+}
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+.ease-out-back {
+  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Tactile Shortcut Keycap & Border Feedback */
+@keyframes keycap-press {
+  0% { transform: scale(1) translateY(0); }
+  35% { transform: scale(0.82) translateY(1.5px); }
+  100% { transform: scale(1) translateY(0); }
+}
+.animate-keycap-press {
+  animation: keycap-press 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes border-pulse {
+  0% { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-ring); }
+  100% { }
+}
+.animate-border-pulse {
+  animation: border-pulse 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
