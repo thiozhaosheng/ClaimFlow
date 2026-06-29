@@ -87,16 +87,12 @@ export function Hero() {
     offset: ["start start", "end start"]
   });
 
-  const smoothScrollY = useSpring(scrollYProgress, {
-    stiffness: 90,
-    damping: 26,
-    restDelta: 0.001
-  });
-
-  const mockupScale = useTransform(smoothScrollY, [0, 0.5], [1, 0.92]);
-  const mockupRotateX = useTransform(smoothScrollY, [0, 0.5], [0, 6]);
-  const mockupYOffset = useTransform(smoothScrollY, [0, 0.5], [0, 40]);
-  const mockupOpacity = useTransform(smoothScrollY, [0, 0.5], [1, 0]);
+  // Scrub directly off native scroll (no spring) so the fold tracks the wheel
+  // 1:1 with zero added latency — crisper, and less main-thread work per frame.
+  const mockupScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.92]);
+  const mockupRotateX = useTransform(scrollYProgress, [0, 0.5], [0, 6]);
+  const mockupYOffset = useTransform(scrollYProgress, [0, 0.5], [0, 40]);
+  const mockupOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   const mouseXSpring = useSpring(x, { stiffness: 80, damping: 22 });
   const mouseYSpring = useSpring(y, { stiffness: 80, damping: 22 });
@@ -213,7 +209,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 18 }}
           animate={showHero ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
           transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-3 flex flex-row items-center justify-center gap-3.5 sm:gap-10 rounded-2xl border border-white/20 dark:border-white/10 bg-white/[0.08] dark:bg-white/[0.03] p-2 sm:p-3.5 px-4 sm:px-6 text-[10px] sm:text-xs shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_8px_32px_-4px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_-4px_rgba(0,0,0,0.3)] backdrop-blur-3xl saturate-210"
+          className="mt-3 flex flex-row items-center justify-center gap-3.5 sm:gap-10 rounded-2xl border border-white/20 dark:border-white/10 bg-white/[0.08] dark:bg-white/[0.03] p-2 sm:p-3.5 px-4 sm:px-6 text-[10px] sm:text-xs shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_8px_32px_-4px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_-4px_rgba(0,0,0,0.3)] backdrop-blur-xl backdrop-saturate-150"
         >
           <div className="text-center">
             <strong className="block sm:inline mr-0.5 text-xs sm:text-base font-bold text-fg">~12 min</strong>
@@ -422,7 +418,7 @@ export function Hero() {
 
                 {/* SVG Graph representing claims */}
                 <div className="bg-zinc-50/20 dark:bg-zinc-900/5 border border-zinc-100 dark:border-zinc-900 rounded-xl p-4 flex flex-col gap-2">
-                  <span className="text-xs font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-wider">Processed Volume (Last 7 Days)</span>
+                  <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Processed Volume (Last 7 Days)</span>
                   <div className="flex gap-4 items-end mt-2 h-14">
                     <div className="flex flex-col justify-between h-full text-[10px] text-zinc-400 dark:text-zinc-500 font-medium font-mono shrink-0">
                       <span>S$15k</span>
@@ -540,7 +536,7 @@ export function Hero() {
                 <span className="text-[10px] font-bold text-zinc-400 font-mono">app.claimflow.sg · interactive pipeline</span>
                 <button
                   onClick={() => setShowVideoModal(false)}
-                  className="text-xs font-bold text-zinc-450 hover:text-white transition-colors cursor-pointer"
+                  className="text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer"
                 >
                   Close ✕
                 </button>
@@ -695,7 +691,7 @@ export function SignInCard() {
   };
 
   return (
-    <div className="relative group w-full max-w-sm rounded-[2.5rem] p-0.5 bg-gradient-to-b from-white/20 via-white/5 to-white/0 dark:from-zinc-800/30 dark:via-zinc-900/10 dark:to-transparent shadow-2xl backdrop-blur-3xl saturate-210 overflow-hidden">
+    <div className="relative group w-full max-w-sm rounded-[2.5rem] p-0.5 bg-gradient-to-b from-white/20 via-white/5 to-white/0 dark:from-zinc-800/30 dark:via-zinc-900/10 dark:to-transparent shadow-2xl backdrop-blur-xl backdrop-saturate-150 overflow-hidden">
       {/* Decorative gradient corner glow */}
       <div className="absolute -top-12 -left-12 w-24 h-24 bg-indigo-500/15 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
       <div className="absolute -bottom-12 -right-12 w-24 h-24 bg-pink-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
@@ -910,7 +906,7 @@ export function SignInCard() {
                         {acc.role === "Approving Officer" ? "Approver" : acc.role === "Finance Admin" ? "Finance" : "Employee"}
                       </div>
                       {isCurrentLoading ? (
-                        <Loader2 className="h-3 w-3 text-indigo-550 animate-spin shrink-0" />
+                        <Loader2 className="h-3 w-3 text-indigo-500 animate-spin shrink-0" />
                       ) : (
                         <span className="text-[9px] font-bold text-fg-tertiary group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors uppercase tracking-wider">
                           Demo login →

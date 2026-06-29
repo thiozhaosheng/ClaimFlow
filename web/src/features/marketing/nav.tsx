@@ -34,7 +34,7 @@ export function Nav() {
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       className="fixed inset-x-0 top-0 z-50 px-4"
     >
-      <div className="mx-auto mt-4 flex max-w-5xl items-center justify-between gap-4 rounded-full border border-white/20 dark:border-white/10 bg-white/[0.08] dark:bg-black/[0.15] px-6 py-2 backdrop-blur-3xl saturate-210 shadow-[0_8px_32px_0_rgba(0,0,0,0.06),inset_0_1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.05)] transition-all duration-300">
+      <div className="mx-auto mt-4 flex max-w-5xl items-center justify-between gap-4 rounded-full border border-white/20 dark:border-white/10 bg-white/[0.08] dark:bg-black/[0.15] px-6 py-2 backdrop-blur-xl backdrop-saturate-150 shadow-[0_8px_32px_0_rgba(0,0,0,0.06),inset_0_1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.05)] transition-all duration-300">
         <Link href="/" className="flex items-center gap-2.5">
           <ClaimFlowLogo className="h-7 w-7" />
           <span className="text-sm font-bold tracking-tight text-fg transition-colors">

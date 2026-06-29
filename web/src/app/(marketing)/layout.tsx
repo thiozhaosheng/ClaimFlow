@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { LenisProvider } from "@/features/marketing/lenis-provider";
+import { ScrollProvider } from "@/features/marketing/scroll-provider";
 
 /**
  * Marketing shell — full-bleed, always-dark cinematic canvas, independent of
@@ -9,7 +9,7 @@ import { LenisProvider } from "@/features/marketing/lenis-provider";
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <div className="relative min-h-screen overflow-x-clip bg-canvas text-fg antialiased transition-colors duration-300">
-      <LenisProvider>{children}</LenisProvider>
+      <ScrollProvider>{children}</ScrollProvider>
     </div>
   );
 }

@@ -273,7 +273,7 @@ export function HowItWorks() {
                         <span>{item}</span>
                       </div>
                     ))}
-                    <div className="border-t border-dashed border-zinc-300 pt-2 mt-0.5 flex justify-between font-bold text-[11px] font-sans text-zinc-850">
+                    <div className="border-t border-dashed border-zinc-300 pt-2 mt-0.5 flex justify-between font-bold text-[11px] font-sans text-zinc-800">
                       <span>TOTAL</span>
                       <span>{RECEIPTS_DATA[activeReceipt].total}</span>
                     </div>
@@ -352,7 +352,7 @@ export function HowItWorks() {
                 {/* Score panel & toggles on the Left */}
                 <div className="flex flex-col gap-2.5 flex-1 mr-20 sm:mr-24 md:mr-20 lg:mr-28 xl:mr-32 relative z-20 overflow-visible text-left">
                   {/* Gauge */}
-                  <div className="bg-white dark:bg-zinc-950/90 border border-zinc-250 dark:border-zinc-850 p-3 rounded-xl flex items-center gap-3 shadow-2xl">
+                  <div className="bg-white dark:bg-zinc-950/90 border border-zinc-200 dark:border-zinc-800 p-3 rounded-xl flex items-center gap-3 shadow-2xl">
                     <div className="relative h-11 w-11 flex items-center justify-center">
                       <svg className="h-full w-full -rotate-90">
                         <circle cx="22" cy="22" r="18" className="stroke-zinc-200 dark:stroke-zinc-800 fill-none stroke-[3]" />
@@ -385,7 +385,7 @@ export function HowItWorks() {
                   </div>
 
                   {/* Switch list with interactive iOS Toggles */}
-                  <div className="bg-white dark:bg-zinc-950/80 border border-zinc-250 dark:border-zinc-850 p-3.5 rounded-xl flex flex-col gap-2.5 text-xs text-left shadow-2xl">
+                  <div className="bg-white dark:bg-zinc-950/80 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl flex flex-col gap-2.5 text-xs text-left shadow-2xl">
                     <button 
                       onClick={(e) => { e.stopPropagation(); setNoReceipt(!noReceipt); }}
                       className="flex items-center justify-between w-full group cursor-pointer text-left focus:outline-none"
@@ -641,7 +641,7 @@ export function HowItWorks() {
 
 export function Features() {
   return (
-    <section id="features" className="mx-auto max-w-5xl px-6 py-28 border-t border-border">
+    <section id="features" className="cv-auto mx-auto max-w-5xl px-6 py-28 border-t border-border">
       <Reveal>
         <p className="text-sm font-extrabold uppercase tracking-widest text-indigo-600 dark:text-indigo-300">
           Everything in the Loop
@@ -662,7 +662,7 @@ export function Features() {
         >
           {/* Scanning animation */}
           <div className="w-full min-h-[120px] py-4 bg-zinc-50/50 dark:bg-zinc-900/30 border border-zinc-200/50 dark:border-zinc-800 rounded-xl overflow-hidden relative flex items-center justify-center p-4">
-            <div className="w-full flex flex-col gap-2 font-mono text-[11px] text-zinc-450 dark:text-zinc-500 relative">
+            <div className="w-full flex flex-col gap-2 font-mono text-[11px] text-zinc-400 dark:text-zinc-500 relative">
               <div className="flex justify-between border-b border-dashed border-zinc-200 dark:border-zinc-800 pb-1.5 mb-1 text-fg font-bold">
                 <span>GrabTaxi SG Receipt</span>
                 <span>SGD 18.20</span>
@@ -688,7 +688,7 @@ export function Features() {
         >
           <div className="w-full min-h-[120px] py-4 bg-zinc-50/50 dark:bg-zinc-900/30 border border-zinc-200/50 dark:border-zinc-800 rounded-xl p-3.5 flex flex-col justify-center gap-2 text-xs text-left">
             <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-bold text-zinc-450 dark:text-zinc-500">Extracted Merchant</span>
+              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500">Extracted Merchant</span>
               <div className="h-8 px-3 border border-indigo-500/30 bg-indigo-500/5 rounded flex items-center font-semibold text-fg">
                 <motion.span
                   animate={{ opacity: [0.3, 1, 0.3] }}
@@ -759,7 +759,7 @@ export function Features() {
           <div className="w-full min-h-[120px] py-4 bg-zinc-50/50 dark:bg-zinc-900/30 border border-zinc-200/50 dark:border-zinc-800 rounded-xl p-4 flex flex-col justify-center gap-2 text-xs text-left">
             <div className="flex justify-between items-center">
               <span className="font-bold text-fg">PayNow disbursement</span>
-              <span className="text-emerald-550 dark:text-emerald-400 font-black text-sm">S$124.50</span>
+              <span className="text-emerald-500 dark:text-emerald-400 font-black text-sm">S$124.50</span>
             </div>
             <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden mt-1.5">
               <motion.div
@@ -780,18 +780,18 @@ export function Features() {
           desc="Immutable, exportable transaction logs tracking every approval and compliance validation."
         >
           <div className="w-full min-h-[120px] py-4 bg-zinc-50/50 dark:bg-zinc-900/30 border border-zinc-200/50 dark:border-zinc-800 rounded-xl p-3.5 flex flex-col justify-center gap-1.5 select-none text-xs text-left font-mono overflow-hidden">
-            <div className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 border-b border-zinc-200 dark:border-zinc-850 pb-1 mb-0.5 uppercase tracking-wider">Audit Event Ledger</div>
+            <div className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 border-b border-zinc-200 dark:border-zinc-800 pb-1 mb-0.5 uppercase tracking-wider">Audit Event Ledger</div>
             <div className="flex justify-between text-zinc-500 font-semibold">
               <span>GrabTaxi UEN Claim Submitted</span>
-              <span className="text-emerald-550 font-bold">[OK]</span>
+              <span className="text-emerald-500 font-bold">[OK]</span>
             </div>
             <div className="flex justify-between text-zinc-500 font-semibold">
               <span>IRAS Policy Rules Run</span>
-              <span className="text-emerald-550 font-bold">[PASS]</span>
+              <span className="text-emerald-500 font-bold">[PASS]</span>
             </div>
             <div className="flex justify-between text-zinc-500 font-semibold">
               <span>PayNow Disbursement Complete</span>
-              <span className="text-emerald-550 font-bold">[PAID]</span>
+              <span className="text-emerald-500 font-bold">[PAID]</span>
             </div>
           </div>
         </BentoCard>
@@ -916,8 +916,8 @@ const STATS = [
 
 export function Stats() {
   return (
-    <section id="proof" className="mx-auto max-w-5xl px-6 py-24">
-      <div className="grid grid-cols-1 gap-10 rounded-3xl border border-white/20 dark:border-white/10 bg-white/[0.08] dark:bg-black/[0.15] px-8 py-14 sm:grid-cols-3 backdrop-blur-3xl saturate-210 shadow-[0_16px_40px_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.05)]">
+    <section id="proof" className="cv-auto mx-auto max-w-5xl px-6 py-24">
+      <div className="grid grid-cols-1 gap-10 rounded-3xl border border-white/20 dark:border-white/10 bg-white/[0.08] dark:bg-black/[0.15] px-8 py-14 sm:grid-cols-3 backdrop-blur-xl backdrop-saturate-150 shadow-[0_16px_40px_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.05)]">
         {STATS.map((s, i) => (
           <Reveal key={s.label} i={i} className="text-center">
             <p className="bg-gradient-to-b from-fg to-fg/70 bg-clip-text text-transparent text-5xl font-semibold tracking-tight">
@@ -952,8 +952,8 @@ export function CTA() {
   const ctaBadgeY = useTransform(ctaYSpring, [0, 1], [-25, 25]);
 
   return (
-    <section className="relative mx-auto max-w-6xl px-6 pb-28">
-      <div className="relative overflow-hidden rounded-[2rem] border border-white/20 dark:border-white/10 px-8 py-12 md:py-16 md:px-12 bg-white/[0.08] dark:bg-black/[0.15] shadow-[0_24px_64px_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.05)] backdrop-blur-3xl saturate-210">
+    <section className="cv-auto relative mx-auto max-w-6xl px-6 pb-28">
+      <div className="relative overflow-hidden rounded-[2rem] border border-white/20 dark:border-white/10 px-8 py-12 md:py-16 md:px-12 bg-white/[0.08] dark:bg-black/[0.15] shadow-[0_24px_64px_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.05)] backdrop-blur-xl backdrop-saturate-150">
         <div
           aria-hidden
           className="absolute inset-0 -z-10 bg-[radial-gradient(80%_120%_at_70%_0%,rgba(99,102,241,0.08),transparent_70%)] dark:bg-[radial-gradient(80%_120%_at_70%_0%,rgba(99,102,241,0.18),transparent_70%)]"
@@ -1028,7 +1028,7 @@ export function CTA() {
                 <div className="text-left leading-normal">
                   <span className="block text-[8px] font-black uppercase tracking-wider text-pink-600 dark:text-pink-400">PayNow Corporate</span>
                   <span className="block text-[11px] font-bold text-fg mt-0.5">Disbursed S$1,420.50 to Dan Tan</span>
-                  <span className="block text-[8px] text-zinc-450 dark:text-zinc-500 mt-0.5">Ref: PN_280918023 · Reconciled</span>
+                  <span className="block text-[8px] text-zinc-400 dark:text-zinc-500 mt-0.5">Ref: PN_280918023 · Reconciled</span>
                 </div>
               </motion.div>
 
@@ -1100,7 +1100,7 @@ export function CTA() {
                   <span className="text-[10px] text-zinc-400 dark:text-zinc-500 block mt-0.5">Funds transferred instantly via PayNow Corporate</span>
 
                   {/* Transfer Details Card */}
-                  <div className="mt-4 w-full bg-zinc-50/50 dark:bg-zinc-900/20 border border-zinc-150 dark:border-zinc-900 p-4 rounded-xl flex flex-col gap-2 text-[10px] text-left">
+                  <div className="mt-4 w-full bg-zinc-50/50 dark:bg-zinc-900/20 border border-zinc-100 dark:border-zinc-900 p-4 rounded-xl flex flex-col gap-2 text-[10px] text-left">
                     <div className="flex justify-between text-zinc-500">
                       <span>Sender Bank:</span>
                       <strong className="text-fg font-semibold">ClaimFlow SME (DBS)</strong>
