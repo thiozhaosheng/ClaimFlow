@@ -35,7 +35,7 @@ export function RequirementsList({
             {isWarning ? (
               <AlertTriangle className="h-5 w-5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
             ) : isDone ? (
-              <Check className="h-5 w-5 text-emerald-500 dark:text-emerald-450 shrink-0 mt-0.5" />
+              <Check className="h-5 w-5 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" />
             ) : (
               <CircleDashed className="h-5 w-5 text-fg-tertiary shrink-0 mt-0.5" />
             )}

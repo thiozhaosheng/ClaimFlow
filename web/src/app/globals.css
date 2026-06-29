@@ -125,6 +125,8 @@
   --animate-scan: scan 2.5s linear infinite;
   --animate-scale-in: scale-in 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   --animate-fade-slide-up: fade-slide-up 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  --animate-bounce-in: bounce-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  --animate-slide-in-left: slide-in-left 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
@@ -145,6 +147,17 @@
   @keyframes fade-slide-up {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes bounce-in {
+    0% { opacity: 0; transform: translateY(14px) scale(0.94); }
+    60% { opacity: 1; transform: translateY(-2px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes slide-in-left {
+    from { opacity: 0; transform: translateX(-100%); }
+    to { opacity: 1; transform: translateX(0); }
   }
 }
 
@@ -208,12 +221,36 @@ body {
   .aurora { animation: none; }
 }
 
-/* Glassmorphism & custom utility classes */
-.glass-effect {
-  background-color: var(--bg-glass);
-  backdrop-filter: blur(30px) saturate(210%);
-  -webkit-backdrop-filter: blur(30px) saturate(210%);
-  border: 1px solid var(--border-glass);
+/* Skip rendering + paint for off-screen sections (and pause their infinite
+   animations) until they scroll near the viewport. `auto` intrinsic-size lets
+   the browser remember each section's real height after first render, so there
+   is no scrollbar jump on subsequent scrolls. */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 700px;
+}
+
+/* ==========================================================================
+   GLASS — two canonical translucent surfaces. Blur is the expensive part, so
+   it's tuned down from the old blur-3xl (64px) to keep scroll/repaint cheap
+   when many of these stack (sidebar + topbar + every card).
+   ========================================================================== */
+/* Blur authored via @apply so Tailwind emits the var(--tw-backdrop-*) form —
+   a literal `backdrop-filter` here gets pruned to webkit-only by Lightning CSS. */
+.glass-panel {
+  background-color: rgba(255, 255, 255, 0.06);
+  @apply backdrop-blur-xl backdrop-saturate-150;
+}
+.dark .glass-panel {
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
+.glass-control {
+  background-color: rgba(255, 255, 255, 0.2);
+  @apply backdrop-blur-md backdrop-saturate-150;
+}
+.dark .glass-control {
+  background-color: rgba(255, 255, 255, 0.04);
 }
 
 /* 3D Card Flip Utilities */

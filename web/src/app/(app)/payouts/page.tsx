@@ -64,7 +64,7 @@ export default function PayoutsPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full rounded-[2rem] border border-white/20 dark:border-white/10 bg-white/[0.08] dark:bg-black/[0.15] backdrop-blur-3xl saturate-210 shadow-[0_8px_32px_0_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.05)] p-8 text-center"
+          className="max-w-md w-full rounded-[2rem] border border-white/20 dark:border-white/10 glass-panel shadow-[0_8px_32px_0_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.05)] p-8 text-center"
         >
           <div className="h-12 w-12 rounded-full bg-pink-500/10 text-pink-600 dark:text-pink-400 flex items-center justify-center mx-auto mb-4 border border-pink-500/20">
             <ShieldAlert className="h-6 w-6" />
@@ -117,13 +117,13 @@ export default function PayoutsPage() {
             <p className="text-xs text-fg-tertiary mt-1">All endorsed claims have been settled.</p>
           </motion.div>
         ) : (
-          <div id="payouts-gateway-control" className="overflow-hidden rounded-2xl border border-border bg-card/45 dark:bg-card/25 backdrop-blur-3xl saturate-210 shadow-card">
-            <div className="flex items-center justify-between border-b border-border px-4 py-2.5 bg-white/30 dark:bg-black/10">
+          <div id="payouts-gateway-control" className="overflow-hidden rounded-2xl border border-border bg-card/45 dark:bg-card/25 backdrop-blur-xl saturate-180 shadow-card flex flex-col sm:h-[calc(100vh-275px)] h-auto min-h-[250px]">
+            <div className="flex items-center justify-between border-b border-border px-4 py-2.5 bg-white/30 dark:bg-black/10 shrink-0">
               <span className="text-[11px] font-bold uppercase tracking-wider text-fg-tertiary">
                 {endorsedClaims.length} ready for settlement
               </span>
             </div>
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-border overflow-y-auto flex-1">
               {endorsedClaims.map((c) => {
                 const isPayingThis = payingId === c.id;
                 return (
@@ -164,11 +164,11 @@ export default function PayoutsPage() {
                               <span>Connect Citibank clearing gateway</span>
                             </div>
                             <div className={cn("flex items-center gap-1.5 transition-colors", payStep >= 2 ? "text-indigo-600 dark:text-indigo-400 font-black" : "text-fg-tertiary")}>
-                              {payStep >= 2 ? <Check className="h-3.5 w-3.5 stroke-[3.5px] text-emerald-500 shrink-0" /> : payStep === 1 ? <Loader2 className="h-3 w-3 animate-spin shrink-0" /> : <span className="h-2 w-2 rounded-full bg-zinc-350 dark:bg-zinc-700 shrink-0" />}
+                              {payStep >= 2 ? <Check className="h-3.5 w-3.5 stroke-[3.5px] text-emerald-500 shrink-0" /> : payStep === 1 ? <Loader2 className="h-3 w-3 animate-spin shrink-0" /> : <span className="h-2 w-2 rounded-full bg-zinc-300 dark:bg-zinc-700 shrink-0" />}
                               <span>Cryptographic token signing</span>
                             </div>
                             <div className={cn("flex items-center gap-1.5 transition-colors", payStep >= 3 ? "text-emerald-600 dark:text-emerald-400 font-black" : "text-fg-tertiary")}>
-                              {payStep >= 3 ? <Check className="h-3.5 w-3.5 stroke-[3.5px] text-emerald-500 shrink-0" /> : payStep === 2 ? <Loader2 className="h-3 w-3 animate-spin shrink-0" /> : <span className="h-2 w-2 rounded-full bg-zinc-350 dark:bg-zinc-700 shrink-0" />}
+                              {payStep >= 3 ? <Check className="h-3.5 w-3.5 stroke-[3.5px] text-emerald-500 shrink-0" /> : payStep === 2 ? <Loader2 className="h-3 w-3 animate-spin shrink-0" /> : <span className="h-2 w-2 rounded-full bg-zinc-300 dark:bg-zinc-700 shrink-0" />}
                               <span>MAS central ledger settlement</span>
                             </div>
                           </div>

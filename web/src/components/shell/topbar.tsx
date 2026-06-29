@@ -18,10 +18,11 @@ export function Topbar() {
   const [isNewClaimTriggered, setIsNewClaimTriggered] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const mac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-      setTimeout(() => setIsMac(mac), 0);
-    }
+    // Defer out of the synchronous effect phase (client-only platform read).
+    const id = requestAnimationFrame(() =>
+      setIsMac(navigator.platform.toUpperCase().indexOf("MAC") >= 0)
+    );
+    return () => cancelAnimationFrame(id);
   }, []);
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export function Topbar() {
   }, []);
 
   return (
-    <header className="flex h-14 items-center gap-3 border-b border-white/20 dark:border-white/10 bg-white/[0.06] dark:bg-black/[0.1] px-4 backdrop-blur-3xl saturate-210 sm:px-6 shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.05)]">
+    <header className="glass-panel flex h-14 items-center gap-3 border-b border-white/20 dark:border-white/10 px-4 sm:px-6 shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.05)]">
       {/* Mobile Hamburger Navigation Menu & Brand */}
       <div className="flex items-center gap-2.5 lg:hidden shrink-0">
         <Dialog.Root open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -52,7 +53,7 @@ export function Topbar() {
           </Dialog.Trigger>
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 z-50 bg-black/25 dark:bg-black/45 backdrop-blur-sm transition-all duration-300" />
-            <Dialog.Content className="fixed inset-y-0 left-0 z-50 flex w-60 h-full flex-col bg-card shadow-2xl focus:outline-none transition-all duration-300 animate-in slide-in-from-left">
+            <Dialog.Content className="fixed inset-y-0 left-0 z-50 flex w-60 h-full flex-col bg-card shadow-2xl focus:outline-none animate-slide-in-left">
               <Sidebar onNavigate={() => setMobileMenuOpen(false)} />
             </Dialog.Content>
           </Dialog.Portal>
@@ -97,6 +98,16 @@ export function Topbar() {
           N
         </kbd>
       </Button>
+
+      {/* Compact New-claim affordance for mobile (no room for the full button) */}
+      <button
+        type="button"
+        aria-label="New claim"
+        onClick={() => window.dispatchEvent(new CustomEvent("open-new-claim-dialog"))}
+        className="grid sm:hidden h-9 w-9 place-items-center rounded-xl bg-accent text-accent-fg shadow-sm hover:bg-accent-hover hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer shrink-0"
+      >
+        <Plus className="h-4 w-4" />
+      </button>
 
       {/* Shortcuts Guide Button */}
       <Dialog.Root open={shortcutsGuideOpen} onOpenChange={setShortcutsGuideOpen}>

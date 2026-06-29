@@ -59,7 +59,7 @@ export default function AuditPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full rounded-[2rem] border border-white/20 dark:border-white/10 bg-white/[0.08] dark:bg-black/[0.15] backdrop-blur-3xl saturate-210 shadow-[0_8px_32px_0_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.05)] p-8 text-center"
+          className="max-w-md w-full rounded-[2rem] border border-white/20 dark:border-white/10 glass-panel shadow-[0_8px_32px_0_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.05)] p-8 text-center"
         >
           <div className="h-12 w-12 rounded-full bg-pink-500/10 text-pink-600 dark:text-pink-400 flex items-center justify-center mx-auto mb-4 border border-pink-500/20">
             <ShieldAlert className="h-6 w-6" />
@@ -98,7 +98,7 @@ export default function AuditPage() {
             No audit logs found.
           </div>
         ) : (
-          <div id="audit-blockchain-chain" className="overflow-hidden rounded-2xl border border-border bg-card/45 dark:bg-card/25 backdrop-blur-3xl saturate-210 shadow-card">
+          <div id="audit-blockchain-chain" className="overflow-hidden rounded-2xl border border-border bg-card/45 dark:bg-card/25 backdrop-blur-xl saturate-180 shadow-card">
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border px-4 py-3 bg-white/30 dark:bg-black/10">
               <span className="text-xs font-bold uppercase tracking-wider text-fg flex items-center gap-2">

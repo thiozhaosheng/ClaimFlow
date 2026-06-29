@@ -143,7 +143,7 @@ function LiveActivityIsland({ claim }: { claim: any }) {
       </div>
 
       {/* Dynamic Progress Slider with Carriage */}
-      <div className="relative w-full h-8 flex items-center select-none mb-4 bg-surface dark:bg-zinc-900/40 rounded-2xl border border-border dark:border-zinc-850/40 px-3">
+      <div className="relative w-full h-8 flex items-center select-none mb-4 bg-surface dark:bg-zinc-900/40 rounded-2xl border border-border dark:border-zinc-800/40 px-3">
         {/* Track Line */}
         <div className="absolute left-3 right-3 h-1.5 bg-border-strong dark:bg-zinc-800 rounded-full" />
         
@@ -176,7 +176,7 @@ function LiveActivityIsland({ claim }: { claim: any }) {
         <div
           className={cn(
             "absolute right-3 h-3 w-3 rounded-full border-2 transition-all duration-500",
-            status === "Paid" ? "bg-emerald-500 border-white scale-110" : "bg-border-strong dark:bg-zinc-850 border-border dark:border-zinc-800"
+            status === "Paid" ? "bg-emerald-500 border-white scale-110" : "bg-border-strong dark:bg-zinc-800 border-border dark:border-zinc-800"
           )}
         />
       </div>
@@ -527,13 +527,13 @@ export default function ClaimDetailPage({
               <span className="text-xs font-bold text-fg">MAS FAST Handshake Active...</span>
             </div>
             <div className="flex flex-col gap-1 text-xs font-semibold leading-relaxed">
-              <div className={cn("flex items-center gap-2", payStep >= 1 ? "text-emerald-600 dark:text-emerald-450 font-bold" : "text-fg-tertiary")}>
+              <div className={cn("flex items-center gap-2", payStep >= 1 ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-fg-tertiary")}>
                 {payStep >= 1 ? "✓" : "○"} Connecting to bank clearing gateway API...
               </div>
-              <div className={cn("flex items-center gap-2", payStep >= 2 ? "text-emerald-600 dark:text-emerald-450 font-bold" : "text-fg-tertiary")}>
+              <div className={cn("flex items-center gap-2", payStep >= 2 ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-fg-tertiary")}>
                 {payStep >= 2 ? "✓" : "○"} Cryptographically signing disbursement token...
               </div>
-              <div className={cn("flex items-center gap-2", payStep >= 3 ? "text-emerald-600 dark:text-emerald-450 font-bold" : "text-fg-tertiary")}>
+              <div className={cn("flex items-center gap-2", payStep >= 3 ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-fg-tertiary")}>
                 {payStep >= 3 ? "✓" : "○"} Transfer confirmed! Updating claims register...
               </div>
             </div>
@@ -573,7 +573,7 @@ export default function ClaimDetailPage({
       <Card className="border border-border/80 p-6 flex flex-col gap-6 bg-card h-full justify-between rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.16)] transition-all duration-300 select-none">
         <div className="flex flex-col gap-5">
           <div className="flex items-center gap-2 border-b border-border pb-3 shrink-0 w-full">
-            <AlertTriangle className="h-4.5 w-4.5 text-zinc-450 dark:text-zinc-550 shrink-0" />
+            <AlertTriangle className="h-4.5 w-4.5 text-zinc-400 dark:text-zinc-500 shrink-0" />
             <h4 className="text-xs font-bold uppercase tracking-wider text-fg-secondary">
               Compliance Review Required
             </h4>
@@ -605,10 +605,10 @@ export default function ClaimDetailPage({
                       <div className="flex items-center gap-1.5 mt-1.5">
                         <div className="flex items-center gap-1 bg-white/40 dark:bg-black/40 border border-black/5 dark:border-white/5 rounded px-1.5 py-0.5">
                           <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 font-mono line-through">S$28.00</span>
-                          <span className="text-[10px] text-zinc-400 dark:text-zinc-650 font-bold">→</span>
+                          <span className="text-[10px] text-zinc-400 dark:text-zinc-600 font-bold">→</span>
                           <span className="text-[10px] font-bold text-zinc-800 dark:text-zinc-200 font-mono">S$26.29</span>
                         </div>
-                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-450 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/15">Mismatch</span>
+                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/15">Mismatch</span>
                       </div>
                     )}
 
@@ -616,22 +616,22 @@ export default function ClaimDetailPage({
                       <div className="flex items-center gap-1.5 mt-1.5">
                         <div className="flex items-center gap-1 bg-white/40 dark:bg-black/40 border border-black/5 dark:border-white/5 rounded px-1.5 py-0.5">
                           <span className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300 font-mono">S${claim.amount.toFixed(2)}</span>
-                          <span className="text-[10px] text-zinc-400 dark:text-zinc-650 font-bold">&gt;</span>
+                          <span className="text-[10px] text-zinc-400 dark:text-zinc-600 font-bold">&gt;</span>
                           <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 font-mono">S${check.id === "ent-limit" ? "300.00" : "25.00"} limit</span>
                         </div>
-                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-450 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/15">Limit Exceeded</span>
+                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/15">Limit Exceeded</span>
                       </div>
                     )}
 
                     {check.id === "receipt" && (
                       <div className="flex items-center gap-1.5 mt-1.5">
-                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-450 bg-rose-500/10 border border-rose-500/15 px-2 py-0.5 rounded">Missing Doc</span>
+                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/15 px-2 py-0.5 rounded">Missing Doc</span>
                       </div>
                     )}
 
                     {check.id === "ent-company" && (
                       <div className="flex items-center gap-1.5 mt-1.5">
-                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-450 bg-rose-500/10 border border-rose-500/15 px-2 py-0.5 rounded">Missing Field</span>
+                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/15 px-2 py-0.5 rounded">Missing Field</span>
                       </div>
                     )}
 
@@ -680,12 +680,12 @@ export default function ClaimDetailPage({
                 value={editingGst}
                 onChange={(e) => setEditingGst(e.target.value)}
                 placeholder="GST (S$)"
-                className="w-20 bg-surface border border-border rounded-lg px-2 py-1 text-xs font-semibold font-mono text-fg focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-650"
+                className="w-20 bg-surface border border-border rounded-lg px-2 py-1 text-xs font-semibold font-mono text-fg focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600"
               />
               <button 
                 type="button"
                 onClick={() => setEditingGst("26.29")}
-                className="text-[10px] text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-850 rounded-lg px-2 py-1 font-bold hover:bg-zinc-100 dark:hover:bg-zinc-800 bg-surface active:scale-[0.97] transition-all cursor-pointer shrink-0"
+                className="text-[10px] text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2 py-1 font-bold hover:bg-zinc-100 dark:hover:bg-zinc-800 bg-surface active:scale-[0.97] transition-all cursor-pointer shrink-0"
               >
                 Autofill scanned S$26.29
               </button>
@@ -751,7 +751,7 @@ export default function ClaimDetailPage({
               {claim.status === "Paid" && (
                 <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 select-none">
                   <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                    <ShieldCheck className="h-4 w-4 text-zinc-400 dark:text-zinc-550 shrink-0" />
+                    <ShieldCheck className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0" />
                     Paid via Corporate FAST
                   </span>
                   <span className="text-[9px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 px-2 py-0.5 rounded-lg">
@@ -762,7 +762,7 @@ export default function ClaimDetailPage({
               {claim.status === "Rejected" && (
                 <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 select-none">
                   <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                    <X className="h-4 w-4 text-zinc-400 dark:text-zinc-550 shrink-0" />
+                    <X className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0" />
                     Claim Declined
                   </span>
                   <span className="text-[9px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 px-2 py-0.5 rounded-lg">
@@ -833,7 +833,7 @@ export default function ClaimDetailPage({
                claim.status === "Paid" ? "Payout Settled" :
                "Needs Correction"}
             </span>
-            <span className="text-emerald-600 dark:text-emerald-450 font-extrabold flex items-center gap-1">
+            <span className="text-emerald-600 dark:text-emerald-400 font-extrabold flex items-center gap-1">
               <ShieldCheck className="h-3.5 w-3.5" /> FAST Paynow Active
             </span>
           </div>
@@ -1048,7 +1048,7 @@ function UploadDrawer({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/20 dark:bg-black/40 backdrop-blur-md transition-all duration-300" />
-        <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-white/20 dark:border-white/10 bg-white/[0.08] dark:bg-black/[0.2] backdrop-blur-3xl saturate-210 shadow-[0_0_80px_rgba(0,0,0,0.1),inset_1px_0_0_0_rgba(255,255,255,0.3)] dark:shadow-[0_0_80px_rgba(0,0,0,0.5),inset_1px_0_0_0_rgba(255,255,255,0.05)] focus:outline-none transition-all duration-300">
+        <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-white/20 dark:border-white/10 glass-panel shadow-[0_0_80px_rgba(0,0,0,0.1),inset_1px_0_0_0_rgba(255,255,255,0.3)] dark:shadow-[0_0_80px_rgba(0,0,0,0.5),inset_1px_0_0_0_rgba(255,255,255,0.05)] focus:outline-none transition-all duration-300">
           <div className="flex h-14 items-center justify-between border-b border-border px-5">
             <Dialog.Title className="text-base font-semibold">
               Upload documents
@@ -1264,8 +1264,8 @@ function DigitizedReceipt({
                 className={cn(
                   "px-3 py-1 rounded-md text-[11px] font-bold transition-all duration-200 cursor-pointer",
                   viewMode === "scan" 
-                    ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-zinc-200/50 dark:border-zinc-850" 
-                    : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-350"
+                    ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-zinc-200/50 dark:border-zinc-800" 
+                    : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
                 )}
               >
                 Document Scan
@@ -1275,8 +1275,8 @@ function DigitizedReceipt({
                 className={cn(
                   "px-3 py-1 rounded-md text-[11px] font-bold transition-all duration-200 cursor-pointer",
                   viewMode === "ledger" 
-                    ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-zinc-200/50 dark:border-zinc-850" 
-                    : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-350"
+                    ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-zinc-200/50 dark:border-zinc-800" 
+                    : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
                 )}
               >
                 Digital Ledger
@@ -1284,8 +1284,8 @@ function DigitizedReceipt({
             </div>
           </div>
           <div className="text-right">
-            <span className="bg-zinc-50 dark:bg-zinc-900 text-zinc-650 dark:text-zinc-350 border border-zinc-200 dark:border-zinc-800 font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider inline-flex items-center gap-1">
-              <ShieldCheck className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-550" /> OCR Verified
+            <span className="bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider inline-flex items-center gap-1">
+              <ShieldCheck className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" /> OCR Verified
             </span>
             <p className="text-[10px] text-fg-secondary font-mono mt-1">Ref: #{claim.id.replace("CLM-", "")}-A8</p>
           </div>
@@ -1298,8 +1298,8 @@ function DigitizedReceipt({
 
             {/* Scrollable Receipt Area */}
             <div className="w-full flex-grow overflow-y-auto px-6 flex flex-col items-center [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-zinc-200 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-800 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
-              <div className="my-auto py-8 flex flex-col items-center w-full">
-                <div className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 shadow-[0_12px_36px_rgba(0,0,0,0.03)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.22)] rounded-2xl p-6 font-mono text-[11px] leading-relaxed text-zinc-800 dark:text-zinc-300 relative select-none">
+              <div className="flex flex-col items-center w-full min-h-full py-8">
+                <div className="w-full max-w-sm my-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-[0_12px_36px_rgba(0,0,0,0.03)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.22)] rounded-2xl p-6 font-mono text-[11px] leading-relaxed text-zinc-800 dark:text-zinc-300 relative select-none">
               
               {/* Header block with Logo */}
               <div className="flex flex-col items-center pb-3 border-b border-dashed border-zinc-200 dark:border-zinc-800 mb-3 text-center">
@@ -1318,7 +1318,7 @@ function DigitizedReceipt({
                   className={cn(
                     "px-3 py-1 rounded-xl border transition-all cursor-pointer inline-block",
                     hoveredCheckId === "receipt" || activeBoxId === "merchant"
-                      ? "bg-zinc-500/10 border-zinc-550/30 text-zinc-800 dark:text-zinc-200 shadow-sm scale-[1.02]"
+                      ? "bg-zinc-500/10 border-zinc-500/30 text-zinc-800 dark:text-zinc-200 shadow-sm scale-[1.02]"
                       : "bg-zinc-50 dark:bg-zinc-955 border-transparent hover:border-zinc-300 dark:hover:border-zinc-700"
                   )}
                   onMouseEnter={() => {
@@ -1340,7 +1340,7 @@ function DigitizedReceipt({
                   className={cn(
                     "px-2 py-0.5 rounded-lg border transition-all cursor-pointer mt-1 text-[9px] inline-block",
                     hoveredCheckId === "receipt" || activeBoxId === "date"
-                      ? "bg-zinc-500/10 border-zinc-550/30 text-zinc-800 dark:text-zinc-200 shadow-sm scale-[1.02]"
+                      ? "bg-zinc-500/10 border-zinc-500/30 text-zinc-800 dark:text-zinc-200 shadow-sm scale-[1.02]"
                       : "bg-transparent border-transparent hover:border-zinc-300 dark:hover:border-zinc-700"
                   )}
                   onMouseEnter={() => {
@@ -1359,9 +1359,9 @@ function DigitizedReceipt({
               {/* Items List */}
               <div className="space-y-1.5 pb-3 border-b border-dashed border-zinc-200 dark:border-zinc-800 mb-3">
                 {items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-zinc-650 dark:text-zinc-455">
+                  <div key={idx} className="flex justify-between items-center text-zinc-600 dark:text-zinc-455">
                     <span className="truncate max-w-[170px]">{item.desc}</span>
-                    <span className="font-semibold text-zinc-850 dark:text-zinc-350">{formatSGD(item.amount)}</span>
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-300">{formatSGD(item.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -1376,7 +1376,7 @@ function DigitizedReceipt({
                     className={cn(
                       "px-2 py-0.5 rounded-lg border transition-all cursor-pointer",
                       hoveredCheckId === "receipt" || activeBoxId === "subtotal"
-                        ? "bg-zinc-500/10 border-zinc-550/30 text-zinc-800 dark:text-zinc-200 shadow-sm scale-[1.02]"
+                        ? "bg-zinc-500/10 border-zinc-500/30 text-zinc-800 dark:text-zinc-200 shadow-sm scale-[1.02]"
                         : "bg-transparent border-transparent hover:border-zinc-300 dark:hover:border-zinc-700"
                     )}
                     onMouseEnter={() => {
@@ -1403,7 +1403,7 @@ function DigitizedReceipt({
                           ? "bg-amber-500/[0.08] border-amber-500/40 text-amber-700 dark:text-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.15)] scale-[1.02]"
                           : "bg-amber-500/5 border-amber-500/20 text-amber-600 dark:text-amber-400"
                         : hoveredCheckId === "gst" || activeBoxId === "gst"
-                          ? "bg-zinc-500/10 border-zinc-550/30 text-zinc-800 dark:text-zinc-200 shadow-sm scale-[1.02]"
+                          ? "bg-zinc-500/10 border-zinc-500/30 text-zinc-800 dark:text-zinc-200 shadow-sm scale-[1.02]"
                           : "bg-transparent border-transparent hover:border-zinc-300 dark:hover:border-zinc-700"
                     )}
                     onMouseEnter={() => {
@@ -1426,7 +1426,7 @@ function DigitizedReceipt({
                     className={cn(
                       "px-2 py-0.5 rounded-lg border transition-all cursor-pointer font-bold",
                       hoveredCheckId === "receipt" || activeBoxId === "total"
-                        ? "bg-zinc-500/10 border-zinc-550/30 text-zinc-800 dark:text-zinc-200 shadow-sm scale-[1.02]"
+                        ? "bg-zinc-500/10 border-zinc-500/30 text-zinc-800 dark:text-zinc-200 shadow-sm scale-[1.02]"
                         : "bg-transparent border-transparent hover:border-zinc-300 dark:hover:border-zinc-700"
                     )}
                     onMouseEnter={() => {
@@ -1504,7 +1504,7 @@ function DigitizedReceipt({
                       "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
                       isWarning 
                         ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-650 dark:text-zinc-350 border border-zinc-200 dark:border-zinc-800"
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800"
                     )}>
                       {isWarning ? "Mismatch Flagged" : activeBox.status}
                     </span>
@@ -1524,7 +1524,7 @@ function DigitizedReceipt({
         ) : (
           <div className="flex flex-col gap-4 flex-grow font-sans">
             {claim.id === "CLM-1041" && (
-              <div className="border-l border-amber-500 pl-3.5 py-2 text-xs text-amber-700 dark:text-amber-450 font-semibold shrink-0 bg-amber-500/[0.04] dark:bg-amber-500/[0.06] rounded-r-lg flex items-center gap-2">
+              <div className="border-l border-amber-500 pl-3.5 py-2 text-xs text-amber-700 dark:text-amber-400 font-semibold shrink-0 bg-amber-500/[0.04] dark:bg-amber-500/[0.06] rounded-r-lg flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
                 <span>Missing original ERP toll statement for validation.</span>
               </div>
@@ -1555,7 +1555,7 @@ function DigitizedReceipt({
                   <span className="font-mono">{gstStr}</span>
                 </div>
                 {claim.id === "CLM-1042" && claim.gstAmount !== 26.29 && (
-                  <div className="border-l border-amber-500 pl-3.5 py-1.5 text-xs text-amber-700 dark:text-amber-450 font-semibold text-left flex items-start gap-2 bg-amber-500/[0.04] dark:bg-amber-500/[0.06] rounded-r-lg">
+                  <div className="border-l border-amber-500 pl-3.5 py-1.5 text-xs text-amber-700 dark:text-amber-400 font-semibold text-left flex items-start gap-2 bg-amber-500/[0.04] dark:bg-amber-500/[0.06] rounded-r-lg">
                     <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0 mt-1.5" />
                     <span>GST Mismatch: Scanned receipt GST is S$26.29 (Form lists S${claim.gstAmount?.toFixed(2) || "28.00"})</span>
                   </div>

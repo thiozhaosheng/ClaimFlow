@@ -97,7 +97,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   }, []);
 
   return (
-    <aside className="flex h-full w-60 flex-col border-r border-white/20 dark:border-white/10 bg-white/[0.06] dark:bg-black/[0.15] backdrop-blur-3xl saturate-210 shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.4),0_0_40px_rgba(0,0,0,0.01)] dark:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.05),0_0_40px_rgba(0,0,0,0.12)]">
+    <aside className="glass-panel flex h-full w-60 flex-col border-r border-white/20 dark:border-white/10 shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.4),0_0_40px_rgba(0,0,0,0.01)] dark:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.05),0_0_40px_rgba(0,0,0,0.12)]">
       <div className="flex h-14 items-center gap-2.5 px-5">
         <ClaimFlowLogo className="h-7 w-7" />
         <span className="text-[15px] font-semibold tracking-tight">ClaimFlow</span>
@@ -140,6 +140,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                       : isAllowed
                       ? "text-fg-secondary hover:text-accent hover:translate-x-1 hover:scale-[1.02]"
                       : "text-fg-tertiary/65 hover:bg-white/10 dark:hover:bg-white/[0.02] hover:text-fg-secondary hover:translate-x-0.5",
+                    !isAllowed && "hover:blur-[2.5px]",
                     showHints && !isAllowed && "blur-[2.5px] opacity-15 scale-[0.97] pointer-events-none saturate-50",
                     triggeredRoute === href && "animate-border-pulse"
                   )}
@@ -156,7 +157,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   <span className="flex-1 truncate">{label}</span>
                   {showHints && (
                     <span className={cn(
-                      "text-[8px] font-mono bg-zinc-150 dark:bg-zinc-800 text-fg-secondary px-1 py-0.5 rounded border border-border/80 uppercase font-black tracking-widest shrink-0 animate-scale-in mr-1",
+                      "text-[8px] font-mono bg-zinc-100 dark:bg-zinc-800 text-fg-secondary px-1 py-0.5 rounded border border-border/80 uppercase font-black tracking-widest shrink-0 animate-scale-in mr-1",
                       triggeredRoute === href && "animate-keycap-press"
                     )}>
                       {href === "/dashboard" ? "G-D" : href === "/claims" ? "G-C" : href === "/approvals" ? "G-A" : href === "/payouts" ? "G-P" : href === "/reports" ? "G-R" : "G-L"}
@@ -173,7 +174,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
         {/* Compliance Cheat Sheet */}
         {user?.role === "Employee" && (
-          <div className="mt-5 mx-1 bg-zinc-50 dark:bg-black/20 border border-zinc-150 dark:border-zinc-800/80 rounded-xl p-2.5 select-none text-left">
+          <div className="mt-5 mx-1 bg-zinc-50 dark:bg-black/20 border border-zinc-100 dark:border-zinc-800/80 rounded-xl p-2.5 select-none text-left">
             <span className="text-[8px] font-black uppercase tracking-wider text-fg-tertiary flex items-center gap-1 border-b border-border pb-1.5 mb-2">
               <ShieldCheck className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500 shrink-0" />
               Compliance Cheat-Sheet
@@ -219,15 +220,15 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   "relative flex items-center gap-2.5 w-full rounded-xl px-2.5 py-1.5 border text-left transition-all duration-300 ease-out active:scale-[0.98] cursor-pointer shadow-sm z-10",
                   isActive
                     ? r === "Employee"
-                      ? "bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/20 dark:border-indigo-500/30 text-indigo-650 dark:text-indigo-400 font-semibold hover:scale-[1.01]"
+                      ? "bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/20 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 font-semibold hover:scale-[1.01]"
                       : r === "Approving Officer"
-                      ? "bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 dark:border-amber-500/30 text-amber-650 dark:text-amber-400 font-semibold hover:scale-[1.01]"
-                      : "bg-pink-500/10 dark:bg-pink-500/15 border-pink-500/20 dark:border-pink-500/30 text-pink-650 dark:text-pink-400 font-semibold hover:scale-[1.01]"
+                      ? "bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold hover:scale-[1.01]"
+                      : "bg-pink-500/10 dark:bg-pink-500/15 border-pink-500/20 dark:border-pink-500/30 text-pink-600 dark:text-pink-400 font-semibold hover:scale-[1.01]"
                     : r === "Employee"
-                    ? "bg-transparent border-transparent text-fg-secondary hover:text-indigo-650 dark:hover:text-indigo-400 hover:translate-x-0.5 hover:scale-[1.02]"
+                    ? "bg-transparent border-transparent text-fg-secondary hover:text-indigo-600 dark:hover:text-indigo-400 hover:translate-x-0.5 hover:scale-[1.02]"
                     : r === "Approving Officer"
-                    ? "bg-transparent border-transparent text-fg-secondary hover:text-amber-650 dark:hover:text-amber-400 hover:translate-x-0.5 hover:scale-[1.02]"
-                    : "bg-transparent border-transparent text-fg-secondary hover:text-pink-650 dark:hover:text-pink-400 hover:translate-x-0.5 hover:scale-[1.02]",
+                    ? "bg-transparent border-transparent text-fg-secondary hover:text-amber-600 dark:hover:text-amber-400 hover:translate-x-0.5 hover:scale-[1.02]"
+                    : "bg-transparent border-transparent text-fg-secondary hover:text-pink-600 dark:hover:text-pink-400 hover:translate-x-0.5 hover:scale-[1.02]",
                   triggeredRole === r && "animate-border-pulse"
                 )}
               >
@@ -259,7 +260,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 </div>
                 {showHints ? (
                   <span className={cn(
-                    "ml-auto text-[9px] font-mono bg-zinc-150 dark:bg-zinc-800 text-fg-secondary px-1 py-0.5 rounded border border-border/80 font-black shrink-0 animate-scale-in",
+                    "ml-auto text-[9px] font-mono bg-zinc-100 dark:bg-zinc-800 text-fg-secondary px-1 py-0.5 rounded border border-border/80 font-black shrink-0 animate-scale-in",
                     triggeredRole === r && "animate-keycap-press"
                   )}>
                     {r === "Employee" ? "1" : r === "Approving Officer" ? "2" : "3"}
@@ -337,7 +338,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <Dialog.Root open={switchTarget !== null} onOpenChange={(open) => !open && setSwitchTarget(null)}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/25 dark:bg-black/45 backdrop-blur-sm transition-all duration-300" />
-          <Dialog.Content className="fixed inset-0 z-50 m-auto flex h-fit max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-[2rem] border border-white/20 dark:border-white/10 bg-white/95 dark:bg-zinc-950/95 p-6 backdrop-blur-3xl saturate-210 shadow-2xl focus:outline-none transition-all duration-300">
+          <Dialog.Content className="fixed inset-0 z-50 m-auto flex h-fit max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-[2rem] border border-white/20 dark:border-white/10 bg-white/95 dark:bg-zinc-950/95 p-6 backdrop-blur-xl saturate-180 shadow-2xl focus:outline-none transition-all duration-300">
             <div className="flex flex-col items-center text-center">
               <div className="h-11 w-11 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3.5 border border-amber-500/20">
                 <ShieldAlert className="h-5.5 w-5.5" />

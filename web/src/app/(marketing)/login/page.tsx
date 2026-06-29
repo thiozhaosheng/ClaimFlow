@@ -329,7 +329,7 @@ export default function LoginPage() {
               {/* Header */}
               <div className="flex flex-col items-center mb-5 text-center select-none">
                 <div className="h-10 w-10 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/25 flex items-center justify-center shadow-inner mb-3 border border-indigo-500/20">
-                  <ClaimFlowLogo className="h-6 w-6 text-indigo-650 dark:text-indigo-400" />
+                  <ClaimFlowLogo className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <h2 className="text-xl font-black tracking-tight text-fg">
                   {forgotMode ? "Reset Password" : "Sign In to ClaimFlow"}
@@ -553,7 +553,7 @@ export default function LoginPage() {
                               {isCurrent && (
                                 <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-550" />
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
                                 </span>
                               )}
                             </div>

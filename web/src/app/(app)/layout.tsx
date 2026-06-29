@@ -37,14 +37,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { user, loading } = useSession();
   const [claimDialogOpen, setClaimDialogOpen] = useState(false);
-  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-
-  // Re-show onboarding tooltip whenever they switch pages or roles
-  useEffect(() => {
-    setTimeout(() => {
-      setOnboardingDismissed(false);
-    }, 0);
-  }, [pathname, user?.role]);
+  // Track which page/role the tooltip was dismissed for, so it re-shows on
+  // navigation without a setState-in-effect. Derived, not synced.
+  const [dismissedKey, setDismissedKey] = useState<string | null>(null);
 
   useEffect(() => {
     const handleOpenClaim = () => setClaimDialogOpen(true);
@@ -73,6 +68,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const activeRole = user?.role || "Employee";
   const normalizedPath = pathname === "/" ? "/dashboard" : pathname;
   const onboardingTip = ONBOARDING_TIPS[activeRole]?.[normalizedPath];
+  const onboardingKey = `${activeRole}::${normalizedPath}`;
+  const onboardingDismissed = dismissedKey === onboardingKey;
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -81,8 +78,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
-        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        <main className="flex-1 overflow-y-auto lg:overflow-hidden px-4 py-4 sm:px-6 lg:px-8 flex flex-col min-h-0">
+          <div className="mx-auto w-full max-w-6xl flex-1 flex flex-col min-h-0">{children}</div>
         </main>
       </div>
 
@@ -106,9 +103,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <span className="text-[9px] font-black uppercase tracking-widest text-accent">
                 {activeRole} Guide
               </span>
-              <button 
-                type="button" 
-                onClick={() => setOnboardingDismissed(true)}
+              <button
+                type="button"
+                onClick={() => setDismissedKey(onboardingKey)}
                 className="text-fg-tertiary hover:text-fg p-0.5 rounded transition-colors cursor-pointer"
               >
                 <X className="h-3 w-3" />

@@ -37,7 +37,7 @@ export default function ApprovalsPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full rounded-[2rem] border border-white/20 dark:border-white/10 bg-white/[0.08] dark:bg-black/[0.15] backdrop-blur-3xl saturate-210 shadow-[0_8px_32px_0_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.05)] p-8 text-center"
+          className="max-w-md w-full rounded-[2rem] border border-white/20 dark:border-white/10 glass-panel shadow-[0_8px_32px_0_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.05)] p-8 text-center"
         >
           <div className="h-12 w-12 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-4 border border-amber-500/20">
             <ShieldAlert className="h-6 w-6" />
@@ -90,13 +90,13 @@ export default function ApprovalsPage() {
             <p className="text-xs text-fg-tertiary mt-1">No claims require approval at the moment.</p>
           </motion.div>
         ) : (
-          <div id="approvals-pending-table" className="overflow-hidden rounded-2xl border border-border bg-card/45 dark:bg-card/25 backdrop-blur-3xl saturate-210 shadow-card">
-            <div className="flex items-center justify-between border-b border-border px-4 py-2.5 bg-white/30 dark:bg-black/10">
+          <div id="approvals-pending-table" className="overflow-hidden rounded-2xl border border-border bg-card/45 dark:bg-card/25 backdrop-blur-xl saturate-180 shadow-card flex flex-col sm:h-[calc(100vh-275px)] h-auto min-h-[250px]">
+            <div className="flex items-center justify-between border-b border-border px-4 py-2.5 bg-white/30 dark:bg-black/10 shrink-0">
               <span className="text-[11px] font-bold uppercase tracking-wider text-fg-tertiary">
                 {pendingClaims.length} pending review
               </span>
             </div>
-            <ul className="divide-y divide-border overflow-hidden">
+            <ul className="divide-y divide-border overflow-y-auto flex-1">
               <AnimatePresence initial={false}>
                 {pendingClaims.map((c) => {
                   const policyResult = evaluatePolicies(
@@ -128,13 +128,14 @@ export default function ApprovalsPage() {
                         <CategoryIcon category={c.type} className="h-10 w-10 shrink-0 mt-0.5" />
                         <div className="min-w-0 leading-tight">
                           <div className="text-sm font-bold text-fg group-hover:text-accent transition-colors flex flex-wrap items-center gap-2">
-                            {c.flagged && <AlertTriangle className="h-4 w-4 text-rose-500 dark:text-rose-450 animate-pulse shrink-0" />}
+                            {c.flagged && <AlertTriangle className="h-4 w-4 text-rose-500 dark:text-rose-400 animate-pulse shrink-0" />}
                             <span>{c.title}</span>
                             <span className="text-[10px] font-bold font-mono text-fg-tertiary bg-surface px-1.5 py-0.5 rounded border border-border">
                               {c.id}
                             </span>
                             {c.flagged && (
                               <span className="shrink-0 inline-flex items-center gap-1 rounded bg-rose-500/10 dark:bg-rose-500/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                                <AlertTriangle className="h-3 w-3 text-rose-500 dark:text-rose-400 animate-pulse shrink-0" />
                                 Flagged
                               </span>
                             )}
@@ -192,7 +193,9 @@ export default function ApprovalsPage() {
                             <button
                               className="grid h-8 w-8 place-items-center rounded-lg hover:bg-surface text-fg-secondary cursor-pointer"
                               onClick={() => {
-                                rejectingId === c.id && setRejectingId(null);
+                                if (rejectingId === c.id) {
+                                  setRejectingId(null);
+                                }
                                 setReason("");
                               }}
                             >
