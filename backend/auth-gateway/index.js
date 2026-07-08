@@ -3,6 +3,7 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const multer = require("multer");
 const rateLimit = require("express-rate-limit");
 const authService = require("./src/authService");
 const logUtil = require("./src/logUtil");
@@ -70,6 +71,49 @@ app.patch("/api/users/update-password", authLimiter, authService.updatePassword)
 app.get("/api/claims", apiLimiter, authService.getAllClaims);
 app.post("/api/claims", apiLimiter, authService.createClaim);
 app.patch("/api/workflow/review/:id", apiLimiter, authService.reviewClaim);
+app.get("/api/claims/:id/receipt", apiLimiter, authService.getReceiptViewUrl);
+
+// Receipt OCR upload — same size/type limits as the Base Service so bad
+// uploads are rejected here instead of wasting a round trip.
+const receiptUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10 MB
+    files: 1,
+  },
+  fileFilter: (_req, file, cb) => {
+    if (
+      /^image\/(jpe?g|png|webp|heic|heif)$/.test(file.mimetype) ||
+      file.mimetype === "application/pdf"
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only JPEG, PNG, WEBP, HEIC, or PDF receipts are accepted"));
+    }
+  },
+});
+
+const handleMulterError = (err, _req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    const message =
+      err.code === "LIMIT_FILE_SIZE"
+        ? "Receipt must be 10 MB or smaller"
+        : "Invalid receipt upload";
+    return res.status(400).json({ status: "error", message });
+  }
+  if (err instanceof Error) {
+    return res.status(400).json({ status: "error", message: err.message });
+  }
+  next(err);
+};
+
+app.post(
+  "/api/claims/parse-receipt",
+  apiLimiter,
+  receiptUpload.single("receipt"),
+  handleMulterError,
+  authService.parseReceipt,
+);
 
 app.use((req, res) => {
   res.status(404).json({ status: "error", message: "Endpoint not found" });

@@ -37,6 +37,12 @@ import { evaluateClaim } from '../services/policyEngine';
 
 const CLM = (id: number) => `CLM-${String(id).padStart(3, '0')}`;
 
+const parsePositiveIntegerParam = (value: string): number | null => {
+  if (!/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
 const formatSGD = (amount: number) =>
   `S$${amount.toLocaleString('en-SG', {
     minimumFractionDigits: 2,
@@ -281,7 +287,10 @@ export const getMyClaims = async (req: Request, res: Response) => {
 
 export const getClaimById = async (req: Request, res: Response) => {
   try {
-    const claim = await claimModel.findById(Number(req.params.id));
+    const claimId = parsePositiveIntegerParam(req.params.id);
+    if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
+
+    const claim = await claimModel.findById(claimId);
 
     if (!claim) {
       return res.status(404).json({ message: 'Claim not found' });
@@ -299,7 +308,10 @@ export const getClaimById = async (req: Request, res: Response) => {
 
 export const editClaim = async (req: Request, res: Response) => {
   try {
-    const claim = await claimModel.findById(Number(req.params.id));
+    const claimId = parsePositiveIntegerParam(req.params.id);
+    if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
+
+    const claim = await claimModel.findById(claimId);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
     if (claim.userId !== req.user!.id) {
       return res.status(403).json({ message: 'Only the submitter can edit this claim' });
@@ -314,7 +326,7 @@ export const editClaim = async (req: Request, res: Response) => {
     }
     if (updates.expenseDate) updates.expenseDate = new Date(updates.expenseDate);
 
-    const updated = await claimModel.updateClaim(Number(req.params.id), updates);
+    const updated = await claimModel.updateClaim(claimId, updates);
     res.status(200).json({ status: 'success', data: { claim: updated } });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: error.message });
@@ -323,7 +335,10 @@ export const editClaim = async (req: Request, res: Response) => {
 
 export const withdrawClaim = async (req: Request, res: Response) => {
   try {
-    const claim = await claimModel.findById(Number(req.params.id));
+    const claimId = parsePositiveIntegerParam(req.params.id);
+    if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
+
+    const claim = await claimModel.findById(claimId);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
     if (claim.userId !== req.user!.id) {
       return res.status(403).json({ message: 'Only the submitter can withdraw this claim' });
@@ -331,7 +346,7 @@ export const withdrawClaim = async (req: Request, res: Response) => {
     if (claim.status !== ClaimStatus.Pending) {
       return res.status(422).json({ message: 'Only pending claims can be withdrawn' });
     }
-    const updated = await claimModel.updateClaim(Number(req.params.id), {
+    const updated = await claimModel.updateClaim(claimId, {
       withdrawn: true,
       withdrawnAt: new Date(),
     });
@@ -383,7 +398,10 @@ export const parseReceiptUpload = async (req: Request, res: Response) => {
 
 export const getReceiptViewUrl = async (req: Request, res: Response) => {
   try {
-    const claim = await claimModel.findById(Number(req.params.id));
+    const claimId = parsePositiveIntegerParam(req.params.id);
+    if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
+
+    const claim = await claimModel.findById(claimId);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
 
     if (req.user!.role === Role.Employee && claim.userId !== req.user!.id) {
@@ -404,6 +422,65 @@ export const getAllClaims = async (req: Request, res: Response) => {
   try {
     const claims = await claimModel.getAllClaims();
     res.status(200).json({ status: 'success', results: claims.length, data: { claims } });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const getClaimActivity = async (req: Request, res: Response) => {
+  try {
+    const claimId = parsePositiveIntegerParam(req.params.id);
+    if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
+
+    const claim = await claimModel.findById(claimId);
+    if (!claim) {
+      return res.status(404).json({ message: 'Claim not found' });
+    }
+
+    if (req.user!.role === Role.Employee && claim.userId !== req.user!.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const logs = await auditModel.getAuditLogsByClaim(claimId);
+    res.status(200).json({ status: 'success', data: { logs } });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const addComment = async (req: Request, res: Response) => {
+  try {
+    const claimId = parsePositiveIntegerParam(req.params.id);
+    if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
+
+    const { commentText } = req.body;
+    const normalizedComment =
+      typeof commentText === 'string' ? commentText.trim() : '';
+    if (normalizedComment.length === 0 || normalizedComment.length > 2000) {
+      return res.status(400).json({
+        message: 'Comment text must be between 1 and 2000 characters',
+      });
+    }
+
+    const claim = await claimModel.findById(claimId);
+    if (!claim) {
+      return res.status(404).json({ message: 'Claim not found' });
+    }
+
+    if (req.user!.role === Role.Employee && claim.userId !== req.user!.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const log = await auditModel.createAuditLog({
+      claimId,
+      action: 'COMMENT',
+      performedBy: req.user!.id,
+      oldStatus: claim.status,
+      newStatus: claim.status,
+      remarks: normalizedComment,
+    });
+
+    res.status(201).json({ status: 'success', data: { log } });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: error.message });
   }

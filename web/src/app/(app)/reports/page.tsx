@@ -4,7 +4,10 @@ import { useMemo, useState, useEffect, useId } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { useSession } from "@/lib/session-context";
+import { useClaims } from "@/features/claims/api/queries";
 import { formatSGD } from "@/core/domain/money";
+import { formatDate } from "@/core/domain/dates";
+import { TREASURY_LIMIT, DEPARTMENT_BUDGET } from "@/core/domain/budgets";
 import { cn } from "@/lib/cn";
 import { getEmployeeAvatar } from "@/core/domain/avatars";
 import { motion, AnimatePresence } from "motion/react";
@@ -28,7 +31,8 @@ import {
   Cpu,
   Users,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  Wallet
 } from "lucide-react";
 
 // ==========================================================================
@@ -89,7 +93,7 @@ function GaugeChart({ value, label }: { value: number; label: string }) {
   const strokeDashoffset = circumference - (value / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center justify-center p-3">
+    <div className="flex flex-col items-center justify-center p-3 text-center">
       <div className="relative w-24 h-24">
         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
           <circle
@@ -115,13 +119,13 @@ function GaugeChart({ value, label }: { value: number; label: string }) {
             strokeLinecap="round"
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
-          <span className="text-xl font-black text-fg">{value}%</span>
-          <span className="text-[7.5px] font-bold text-fg-secondary uppercase tracking-widest mt-1 text-center max-w-[65px]">
-            {label}
-          </span>
+        <div className="absolute inset-0 flex items-center justify-center leading-none">
+          <span className="text-xl font-black text-fg tracking-tight">{value}%</span>
         </div>
       </div>
+      <span className="text-[9px] font-extrabold text-fg-secondary uppercase tracking-wider mt-2.5 block max-w-[120px] leading-tight">
+        {label}
+      </span>
     </div>
   );
 }
@@ -138,19 +142,17 @@ interface DonutCategory {
   color: string;
 }
 
-function InteractiveDonutChart({ onSelectCategory, selectedCategory }: { onSelectCategory: (cat: string | null) => void; selectedCategory: string | null }) {
-  const categories: DonutCategory[] = [
+function InteractiveDonutChart({ onSelectCategory, selectedCategory, categories: catsProp, total: totalProp }: { onSelectCategory: (cat: string | null) => void; selectedCategory: string | null; categories?: DonutCategory[]; total?: number }) {
+  const categories: DonutCategory[] = catsProp && catsProp.length ? catsProp : [
     { key: "Client Entertainment", label: "Client Entertainment", amount: 346.90, pct: 83.5, color: "#4f46e5" },
     { key: "Transport", label: "Transport", amount: 23.10, pct: 5.6, color: "#fbbf24" },
     { key: "Office Supplies", label: "Office Supplies", amount: 45.50, pct: 10.9, color: "#ec4899" },
   ];
 
-  const total = 415.50;
+  const total = totalProp ?? 415.50;
   const radius = 38;
   const strokeWidth = 8;
   const circumference = 2 * Math.PI * radius; // ~238.76
-
-  let accumulatedPercent = 0;
 
   return (
     <div className="flex flex-col md:flex-row items-center gap-8 py-4">
@@ -159,8 +161,8 @@ function InteractiveDonutChart({ onSelectCategory, selectedCategory }: { onSelec
           <circle cx="50" cy="50" r={radius} fill="none" stroke="var(--border-strong)" strokeWidth={strokeWidth} className="opacity-20" />
           {categories.map((cat, idx) => {
             const offset = circumference - (cat.pct / 100) * circumference;
-            const rotation = (accumulatedPercent / 100) * 360;
-            accumulatedPercent += cat.pct;
+            // Cumulative rotation from preceding slices — no render-time mutation.
+            const rotation = (categories.slice(0, idx).reduce((s, c) => s + c.pct, 0) / 100) * 360;
 
             const isHovered = selectedCategory === cat.key;
 
@@ -221,6 +223,11 @@ function InteractiveDonutChart({ onSelectCategory, selectedCategory }: { onSelec
             </div>
           );
         })}
+        {/* Narrative Footer */}
+        <div className="w-full text-[10px] text-fg-tertiary font-semibold flex items-center gap-1.5 mt-3 bg-zinc-500/[0.03] dark:bg-black/[0.12] p-2.5 rounded-xl border border-border/40 dark:border-white/5 select-none text-left">
+          <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
+          <span>{categories.length ? `Insight: ${categories[0].label} is ${categories[0].pct}% of total spend.` : "Insight: No spend recorded yet."}</span>
+        </div>
       </div>
     </div>
   );
@@ -437,6 +444,11 @@ function InteractiveAreaChart({
           <span className="text-fg text-xs">S${hoveredPoint.val.toFixed(2)}</span>
         </div>
       )}
+      {/* Narrative Footer */}
+      <div className="w-full text-[10px] text-fg-tertiary font-semibold flex items-center gap-1.5 mt-3 bg-zinc-500/[0.03] dark:bg-black/[0.12] p-2.5 rounded-xl border border-border/40 dark:border-white/5 select-none text-left">
+        <span className="h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse shrink-0" />
+        <span>Insight: Filings peaked on June 25 (S$318.40 dinner).</span>
+      </div>
     </div>
   );
 }
@@ -447,12 +459,16 @@ function InteractiveAreaChart({
 
 function TeamBarChart({
   selectedEmployee,
-  onSelectEmployee
+  onSelectEmployee,
+  data: dataProp,
+  maxSpend: maxProp,
 }: {
   selectedEmployee: string | null;
   onSelectEmployee: (name: string | null) => void;
+  data?: { name: string; spend: number; count: number; color: string }[];
+  maxSpend?: number;
 }) {
-  const data = [
+  const data = dataProp && dataProp.length ? dataProp : [
     { name: "Aisyah Rahman", spend: 1120.00, count: 5, color: "#4f46e5" },
     { name: "Lim Wei", spend: 640.00, count: 3, color: "#10b981" },
     { name: "John Doe", spend: 450.00, count: 4, color: "#fbbf24" },
@@ -460,7 +476,7 @@ function TeamBarChart({
     { name: "Clara Ng", spend: 320.00, count: 2, color: "#8b5cf6" },
   ];
 
-  const maxSpend = 1200;
+  const maxSpend = maxProp ?? Math.max(...data.map((d) => d.spend), 1) * 1.05;
 
   return (
     <div className="flex flex-col gap-4.5 py-4">
@@ -502,6 +518,11 @@ function TeamBarChart({
           </div>
         );
       })}
+      {/* Narrative Footer */}
+      <div className="w-full text-[10px] text-fg-tertiary font-semibold flex items-center gap-1.5 mt-3 bg-zinc-500/[0.03] dark:bg-black/[0.12] p-2.5 rounded-xl border border-border/40 dark:border-white/5 select-none text-left">
+        <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
+        <span>{data.length ? `Insight: ${data[0].name} has highest spend at ${formatSGD(data[0].spend)}.` : "Insight: No team spend yet."}</span>
+      </div>
     </div>
   );
 }
@@ -574,8 +595,14 @@ function MonthlyDisbursementsChart({
         ) : selectedMonth ? (
           <span className="text-accent font-black">Selected: {selectedMonth} disbursements queue &middot; Click log on right</span>
         ) : (
-          <span className="text-fg-tertiary font-medium">Click on the bars to inspect ledger payouts</span>
+          <span className="text-fg-tertiary font-medium">Click on the bars to inspect ledger payouts &middot; June is highest due to bulk releases</span>
         )}
+      </div>
+
+      {/* Narrative Footer */}
+      <div className="w-full text-[10px] text-fg-tertiary font-semibold flex items-center gap-1.5 mt-1 bg-zinc-500/[0.03] dark:bg-black/[0.12] p-2.5 rounded-xl border border-border/40 dark:border-white/5 select-none text-left">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+        <span>Insight: June peak S$2,800.00 (Citi FAST bulk release).</span>
       </div>
     </div>
   );
@@ -693,6 +720,12 @@ function CitibankTrafficChart() {
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" /> Citi FAST Gateway: Connected</span>
         <span>Avg Latency: <span className="font-mono text-pink-600 dark:text-pink-400">13.8 ms</span></span>
         <span>MAS Node: Synced</span>
+      </div>
+
+      {/* Narrative Footer */}
+      <div className="w-full text-[10px] text-fg-tertiary font-semibold flex items-center gap-1.5 mt-1 bg-zinc-500/[0.03] dark:bg-black/[0.12] p-2.5 rounded-xl border border-border/40 dark:border-white/5 select-none text-left">
+        <span className="h-1.5 w-1.5 rounded-full bg-pink-500 animate-pulse shrink-0" />
+        <span>Insight: Gateway latency is optimal (under 15ms).</span>
       </div>
     </div>
   );
@@ -851,13 +884,6 @@ function ExportPanel() {
   );
 }
 
-const EXPLORE_CLAIMS = [
-  { id: "CLM-1042", title: "Client Dinner", amount: 318.40, category: "Client Entertainment", date: "25 Jun", employee: "Sarah Tan", details: "IRAS threshold limit trigger (> S$300). Needs meeting attendee list declared to pass L2 manual audit.", status: "flagged" },
-  { id: "CLM-1010", title: "Client Coffee", amount: 28.50, category: "Client Entertainment", date: "01 Jun", employee: "Sarah Tan", details: "Audit check complete. Automatically matched transaction history.", status: "cleared" },
-  { id: "CLM-1033", title: "Transport", amount: 23.10, category: "Transport", date: "10 Jun", employee: "Sarah Tan", details: "Audit check complete. Distance matched GPS parameters automatically.", status: "cleared" },
-  { id: "CLM-1025", title: "Office Supplies", amount: 45.50, category: "Office Supplies", date: "15 Jun", employee: "Sarah Tan", details: "Office printer ink cartridges. Receipt details verified by OCR.", status: "cleared" }
-];
-
 function PersonalCompliancePanel() {
   const metrics = [
     { label: "Receipt Coverage", val: "100%", desc: "Compliant on all claims", color: "var(--success)" },
@@ -1012,12 +1038,16 @@ function FastClearingConsole() {
 
 export default function ReportsPage() {
   const { user } = useSession();
+  const { data: claims = [] } = useClaims();
   
   useEffect(() => {
     document.title = "Analytics & Diagnostics | ClaimFlow";
   }, []);
   
   const activePerspective = user?.role || "Employee";
+
+  // Active page-level tab
+  const [activeTab, setActiveTab] = useState<string>("overview");
 
   // Selected Category filter for Employee Donut
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -1034,13 +1064,14 @@ export default function ReportsPage() {
   // Active chart tab (0 vs 1)
   const [chartTab, setChartTab] = useState<number>(0);
 
-  // Reset selections when active view tab or role changes
+  // Reset selections and tabs when active view tab or role changes
   useEffect(() => {
     setTimeout(() => {
       setSelectedCategory(null);
       setSelectedPoint(null);
       setSelectedEmployee(null);
       setSelectedMonth(null);
+      setActiveTab("overview");
     }, 0);
   }, [chartTab, activePerspective]);
 
@@ -1054,6 +1085,89 @@ export default function ReportsPage() {
     setSelectedCategory(null);
   };
 
+  // Everything below is derived from the live claim ledger so the report's
+  // headline figures, donut, leaderboard and explorer match the dashboard and
+  // update when a claim is filed. Decorative sparklines stay illustrative.
+  const derived = useMemo(() => {
+    const all = claims ?? [];
+    const palette = ["#4f46e5", "#fbbf24", "#ec4899", "#10b981", "#8b5cf6", "#06b6d4"];
+    const sum = (l: typeof all) => l.reduce((a, c) => a + c.amount, 0);
+
+    const setFor =
+      activePerspective === "Employee"
+        ? all.filter((c) => c.employee === "Sarah Tan" || c.employee === user?.name)
+        : activePerspective === "Approving Officer"
+        ? all.filter((c) => c.department === user?.department)
+        : all;
+
+    const byCat = setFor.reduce<Record<string, number>>((acc, c) => {
+      acc[c.type] = (acc[c.type] || 0) + c.amount;
+      return acc;
+    }, {});
+    const catTotal = sum(setFor) || 1;
+    const donutCategories = Object.entries(byCat)
+      .sort((a, b) => b[1] - a[1])
+      .map(([key, amount], i) => ({
+        key,
+        label: key,
+        amount,
+        pct: Math.round((amount / catTotal) * 1000) / 10,
+        color: palette[i % palette.length],
+      }));
+
+    const exploreClaims = setFor.map((c) => ({
+      id: c.id,
+      title: c.title,
+      amount: c.amount,
+      category: c.type,
+      date: formatDate(c.date),
+      employee: c.employee,
+      status: c.flagged ? "flagged" : "cleared",
+      details: c.flagged
+        ? "Flagged by the policy engine — resolve the compliance note before payout."
+        : "Audit check complete. Receipt and policy rules verified automatically.",
+    }));
+
+    const byEmp = all.reduce<Record<string, { spend: number; count: number }>>((acc, c) => {
+      const e = acc[c.employee] || { spend: 0, count: 0 };
+      e.spend += c.amount;
+      e.count += 1;
+      acc[c.employee] = e;
+      return acc;
+    }, {});
+    const leaderboard = Object.entries(byEmp)
+      .map(([name, v], i) => ({ name, spend: v.spend, count: v.count, color: palette[i % palette.length] }))
+      .sort((a, b) => b.spend - a.spend)
+      .slice(0, 5);
+
+    const submitted = sum(setFor);
+    const reimbursed = sum(setFor.filter((c) => c.status === "Paid"));
+    const pendingAmt = sum(setFor.filter((c) => c.status === "Pending"));
+    const endorsedOutstanding = sum(all.filter((c) => c.status === "Endorsed"));
+
+    return {
+      donutCategories,
+      catTotal: submitted,
+      exploreClaims,
+      leaderboard,
+      counts: {
+        total: setFor.length,
+        paid: setFor.filter((c) => c.status === "Paid").length,
+        pending: setFor.filter((c) => c.status === "Pending").length,
+        flagged: setFor.filter((c) => c.flagged).length,
+      },
+      submitted,
+      reimbursed,
+      pendingAmt,
+      headcount: new Set(setFor.map((c) => c.employee)).size,
+      paidAll: sum(all.filter((c) => c.status === "Paid")),
+      reserves: Math.max(0, TREASURY_LIMIT - endorsedOutstanding),
+      topCat: donutCategories[0],
+      deptName: user?.department ?? "Team",
+      deptPct: Math.round((submitted / DEPARTMENT_BUDGET) * 100),
+    };
+  }, [claims, activePerspective, user]);
+
   const reportData = useMemo(() => {
     if (activePerspective === "Employee") {
       return {
@@ -1061,25 +1175,39 @@ export default function ReportsPage() {
         title: "Expense Breakdown",
         subtitle: "Analyze your personal reimbursement filings and category consumption.",
         stats: [
-          { label: "Submitted This Month", value: "S$415.50", desc: "Total 4 claims filed", sparkData: [28.5, 28.5, 51.6, 51.6, 97.1, 97.1, 415.5] },
-          { label: "Reimbursed Successfully", value: "S$97.10", desc: "3 claims settled via PayNow", sparkData: [28.5, 28.5, 51.6, 51.6, 97.1, 97.1, 97.1], stroke: "var(--success)" },
-          { label: "Pending Approvals", value: "S$318.40", desc: "1 claim queued", sparkData: [0, 0, 0, 0, 0, 0, 318.4], stroke: "var(--warning)" },
+          { label: "Submitted This Period", value: formatSGD(derived.submitted), desc: `${derived.counts.total} claim${derived.counts.total === 1 ? "" : "s"} filed`, sparkData: [28.5, 28.5, 51.6, 51.6, 97.1, 97.1, derived.submitted] },
+          { label: "Reimbursed Successfully", value: formatSGD(derived.reimbursed), desc: `${derived.counts.paid} claim${derived.counts.paid === 1 ? "" : "s"} settled via PayNow`, sparkData: [0, 0, 20, 20, 60, 60, Math.max(derived.reimbursed, 1)], stroke: "var(--success)" },
+          { label: "Pending Approvals", value: formatSGD(derived.pendingAmt), desc: `${derived.counts.pending} claim${derived.counts.pending === 1 ? "" : "s"} queued`, sparkData: [0, 0, 0, 0, 0, 0, Math.max(derived.pendingAmt, 1)], stroke: "var(--warning)" },
         ],
         chartTitle: "Expense Distribution",
-        chartTabs: ["Category Share", "Spending Timeline"]
+        chartTabs: ["Category Share", "Spending Timeline"],
+        storyInsight: {
+          headline: "Filing Cycle",
+          text: derived.topCat
+            ? `${derived.topCat.label} is ${derived.topCat.pct}% of your total spend.${derived.counts.flagged > 0 ? ` ${derived.counts.flagged} flagged claim${derived.counts.flagged === 1 ? "" : "s"} need detail before payout.` : " All claims are policy-clean."}`
+            : "No claims filed yet — your spend breakdown will appear here as you file.",
+          badge: derived.counts.flagged > 0 ? "Needs Attention" : "Filing Healthy",
+          badgeColor: derived.counts.flagged > 0 ? "text-amber-500 bg-amber-500/10 border-amber-500/20" : "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
+        }
       };
     } else if (activePerspective === "Approving Officer") {
       return {
         eyebrow: "Department Metrics",
-        title: "Operations Budget Review",
+        title: `${derived.deptName} Budget Review`,
         subtitle: "Monitor active team expenditure limits and approve rate patterns.",
         stats: [
-          { label: "Operations Spend", value: "S$12,450.00", desc: "62.2% of Q2 budget consumed", sparkData: [2000, 3500, 5000, 7800, 9500, 11000, 12450] },
-          { label: "Active Team Headcount", value: "5 Employees", desc: "Operations pod filers", sparkData: [5, 5, 5, 5, 5, 5, 5] },
+          { label: `${derived.deptName} Spend`, value: formatSGD(derived.submitted), desc: `${derived.deptPct}% of quarter budget consumed`, sparkData: [2000, 3500, 5000, 7800, 9500, 11000, Math.max(derived.submitted, 1)] },
+          { label: "Active Team Headcount", value: `${derived.headcount} Employee${derived.headcount === 1 ? "" : "s"}`, desc: `${derived.deptName} pod filers`, sparkData: [derived.headcount, derived.headcount, derived.headcount, derived.headcount, derived.headcount, derived.headcount, derived.headcount] },
           { label: "Approval Cycle SLA", value: "12 mins avg", desc: "SLA target under 15 mins", sparkData: [24, 20, 18, 15, 14, 13, 12], stroke: "var(--success)" },
         ],
         chartTitle: "Team Expenditures",
-        chartTabs: ["Member Breakdown", "Department Health"]
+        chartTabs: ["Member Breakdown", "Department Health"],
+        storyInsight: {
+          headline: `${derived.deptName} Budget`,
+          text: `Consumed ${derived.deptPct}% (${formatSGD(derived.submitted)}) of the quarter budget across ${derived.headcount} filer${derived.headcount === 1 ? "" : "s"}.${derived.counts.flagged > 0 ? ` ${derived.counts.flagged} claim${derived.counts.flagged === 1 ? "" : "s"} flagged for review.` : " No compliance flags outstanding."}`,
+          badge: derived.counts.flagged > 0 ? "Needs Attention" : "On Track",
+          badgeColor: derived.counts.flagged > 0 ? "text-amber-500 bg-amber-500/10 border-amber-500/20" : "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
+        }
       };
     } else {
       return {
@@ -1087,24 +1215,30 @@ export default function ReportsPage() {
         title: "Corporate Payouts Ledger",
         subtitle: "Audit disbursement volumes, Citibank API pipelines, and reserves.",
         stats: [
-          { label: "Weekly FAST Payouts", value: "S$1,862.00", desc: "Disbursed via corporate FAST API", sparkData: [300, 500, 200, 900, 100, 400, 1862] },
-          { label: "Citibank Cash Reserves", value: "S$48,138.00", desc: "Treasury limit: S$50,000.00", sparkData: [50000, 49800, 49200, 48800, 48400, 48138], stroke: "var(--warning)" },
-          { label: "Ledger Audit Match", value: "100.00%", desc: "128 block hashes verified", sparkData: [100, 100, 100, 100, 100, 100, 100], stroke: "var(--success)" },
+          { label: "Total FAST Payouts", value: formatSGD(derived.paidAll), desc: `${derived.counts.paid} claim${derived.counts.paid === 1 ? "" : "s"} disbursed via corporate FAST`, sparkData: [300, 500, 200, 900, 100, 400, Math.max(derived.paidAll, 1)] },
+          { label: "Citibank Cash Reserves", value: formatSGD(derived.reserves), desc: `Treasury limit: ${formatSGD(TREASURY_LIMIT)}`, sparkData: [TREASURY_LIMIT, TREASURY_LIMIT, TREASURY_LIMIT, TREASURY_LIMIT, TREASURY_LIMIT, derived.reserves], stroke: "var(--warning)" },
+          { label: "Ledger Audit Match", value: "100.00%", desc: "All actions written to the audit trail", sparkData: [100, 100, 100, 100, 100, 100, 100], stroke: "var(--success)" },
         ],
         chartTitle: "Disbursements & Gateway Traffic",
-        chartTabs: ["Monthly cash flow", "Citi API Latency"]
+        chartTabs: ["Monthly cash flow", "Citi API Latency"],
+        storyInsight: {
+          headline: "FAST Liquidity",
+          text: `Treasury reserve: ${formatSGD(derived.reserves)} of ${formatSGD(TREASURY_LIMIT)}. ${formatSGD(derived.paidAll)} disbursed to date; Citibank gateway latency is optimal (13.8ms avg) with no failed transfers.`,
+          badge: "Treasury Optimal",
+          badgeColor: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20"
+        }
       };
     }
-  }, [activePerspective]);
+  }, [activePerspective, derived]);
 
   const renderActiveChart = () => {
     if (activePerspective === "Employee") {
-      return chartTab === 0 
-        ? <InteractiveDonutChart onSelectCategory={handleSelectCategory} selectedCategory={selectedCategory} />
+      return chartTab === 0
+        ? <InteractiveDonutChart onSelectCategory={handleSelectCategory} selectedCategory={selectedCategory} categories={derived.donutCategories} total={derived.catTotal} />
         : <InteractiveAreaChart selectedPoint={selectedPoint} onSelectPoint={handleSelectPoint} />;
     } else if (activePerspective === "Approving Officer") {
       return chartTab === 0
-        ? <TeamBarChart selectedEmployee={selectedEmployee} onSelectEmployee={setSelectedEmployee} />
+        ? <TeamBarChart selectedEmployee={selectedEmployee} onSelectEmployee={setSelectedEmployee} data={derived.leaderboard} />
         : (
           <div className="flex flex-col sm:flex-row items-center justify-around gap-6 py-6 text-left">
             <GaugeChart value={94} label="Compliance SLA" />
@@ -1126,6 +1260,27 @@ export default function ReportsPage() {
     }
   };
 
+  const getTabsForRole = () => {
+    if (activePerspective === "Employee") {
+      return [
+        { id: "overview", label: "Overview & Spend", icon: TrendingUp },
+        { id: "compliance", label: "Policy & Review", icon: ShieldCheck },
+      ];
+    } else if (activePerspective === "Approving Officer") {
+      return [
+        { id: "overview", label: "Team Expenditures", icon: Users },
+        { id: "budget", label: "Budget & SLA Review", icon: BarChart3 },
+        { id: "warnings", label: "Warning Queue", icon: ShieldAlert },
+      ];
+    } else {
+      return [
+        { id: "overview", label: "Cash Flow & Latency", icon: TrendingUp },
+        { id: "diagnostics", label: "Gateway Diagnostics", icon: Cpu },
+        { id: "treasury", label: "Treasury Reserves", icon: Wallet },
+      ];
+    }
+  };
+
   return (
     <>
       <PageHeader
@@ -1134,327 +1289,432 @@ export default function ReportsPage() {
         subtitle={reportData.subtitle}
       />
 
-      <div className="flex flex-col gap-6">
-        {/* Statistics Grid with Sparklines */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {reportData.stats.map((stat, idx) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: idx * 0.08 }}
-              className="bg-white/40 dark:bg-zinc-900/30 backdrop-blur-md p-4.5 rounded-2xl border border-border dark:border-white/5 shadow-sm flex items-center justify-between gap-4"
-            >
-              <div className="min-w-0 flex-grow text-left">
-                <span className="text-[10px] font-extrabold text-fg-secondary uppercase tracking-wider block truncate">
-                  {stat.label}
-                </span>
-                <span className="text-2xl font-black text-fg mt-1 block tracking-tight truncate">
-                  {stat.value}
-                </span>
-                <span className="text-xs text-fg-secondary font-medium mt-1 block truncate">
-                  {stat.desc}
-                </span>
-              </div>
-              <Sparkline data={stat.sparkData} stroke={stat.stroke} />
-            </motion.div>
-          ))}
+      <div className="flex flex-col gap-6 flex-1 overflow-y-auto lg:pr-2 min-h-0">
+        {/* Page Sub-Tabs Segment Control */}
+        <div className="flex gap-1 bg-zinc-100/60 dark:bg-zinc-900/60 p-0.5 rounded-xl border border-border/40 dark:border-white/5 w-fit select-none font-sans mt-1">
+          {getTabsForRole().map((t) => {
+            const isTabActive = activeTab === t.id;
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all relative cursor-pointer active:scale-95 flex items-center gap-1.5",
+                  isTabActive
+                    ? "bg-card text-fg shadow-sm border border-border/40"
+                    : "text-fg-tertiary hover:text-fg-secondary"
+                )}
+              >
+                <Icon className={cn("h-3.5 w-3.5 shrink-0 transition-colors", isTabActive ? "text-fg" : "text-fg-tertiary/80")} />
+                <span>{t.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* 2-Column Responsive Layout */}
-        <div id="reports-analytics-charts" className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          
-          {/* Main Chart card (takes 2 columns) */}
-          <div className="lg:col-span-2">
-            <Card className="p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-3">
-                <div className="flex flex-col text-left">
-                  <h2 className="text-sm font-extrabold tracking-tight text-fg flex items-center gap-1.5">
-                    <BarChart3 className="h-4.5 w-4.5 text-accent" />
-                    {reportData.chartTitle}
-                  </h2>
-                  <span className="text-[10px] text-fg-secondary font-medium mt-0.5">
-                    Click on chart elements to filter and inspect transactions in the sidebar.
-                  </span>
-                </div>
-                
-                {/* Chart Tab selectors */}
-                <div className="flex gap-1.5 bg-surface dark:bg-zinc-900/60 p-0.5 rounded-xl border border-border/60 dark:border-white/5 w-fit">
-                  {reportData.chartTabs.map((tab, idx) => (
-                    <button
-                      key={tab}
-                      onClick={() => setChartTab(idx)}
-                      className={cn(
-                        "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer",
-                        chartTab === idx
-                          ? "bg-card text-fg shadow-sm"
-                          : "text-fg-tertiary hover:text-fg-secondary"
-                      )}
+        {/* Storytelling Narrative Insight Card */}
+        {reportData.storyInsight && (
+          <motion.div
+            key={`story-${activePerspective}`}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative overflow-hidden rounded-2xl border border-border/80 dark:border-white/5 bg-gradient-to-r from-accent/[0.04] via-indigo-500/[0.015] to-transparent p-4 flex flex-col sm:flex-row gap-4 items-start select-none"
+          >
+            <div className="flex-1 text-left">
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span className={cn("text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border font-sans", reportData.storyInsight.badgeColor)}>
+                  {reportData.storyInsight.badge}
+                </span>
+                <span className="text-xs font-extrabold text-fg">
+                  {reportData.storyInsight.headline}
+                </span>
+              </div>
+              <p className="text-xs text-fg-secondary leading-relaxed font-medium">
+                {reportData.storyInsight.text}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Tab Content Panels */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${activePerspective}-${activeTab}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25 }}
+            className="flex flex-col gap-6"
+          >
+            {/* ==================== OVERVIEW TAB ==================== */}
+            {activeTab === "overview" && (
+              <>
+                {/* Statistics Grid with Sparklines */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {reportData.stats.map((stat, idx) => (
+                    <motion.div
+                      key={stat.label}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: idx * 0.08 }}
+                      className="bg-white/40 dark:bg-zinc-900/30 backdrop-blur-md p-4.5 rounded-2xl border border-border dark:border-white/5 shadow-sm flex items-center justify-between gap-4"
                     >
-                      {tab}
-                    </button>
+                      <div className="min-w-0 flex-grow text-left">
+                        <span className="text-[10px] font-extrabold text-fg-secondary uppercase tracking-wider block truncate">
+                          {stat.label}
+                        </span>
+                        <span className="text-2xl font-black text-fg mt-1 block tracking-tight truncate">
+                          {stat.value}
+                        </span>
+                        <span className="text-xs text-fg-secondary font-medium mt-1 block truncate">
+                          {stat.desc}
+                        </span>
+                      </div>
+                      <Sparkline data={stat.sparkData} stroke={stat.stroke} />
+                    </motion.div>
                   ))}
                 </div>
-              </div>
-              
-              <div className="mt-4">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={`${activePerspective}-${chartTab}`}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {renderActiveChart()}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </Card>
 
-            {activePerspective === "Employee" && <PersonalCompliancePanel />}
-            {activePerspective === "Approving Officer" && <DepartmentBudgetPanel />}
-            {activePerspective === "Finance Admin" && <FastClearingConsole />}
-          </div>
-
-          {/* Right sidebar details cards (takes 1 column) */}
-          <div className="flex flex-col gap-6">
-            {activePerspective === "Employee" && (
-              <Card className="p-6 text-left">
-                {(selectedPoint || selectedCategory) ? (
-                  <div>
-                    <div className="flex items-center justify-between border-b border-border/85 pb-2.5 mb-4">
-                      <h2 className="text-sm font-extrabold tracking-tight text-fg flex items-center gap-2">
-                        <BarChart3 className="h-4.5 w-4.5 text-accent" />
-                        {selectedPoint ? `Details: ${selectedPoint}` : `Details: ${selectedCategory}`}
-                      </h2>
-                      <button 
-                        onClick={() => { setSelectedPoint(null); setSelectedCategory(null); }}
-                        className="text-[10px] font-black text-accent hover:underline uppercase tracking-wider cursor-pointer"
-                      >
-                        Clear Filter
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      {EXPLORE_CLAIMS.filter(c => 
-                        (selectedPoint && c.date === selectedPoint) || 
-                        (selectedCategory && c.category === selectedCategory)
-                      ).map(c => (
-                        <div 
-                          key={c.id} 
-                          className={cn(
-                            "border p-4 rounded-[20px] flex items-start gap-3.5 select-none text-left transition-colors duration-200",
-                            c.status === "flagged"
-                              ? "bg-rose-500/[0.04] dark:bg-rose-500/[0.08] border-rose-500/5"
-                              : "bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08] border-emerald-500/5"
-                          )}
-                        >
-                          {c.status === "flagged" ? (
-                            <AlertTriangle className="h-5 w-5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
-                          ) : (
-                            <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-450 shrink-0 mt-0.5" />
-                          )}
-                          <div className="leading-tight">
-                            <span className="text-sm font-extrabold text-fg block">{c.id} &middot; {c.title}</span>
-                            <div className="flex items-center gap-1.5 mt-1.5">
-                              <span className="text-[9px] font-bold text-fg-secondary bg-white/40 dark:bg-black/40 px-1.5 py-0.5 rounded border border-border/40 dark:border-white/5">
-                                {c.category}
-                              </span>
-                              <span className="text-[10px] font-mono font-black text-fg">S${c.amount.toFixed(2)}</span>
-                            </div>
-                            <p className="text-xs text-fg-secondary mt-2.5 leading-normal font-medium">
-                              {c.details}
-                            </p>
-                          </div>
+                {/* 2-Column Responsive Layout */}
+                <div id="reports-analytics-charts" className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                  {/* Main Chart card (takes 2 columns) */}
+                  <div className="lg:col-span-2">
+                    <Card className="p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-3">
+                        <div className="flex flex-col text-left">
+                          <h2 className="text-sm font-extrabold tracking-tight text-fg flex items-center gap-1.5">
+                            <BarChart3 className="h-4.5 w-4.5 text-accent" />
+                            {reportData.chartTitle}
+                          </h2>
+                          <span className="text-[10px] text-fg-secondary font-medium mt-0.5">
+                            Click on chart elements to filter and inspect details in the sidebar.
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <h2 className="text-sm font-bold tracking-tight text-fg border-b border-border/85 pb-2.5 flex items-center gap-1.5">
-                      <ShieldAlert className="h-4.5 w-4.5 text-rose-500 animate-pulse" />
-                      Compliance & Exception Review
-                    </h2>
-                    <div className="flex flex-col gap-4 mt-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-fg-secondary">Policy Audit Score</span>
-                        <span className="text-emerald-500 text-xs font-black">94.1/100</span>
+                        
+                        {/* Chart Tab selectors */}
+                        <div className="flex gap-1.5 bg-surface dark:bg-zinc-900/60 p-0.5 rounded-xl border border-border/60 dark:border-white/5 w-fit">
+                          {reportData.chartTabs.map((tab, idx) => (
+                            <button
+                              key={tab}
+                              onClick={() => setChartTab(idx)}
+                              className={cn(
+                                "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                                chartTab === idx
+                                  ? "bg-card text-fg shadow-sm"
+                                  : "text-fg-tertiary hover:text-fg-secondary"
+                              )}
+                            >
+                              {tab}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                       
-                      <div className="flex flex-col gap-3">
-                        <div className="bg-rose-500/[0.04] dark:bg-rose-500/[0.08] border border-rose-500/5 p-4 rounded-[20px] flex items-start gap-3.5 select-none text-left">
-                          <AlertTriangle className="h-5 w-5 text-rose-500 dark:text-rose-450 shrink-0 mt-0.5" />
-                          <div className="leading-tight">
-                            <span className="text-sm font-extrabold text-fg block">CLM-1042 · Client Dinner</span>
-                            <p className="text-xs text-fg-secondary mt-1.5 leading-normal font-medium">
-                              IRAS threshold limit trigger (&gt; S$300). Needs meeting attendee list declared to pass L2 manual audit.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08] border border-emerald-500/5 p-4 rounded-[20px] flex items-start gap-3.5 select-none text-left">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-450 shrink-0 mt-0.5" />
-                          <div className="leading-tight">
-                            <span className="text-sm font-extrabold text-fg block">CLM-1033 · Transport</span>
-                            <p className="text-xs text-fg-secondary mt-1.5 leading-normal font-medium">
-                              Audit check complete. Distance matched GPS parameters automatically.
-                            </p>
-                          </div>
-                        </div>
+                      <div className="mt-4">
+                        {renderActiveChart()}
                       </div>
-                    </div>
+                    </Card>
                   </div>
-                )}
-              </Card>
+
+                  {/* Right sidebar details cards (takes 1 column) */}
+                  <div className="flex flex-col gap-6 w-full">
+                    {activePerspective === "Employee" && (
+                      <Card className="p-6 text-left">
+                        {(selectedPoint || selectedCategory) ? (
+                          <div>
+                            <div className="flex items-center justify-between border-b border-border/85 pb-2.5 mb-4">
+                              <h2 className="text-sm font-extrabold tracking-tight text-fg flex items-center gap-2">
+                                <BarChart3 className="h-4.5 w-4.5 text-accent" />
+                                {selectedPoint ? `Details: ${selectedPoint}` : `Details: ${selectedCategory}`}
+                              </h2>
+                              <button 
+                                onClick={() => { setSelectedPoint(null); setSelectedCategory(null); }}
+                                className="text-[10px] font-black text-accent hover:underline uppercase tracking-wider cursor-pointer"
+                              >
+                                Clear Filter
+                              </button>
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                              {derived.exploreClaims.filter(c =>
+                                (selectedPoint && c.date === selectedPoint) ||
+                                (selectedCategory && c.category === selectedCategory)
+                              ).map(c => (
+                                <div 
+                                  key={c.id} 
+                                  className={cn(
+                                    "border p-4 rounded-[20px] flex items-start gap-3.5 select-none text-left transition-colors duration-200",
+                                    c.status === "flagged"
+                                      ? "bg-rose-500/[0.04] dark:bg-rose-500/[0.08] border-rose-500/5"
+                                      : "bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08] border-emerald-500/5"
+                                  )}
+                                >
+                                  {c.status === "flagged" ? (
+                                    <AlertTriangle className="h-5 w-5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
+                                  ) : (
+                                    <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" />
+                                  )}
+                                  <div className="leading-tight">
+                                    <span className="text-sm font-extrabold text-fg block">{c.id} &middot; {c.title}</span>
+                                    <div className="flex items-center gap-1.5 mt-1.5">
+                                      <span className="text-[9px] font-bold text-fg-secondary bg-white/40 dark:bg-black/40 px-1.5 py-0.5 rounded border border-border/40 dark:border-white/5">
+                                        {c.category}
+                                      </span>
+                                      <span className="text-[10px] font-mono font-black text-fg">S${c.amount.toFixed(2)}</span>
+                                    </div>
+                                    <p className="text-xs text-fg-secondary mt-2.5 leading-normal font-medium">
+                                      {c.details}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <h2 className="text-sm font-bold tracking-tight text-fg border-b border-border/85 pb-2.5 flex items-center gap-1.5">
+                              <ShieldAlert className="h-4.5 w-4.5 text-rose-500 animate-pulse" />
+                              Compliance & Exception Review
+                            </h2>
+                            <div className="flex flex-col gap-4 mt-4">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-semibold text-fg-secondary">Policy Audit Score</span>
+                                <span className="text-emerald-500 text-xs font-black">94.1/100</span>
+                              </div>
+                              
+                              <div className="flex flex-col gap-3">
+                                <div className="bg-rose-500/[0.04] dark:bg-rose-500/[0.08] border border-rose-500/5 p-4 rounded-[20px] flex items-start gap-3.5 select-none text-left">
+                                  <AlertTriangle className="h-5 w-5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
+                                  <div className="leading-tight">
+                                    <span className="text-sm font-extrabold text-fg block">CLM-1042 · Client Dinner</span>
+                                    <p className="text-xs text-fg-secondary mt-1.5 leading-normal font-medium">
+                                      IRAS threshold limit trigger (&gt; S$300). Needs meeting attendee list declared to pass L2 manual audit.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </Card>
+                    )}
+
+                    {activePerspective === "Approving Officer" && (
+                      <Card className="p-6 text-left">
+                        {selectedEmployee ? (
+                          <div>
+                            <div className="flex items-center justify-between border-b border-border/85 pb-2.5 mb-4">
+                              <h2 className="text-sm font-extrabold tracking-tight text-fg flex items-center gap-1.5">
+                                <ShieldAlert className="h-4.5 w-4.5 text-amber-500" />
+                                Alerts: {selectedEmployee}
+                              </h2>
+                              <button 
+                                onClick={() => setSelectedEmployee(null)}
+                                className="text-[10px] font-black text-accent hover:underline uppercase tracking-wider cursor-pointer"
+                              >
+                                Clear Filter
+                              </button>
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                              {selectedEmployee === "Sarah Tan" && (
+                                <div className="bg-rose-500/5 border border-rose-500/15 p-4 rounded-[20px] flex flex-col gap-1 text-xs">
+                                  <div className="flex items-center justify-between font-bold text-fg">
+                                    <span className="flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-rose-500" /> IRAS limit trigger</span>
+                                    <span className="text-[10px] font-bold text-fg-tertiary">CLM-1042</span>
+                                  </div>
+                                  <p className="text-[11px] text-fg-secondary leading-normal mt-1.5 font-medium">
+                                    Client meeting dinner exceeds S$300 threshold. Ops review required before Finance releases funds.
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {selectedEmployee === "Lim Wei" && (
+                                <div className="bg-amber-500/5 border border-amber-500/15 p-4 rounded-[20px] flex flex-col gap-1 text-xs">
+                                  <div className="flex items-center justify-between font-bold text-fg">
+                                    <span className="flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> Late night transit</span>
+                                    <span className="text-[10px] font-bold text-fg-tertiary">CLM-1090</span>
+                                  </div>
+                                  <p className="text-[11px] text-fg-secondary leading-normal mt-1.5 font-medium">
+                                    Transit claim filed on Sunday 03:00 AM. Awaiting weekend travel authorization document.
+                                  </p>
+                                </div>
+                              )}
+
+                              {selectedEmployee !== "Sarah Tan" && selectedEmployee !== "Lim Wei" && (
+                                <div className="bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08] border border-emerald-500/5 p-4 rounded-[20px] flex items-start gap-3 select-none text-left">
+                                  <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                                  <div className="leading-tight">
+                                    <span className="text-sm font-extrabold text-fg block">No warnings active</span>
+                                    <p className="text-xs text-fg-secondary mt-1.5 leading-normal font-medium">
+                                      All filed claims for {selectedEmployee} are compliant and cleared L1 verification.
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-8 text-center text-fg-tertiary">
+                            <Users className="h-10 w-10 text-zinc-300 dark:text-zinc-700 animate-pulse mb-3" />
+                            <span className="text-xs font-bold">Select Team Member</span>
+                            <p className="text-[10px] max-w-[180px] mt-1 leading-normal">
+                              Click on a team member&apos;s bar in the chart to inspect their compliance audit status.
+                            </p>
+                          </div>
+                        )}
+                      </Card>
+                    )}
+
+                    {activePerspective === "Finance Admin" && (
+                      <Card className="p-5 flex flex-col gap-4 text-left">
+                        {selectedMonth ? (
+                          <div>
+                            <div className="flex items-center justify-between border-b border-border/85 pb-2.5 mb-4">
+                              <h2 className="text-sm font-extrabold tracking-tight text-fg flex items-center gap-1.5">
+                                <Cpu className="h-4.5 w-4.5 text-pink-500" />
+                                Payout Ledger: {selectedMonth}
+                              </h2>
+                              <button 
+                                onClick={() => setSelectedMonth(null)}
+                                className="text-[10px] font-black text-accent hover:underline uppercase tracking-wider cursor-pointer"
+                              >
+                                Clear Filter
+                              </button>
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                              <div className="bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08] border border-emerald-500/5 p-4 rounded-[20px] flex flex-col gap-1.5 text-xs">
+                                <div className="flex items-center justify-between font-bold text-fg">
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">FAST Cleared API</span>
+                                  <span className="font-mono text-fg-secondary font-bold">
+                                    {selectedMonth === "Jun" ? "S$2,800.00" : selectedMonth === "May" ? "S$1,950.00" : "S$1,800.00"}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-fg-secondary leading-normal font-medium">
+                                  Citibank transaction batch ID: <code className="font-mono bg-white dark:bg-black px-1 py-0.5 rounded border border-border">TXN-{selectedMonth.toUpperCase()}-99</code>. Cleared central bank settlement ledger.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-8 text-center text-fg-tertiary">
+                            <Calendar className="h-10 w-10 text-zinc-300 dark:text-zinc-700 animate-pulse mb-3" />
+                            <span className="text-xs font-bold">Select Settlement Month</span>
+                            <p className="text-[10px] max-w-[180px] mt-1 leading-normal">
+                              Click on a month bar to inspect automated disbursements ledger output.
+                            </p>
+                          </div>
+                        )}
+                      </Card>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
 
-            {activePerspective === "Approving Officer" && (
-              <Card className="p-6 text-left">
-                {selectedEmployee ? (
-                  <div>
-                    <div className="flex items-center justify-between border-b border-border/85 pb-2.5 mb-4">
-                      <h2 className="text-sm font-extrabold tracking-tight text-fg flex items-center gap-1.5">
-                        <ShieldAlert className="h-4.5 w-4.5 text-amber-500" />
-                        Alerts: {selectedEmployee}
-                      </h2>
-                      <button 
-                        onClick={() => setSelectedEmployee(null)}
-                        className="text-[10px] font-black text-accent hover:underline uppercase tracking-wider cursor-pointer"
-                      >
-                        Clear Filter
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      {selectedEmployee === "Sarah Tan" && (
-                        <div className="bg-rose-500/5 border border-rose-500/15 p-4 rounded-[20px] flex flex-col gap-1 text-xs">
-                          <div className="flex items-center justify-between font-bold text-fg">
-                            <span className="flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-rose-500" /> IRAS limit trigger</span>
-                            <span className="text-[10px] font-bold text-fg-tertiary">CLM-1042</span>
-                          </div>
-                          <p className="text-[11px] text-fg-secondary leading-normal mt-1.5 font-medium">
-                            Client meeting dinner exceeds S$300 threshold. Ops review required before Finance releases funds.
-                          </p>
-                        </div>
-                      )}
-                      
-                      {selectedEmployee === "Lim Wei" && (
-                        <div className="bg-amber-500/5 border border-amber-500/15 p-4 rounded-[20px] flex flex-col gap-1 text-xs">
-                          <div className="flex items-center justify-between font-bold text-fg">
-                            <span className="flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> Late night transit</span>
-                            <span className="text-[10px] font-bold text-fg-tertiary">CLM-1090</span>
-                          </div>
-                          <p className="text-[11px] text-fg-secondary leading-normal mt-1.5 font-medium">
-                            Transit claim filed on Sunday 03:00 AM. Awaiting weekend travel authorization document.
-                          </p>
-                        </div>
-                      )}
-
-                      {selectedEmployee !== "Sarah Tan" && selectedEmployee !== "Lim Wei" && (
-                        <div className="bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08] border border-emerald-500/5 p-4 rounded-[20px] flex items-start gap-3 select-none text-left">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-400 shrink-0" />
-                          <div className="leading-tight">
-                            <span className="text-sm font-extrabold text-fg block">No warnings active</span>
-                            <p className="text-xs text-fg-secondary mt-1.5 leading-normal font-medium">
-                              All filed claims for {selectedEmployee} are compliant and cleared L1 verification.
-                            </p>
-                          </div>
-                        </div>
-                      )}
+            {/* ==================== PERSONAL COMPLIANCE / AUDIT BUDGET TAB ==================== */}
+            {activeTab === "compliance" && activePerspective === "Employee" && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start text-left w-full">
+                <div className="lg:col-span-2 flex flex-col gap-4">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-fg-secondary px-1">Compliance Matrix Summary</h3>
+                  <PersonalCompliancePanel />
+                </div>
+                <Card className="p-6">
+                  <h2 className="text-sm font-bold tracking-tight text-fg border-b border-border/85 pb-2.5 flex items-center gap-1.5">
+                    <ShieldAlert className="h-4.5 w-4.5 text-rose-500 animate-pulse" />
+                    Pending L2 Audit Actions
+                  </h2>
+                  <div className="flex flex-col gap-3 mt-4">
+                    <div className="bg-rose-500/[0.04] dark:bg-rose-500/[0.08] border border-rose-500/5 p-4 rounded-[20px] flex items-start gap-3.5 select-none text-left">
+                      <AlertTriangle className="h-5 w-5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
+                      <div className="leading-tight">
+                        <span className="text-sm font-extrabold text-fg block">CLM-1042 · Client Dinner</span>
+                        <p className="text-xs text-fg-secondary mt-1.5 leading-normal font-medium">
+                          IRAS threshold limit trigger (&gt; S$300). Needs meeting attendee list declared to pass L2 manual audit.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                ) : (
-                  <div>
+                </Card>
+              </div>
+            )}
+
+            {/* ==================== BUDGET TAB (APPROVER) ==================== */}
+            {activeTab === "budget" && activePerspective === "Approving Officer" && (
+              <div className="max-w-3xl mx-auto w-full">
+                <DepartmentBudgetPanel />
+              </div>
+            )}
+
+            {/* ==================== WARNINGS QUEUE TAB (APPROVER) ==================== */}
+            {activeTab === "warnings" && activePerspective === "Approving Officer" && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start text-left w-full">
+                <div className="lg:col-span-2">
+                  <Card className="p-6">
                     <h2 className="text-sm font-bold tracking-tight text-fg border-b border-border/85 pb-2.5 flex items-center gap-1.5">
                       <ShieldAlert className="h-4.5 w-4.5 text-amber-500 animate-pulse" />
                       Policy Trigger Warning Queue
                     </h2>
-                    <div className="flex flex-col gap-3 mt-4">
-                      <div className="bg-amber-500/5 border border-amber-500/15 p-4 rounded-[20px] flex flex-col gap-1 text-xs">
-                        <div className="flex items-center justify-between font-bold text-fg">
-                          <span className="flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> Late night transit</span>
-                          <span>Lim Wei</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                      <div className="bg-amber-500/5 dark:bg-amber-500/5 border border-amber-500/15 p-4.5 rounded-[20px] flex flex-col gap-1 text-xs">
+                        <div className="flex items-center justify-between font-bold text-fg border-b border-border/40 pb-1.5 mb-1.5">
+                          <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-extrabold"><AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> Late night transit</span>
+                          <span className="font-extrabold font-mono text-[10px] text-fg-secondary">Lim Wei</span>
                         </div>
-                        <p className="text-[11px] text-fg-secondary leading-normal mt-1.5 font-medium">
+                        <p className="text-[11px] text-fg-secondary leading-relaxed font-medium mt-1">
                           CLM-1090 transit claim filed on Sunday 03:00 AM. Awaiting weekend travel authorization document.
                         </p>
                       </div>
                       
-                      <div className="bg-rose-500/5 border border-rose-500/15 p-4 rounded-[20px] flex flex-col gap-1 text-xs">
-                        <div className="flex items-center justify-between font-bold text-fg">
-                          <span className="flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-rose-500" /> IRAS limit trigger</span>
-                          <span>Sarah Tan</span>
+                      <div className="bg-rose-500/5 dark:bg-rose-500/5 border border-rose-500/15 p-4.5 rounded-[20px] flex flex-col gap-1 text-xs">
+                        <div className="flex items-center justify-between font-bold text-fg border-b border-border/40 pb-1.5 mb-1.5">
+                          <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400 font-extrabold"><AlertTriangle className="h-3.5 w-3.5 text-rose-500" /> IRAS limit trigger</span>
+                          <span className="font-extrabold font-mono text-[10px] text-fg-secondary">Sarah Tan</span>
                         </div>
-                        <p className="text-[11px] text-fg-secondary leading-normal mt-1.5 font-medium">
+                        <p className="text-[11px] text-fg-secondary leading-relaxed font-medium mt-1">
                           CLM-1042 client meeting dinner exceeds S$300 threshold. Ops review required before Finance releases funds.
                         </p>
                       </div>
                     </div>
+                  </Card>
+                </div>
+
+                <div className="flex flex-col gap-4 text-xs font-semibold text-fg-secondary p-4 bg-zinc-500/5 rounded-2xl border border-border/50 w-full">
+                  <span className="text-[9px] font-bold text-fg-tertiary uppercase tracking-wider">Queue Metrics</span>
+                  <div className="flex justify-between items-center py-1 border-b border-border/40">
+                    <span>Unresolved Triggers:</span>
+                    <span className="text-rose-500 font-bold font-mono">2 warnings</span>
                   </div>
-                )}
-              </Card>
+                  <div className="flex justify-between items-center py-1 border-b border-border/40">
+                    <span>Average Action Time:</span>
+                    <span className="font-mono">1.2 hours</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span>Compliance Action Rate:</span>
+                    <span className="text-emerald-500 font-bold font-mono">92.8%</span>
+                  </div>
+                </div>
+              </div>
             )}
 
-            {activePerspective === "Finance Admin" && (
-              <Card className="p-5 flex flex-col gap-4 text-left">
-                {selectedMonth ? (
-                  <div>
-                    <div className="flex items-center justify-between border-b border-border/85 pb-2.5 mb-4">
-                      <h2 className="text-sm font-extrabold tracking-tight text-fg flex items-center gap-1.5">
-                        <Cpu className="h-4.5 w-4.5 text-pink-500" />
-                        Payout Ledger: {selectedMonth}
-                      </h2>
-                      <button 
-                        onClick={() => setSelectedMonth(null)}
-                        className="text-[10px] font-black text-accent hover:underline uppercase tracking-wider cursor-pointer"
-                      >
-                        Clear Filter
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      <div className="bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08] border border-emerald-500/5 p-4 rounded-[20px] flex flex-col gap-1.5 text-xs">
-                        <div className="flex items-center justify-between font-bold text-fg">
-                          <span className="text-emerald-600 dark:text-emerald-450 font-extrabold">FAST Cleared API</span>
-                          <span className="font-mono text-fg-secondary font-bold">
-                            {selectedMonth === "Jun" ? "S$2,800.00" : selectedMonth === "May" ? "S$1,950.00" : "S$1,800.00"}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-fg-secondary leading-normal font-medium">
-                          Citibank transaction batch ID: <code className="font-mono bg-white dark:bg-black px-1 py-0.5 rounded border border-border">TXN-{selectedMonth.toUpperCase()}-99</code>. Cleared central bank settlement ledger.
-                        </p>
-                      </div>
-
-                      <div className="bg-zinc-50 dark:bg-zinc-900 border border-border/50 p-4 rounded-[20px] flex flex-col gap-1 text-xs">
-                        <span className="font-bold text-fg-secondary">Disbursement Summary</span>
-                        <div className="flex justify-between items-center text-[10px] mt-1.5 text-fg-tertiary">
-                          <span>Clearing gateway:</span>
-                          <span className="font-mono">Citibank FAST API</span>
-                        </div>
-                        <div className="flex justify-between items-center text-[10px] text-fg-tertiary">
-                          <span>Avg processing latency:</span>
-                          <span className="font-mono">13.8 ms</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <h2 className="text-sm font-bold tracking-tight text-fg border-b border-border/85 pb-2.5 flex items-center gap-1.5">
-                      <Cpu className="h-4.5 w-4.5 text-pink-500 animate-pulse" />
-                      Treasury Diagnostics
-                    </h2>
-                    <TreasurySimulator />
-                    <ExportPanel />
-                  </>
-                )}
-              </Card>
+            {/* ==================== GATEWAY DIAGNOSTICS TAB ==================== */}
+            {activeTab === "diagnostics" && activePerspective === "Finance Admin" && (
+              <div className="max-w-4xl mx-auto w-full">
+                <FastClearingConsole />
+              </div>
             )}
-          </div>
 
-        </div>
+            {/* ==================== TREASURY RESERVES TAB ==================== */}
+            {activeTab === "treasury" && activePerspective === "Finance Admin" && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start w-full">
+                <TreasurySimulator />
+                <ExportPanel />
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </>
   );

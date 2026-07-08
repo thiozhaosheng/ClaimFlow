@@ -22,44 +22,79 @@ export interface ParsedReceipt {
   items: string[];
   // If the receipt clearly encodes a transport route, the parsed endpoints.
   route: { from: string; to: string } | null;
-  source: 'azure' | 'mock' | 'unavailable';
+  // 'unavailable' covers both "Azure isn't configured" and "Azure couldn't
+  // read this receipt" — either way there's no fallback: the caller shows
+  // an error and the user fills the form in manually. No mock data is ever
+  // returned as if it were a real extraction.
+  source: 'azure' | 'unavailable';
 }
+
+const EMPTY_RESULT: ParsedReceipt = {
+  merchant: null,
+  total: null,
+  gstAmount: null,
+  currency: null,
+  expenseDate: null,
+  transactionTime: null,
+  category: null,
+  items: [],
+  route: null,
+  source: 'unavailable',
+};
+
+// Azure jobs are normally done in a few seconds, but a throttled/degraded
+// endpoint can leave the poller spinning indefinitely. Cap it so a slow
+// Azure call degrades to "fill in manually" instead of hanging the request.
+const AZURE_TIMEOUT_MS = 25_000;
 
 export async function parseReceipt(
   buffer: Buffer,
   mimeType: string,
 ): Promise<ParsedReceipt> {
-  if (useAzure) {
-    try {
-      return await parseWithAzure(buffer, mimeType);
-    } catch (err: any) {
-      // Surface what Azure actually complained about so we can fix the upstream issue
-      // instead of silently masking it with the mock.
-      const detail = err?.details ?? err?.response?.parsedBody ?? err?.response?.bodyAsText;
-      console.warn(
-        '[receiptParser] Azure failed:',
-        err?.code ?? err?.statusCode ?? '',
-        err?.message ?? err,
-        detail ? `| detail: ${typeof detail === 'string' ? detail : JSON.stringify(detail)}` : '',
-      );
-      // When Azure is configured but rejects this file, returning random mock data
-      // would silently overwrite the form with values that don't match the receipt.
-      // Better to return empties so the user fills in manually and knows OCR failed.
-      return {
-        merchant: null,
-        total: null,
-        gstAmount: null,
-        currency: null,
-        expenseDate: null,
-        transactionTime: null,
-        category: null,
-        items: [],
-        route: null,
-        source: 'unavailable',
-      };
-    }
+  if (buffer.length === 0) {
+    return EMPTY_RESULT;
   }
-  return parseWithMock(buffer);
+  if (!useAzure) {
+    console.warn('[receiptParser] AZURE_DOC_INTEL_ENDPOINT/KEY not configured — OCR unavailable');
+    return EMPTY_RESULT;
+  }
+  try {
+    return await withTimeout(parseWithAzure(buffer, mimeType), AZURE_TIMEOUT_MS);
+  } catch (err: any) {
+    // Surface what Azure actually complained about so we can fix the upstream issue
+    // instead of silently masking it with the mock.
+    const detail = err?.details ?? err?.response?.parsedBody ?? err?.response?.bodyAsText;
+    console.warn(
+      '[receiptParser] Azure failed:',
+      err?.code ?? err?.statusCode ?? '',
+      err?.message ?? err,
+      detail ? `| detail: ${typeof detail === 'string' ? detail : JSON.stringify(detail)}` : '',
+    );
+    // When Azure is configured but rejects this file (or times out), returning
+    // random mock data would silently overwrite the form with values that don't
+    // match the receipt. Better to return empties so the user fills in manually
+    // and knows OCR failed.
+    return EMPTY_RESULT;
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`Azure Document Intelligence timed out after ${ms}ms`)),
+      ms,
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
 }
 
 // Extract item descriptions from the prebuilt-receipt Items field.
@@ -216,6 +251,11 @@ function scanTotalsFromRawText(result: any): TextTotal[] {
     { pattern: /\btotal\s*amount\b/i, weight: 60, label: 'total amount' },
     { pattern: /\bfinal\s*total\b/i, weight: 55, label: 'final total' },
     { pattern: /\btotal\b/i, weight: 30, label: 'total' }, // ambiguous
+    // Bank/wallet transfer confirmations (PayNow, PayLah, bank alert emails)
+    // typically just say "Amount:" with no "paid"/"due" qualifier — lower
+    // weight than the "total" family since it's common on non-receipt pages,
+    // but still trustworthy when it's the only money label present.
+    { pattern: /\bamount\b/i, weight: 25, label: 'amount' },
   ];
 
   // Find currency-looking numbers and the line they sit on.
@@ -300,7 +340,7 @@ function cleanMerchant(raw: string | null): string | null {
 // "GrabBike", "GoCar Plus", "TADA Premium"). Map those service codes back to
 // the parent brand so the form shows the right merchant.
 const SERVICE_TO_BRAND: Array<{ pattern: RegExp; brand: string }> = [
-  { pattern: /^grab(?:car|bike|share|pet|family|hitch|exec|premium|coach|taxi)\b/i, brand: 'Grab' },
+  { pattern: /^grab(?:car|bike|share|pet|family|hitch|exec|premium|coach|taxi|pay|food|express|forbusiness|business)\b/i, brand: 'Grab' },
   { pattern: /^grab\b/i, brand: 'Grab' },
   { pattern: /^go(?:car|ride|send|food|pay|jek)\b/i, brand: 'Gojek' },
   { pattern: /^tada\b/i, brand: 'TADA' },
@@ -398,6 +438,25 @@ function findRecipientInLines(result: any): string | null {
   return null;
 }
 
+// Some bank/e-wallet screenshots (e.g. a forwarded PayNow confirmation
+// email) don't look like a receipt at all, so Azure's prebuilt-receipt
+// model often can't populate MerchantName — there's no "merchant" region
+// for it to find. In that case isPaymentIntermediary(fieldMerchant) never
+// fires because fieldMerchant is empty, and merchant resolution falls
+// through to a much weaker heuristic. Scanning the raw OCR text directly
+// for a bank/wallet name catches that case too.
+function anyLineIsPaymentIntermediary(result: any): boolean {
+  const pages: any[] = result?.pages ?? [];
+  for (const page of pages) {
+    for (const line of page?.lines ?? []) {
+      if (typeof line?.content === 'string' && isPaymentIntermediary(line.content)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 async function parseWithAzure(
   buffer: Buffer,
   _mimeType: string,
@@ -443,12 +502,17 @@ async function parseWithAzure(
   //      GrabPay screenshots: the bank logo is the most prominent text but
   //      the *real* merchant is the recipient. Look for "Pay to: <name>" /
   //      "Recipient: <name>" labels in the OCR text and use that instead.
+  //      Also fires when MerchantName came back empty but the document text
+  //      elsewhere clearly reads as a bank/wallet screenshot (e.g. a
+  //      forwarded PayNow confirmation email, which isn't receipt-shaped
+  //      enough for Azure to tag a merchant region at all).
   //   2. Brand-aware: logo-only Grab/Gojek/TADA whose MerchantName comes
   //      back as a service code ("GrabCar"/"GoRide"/"TADA Plus") → parent.
-  //   3. Fallback: first line of the document that looks like a name.
+  //   3. Fallback: first line of the document that looks like a name,
+  //      brand-normalized the same way as step 2.
   let merchant: string | null = null;
 
-  if (isPaymentIntermediary(fieldMerchant)) {
+  if (isPaymentIntermediary(fieldMerchant) || (!fieldMerchant && anyLineIsPaymentIntermediary(result))) {
     merchant = findRecipientInLines(result);
   }
 
@@ -458,12 +522,14 @@ async function parseWithAzure(
 
   if (!merchant || isPaymentIntermediary(merchant)) {
     // Still landed on a bank/wallet — last try, scan for any non-intermediary
-    // proper-name line.
+    // proper-name line, normalizing it to a known brand if it matches one
+    // (e.g. a stray "GrabForBusiness" heading picked up from the page body).
     const guess = guessMerchantFromLines(result);
-    if (guess && !isPaymentIntermediary(guess)) {
-      merchant = guess;
+    const brandedGuess = brandFromServiceText(guess) ?? guess;
+    if (brandedGuess && !isPaymentIntermediary(brandedGuess)) {
+      merchant = brandedGuess;
     } else {
-      merchant = merchant ?? guess ?? null;
+      merchant = merchant ?? brandedGuess ?? null;
     }
   }
 
@@ -577,36 +643,6 @@ function guessMerchantFromLines(result: any): string | null {
     return line.length > 60 ? line.slice(0, 60).trim() : line;
   }
   return null;
-}
-
-// Deterministic mock so the demo is reproducible without an Azure key.
-// Picks one of a handful of plausible SG receipts based on the file size.
-function parseWithMock(buffer: Buffer): ParsedReceipt {
-  const fixtures = [
-    { merchant: 'Grab',              total: 12.5,   gst: 1.03 },
-    { merchant: 'Comfort Taxi',      total: 18.4,   gst: 1.52 },
-    { merchant: 'Toast Box',         total: 9.8,    gst: 0.81 },
-    { merchant: 'Tiong Bahru Bakery',total: 22.5,   gst: 1.86 },
-    { merchant: 'NTUC FairPrice',    total: 47.85,  gst: 3.95 },
-    { merchant: 'Cold Storage',      total: 64.2,   gst: 5.3  },
-    { merchant: 'Din Tai Fung',      total: 145.9,  gst: 12.05 },
-    { merchant: 'Crystal Jade',      total: 198.3,  gst: 16.37 },
-    { merchant: 'Raffles Medical',   total: 85.0,   gst: 7.02 },
-    { merchant: 'PaperOne Office Hub', total: 36.5, gst: 3.01 },
-  ];
-  const pick = fixtures[buffer.length % fixtures.length];
-  return {
-    merchant: pick.merchant,
-    total: pick.total,
-    gstAmount: pick.gst,
-    currency: 'SGD',
-    expenseDate: new Date().toISOString().slice(0, 10),
-    transactionTime: null,
-    category: guessCategoryFromMerchant(pick.merchant),
-    items: [],
-    route: null,
-    source: 'mock',
-  };
 }
 
 // Best-guess category from the merchant string. Returns null when no pattern

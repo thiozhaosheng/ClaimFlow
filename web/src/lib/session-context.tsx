@@ -33,7 +33,7 @@ export const DEMO_USERS: Record<string, UserSession> = {
     email: "demo.manager@claimflow.com",
     name: "Marcus Lim",
     role: "Approving Officer",
-    department: "Operations",
+    department: "Sales",
     avatarUrl: "/animoji_approver.jpg",
   },
   "demo.finance@claimflow.com": {

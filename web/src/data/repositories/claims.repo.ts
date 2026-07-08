@@ -390,4 +390,251 @@ export const mockClaimsRepository: ClaimsRepository = {
   },
 };
 
-export const claimsRepository: ClaimsRepository = mockClaimsRepository;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
+async function apiRequest(path: string, options: RequestInit = {}) {
+  const token = typeof window !== "undefined" ? localStorage.getItem("claimflow_token") : null;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options.headers as Record<string, string>),
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers,
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `API request failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+export interface ReceiptParseResult {
+  merchant: string | null;
+  total: number | null;
+  gstAmount: number | null;
+  currency: string | null;
+  expenseDate: string | null;
+  transactionTime: string | null;
+  category: string | null;
+  items: string[];
+  route: { from: string; to: string } | null;
+  // No mock source — the backend either returns a real Azure extraction or
+  // "unavailable" (not configured, failed, or timed out). No fake data.
+  source: "azure" | "unavailable";
+  receiptUrl: string | null;
+  viewUrl: string | null;
+}
+
+// Uploads a receipt file to the real backend for OCR (Azure Document
+// Intelligence, or the backend's own deterministic mock if Azure isn't
+// configured there). No client-side fallback — a network/backend failure
+// throws, and the caller is responsible for surfacing that rather than
+// silently substituting fake data.
+export async function parseReceiptFile(file: File): Promise<ReceiptParseResult> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("claimflow_token") : null;
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const formData = new FormData();
+  formData.append("receipt", file);
+  const response = await fetch(`${API_BASE_URL}/claims/parse-receipt`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Receipt parsing failed with status ${response.status}`);
+  }
+  const json = await response.json();
+  return json.data;
+}
+
+function mapClaim(c: any): Claim {
+  return {
+    id: `CLM-${c.id}`,
+    employee: c.user?.name || "Unspecified",
+    department: c.user?.department || "General",
+    type: c.category,
+    title: c.details?.title || c.merchant || c.category || "Untitled Expense",
+    amount: Number(c.amount),
+    gstAmount: c.gstAmount ? Number(c.gstAmount) : null,
+    date: c.expenseDate ? c.expenseDate.split("T")[0] : new Date().toISOString().split("T")[0],
+    merchant: c.merchant,
+    bank: c.bank || "DBS **** 7855",
+    status: c.status,
+    receiptUrl: c.receiptUrl,
+    ocrSource: c.ocrSource,
+    details: c.details || {},
+    flagged: c.flagged,
+  };
+}
+
+function mapActivity(l: any): ClaimActivity {
+  const dateStr = new Date(l.createdAt).toISOString();
+  return {
+    id: String(l.id),
+    actor: l.executor?.name || "System",
+    role: l.executor?.role || "System",
+    action: l.action === 'COMMENT' ? l.remarks : `${l.action} (Claim CLM-${String(l.claimId).padStart(3, '0')})`,
+    status: l.newStatus,
+    date: dateStr.split("T")[0],
+    time: new Date(l.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    reason: l.remarks || undefined,
+    isComment: l.action === 'COMMENT',
+  };
+}
+
+export const apiClaimsRepository: ClaimsRepository = {
+  async list() {
+    const userStr = typeof window !== 'undefined' ? localStorage.getItem("claimflow_user") : null;
+    let isEmployee = true;
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      isEmployee = user.role === 'Employee';
+    }
+    const path = isEmployee ? '/claims/my' : '/claims';
+    const res = await apiRequest(path);
+    const claims = res.data?.claims || [];
+    return claims.map(mapClaim);
+  },
+  async getById(id) {
+    const numericId = id.replace("CLM-", "");
+    const res = await apiRequest(`/claims/${numericId}`);
+    return mapClaim(res.data.claim);
+  },
+  async activityFor(id) {
+    const numericId = id.replace("CLM-", "");
+    const res = await apiRequest(`/claims/${numericId}/activity`);
+    const logs = res.data?.logs || [];
+    return logs.map(mapActivity);
+  },
+  async updateStatus(id, status, actorName, actorRole, reason) {
+    const numericId = id.replace("CLM-", "");
+    let res;
+    if (status === "Endorsed" || status === "Rejected") {
+      res = await apiRequest(`/workflow/review/${numericId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          action: status === "Endorsed" ? "approve" : "reject",
+          remarks: reason,
+        }),
+      });
+    } else if (status === "Paid") {
+      res = await apiRequest(`/workflow/pay/${numericId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          remarks: reason,
+        }),
+      });
+    } else {
+      throw new Error(`Unsupported status update: ${status}`);
+    }
+    return mapClaim(res.data.claim);
+  },
+  async addClaim(claimData) {
+    const body = {
+      amount: claimData.amount,
+      gstAmount: claimData.gstAmount,
+      merchant: claimData.merchant,
+      category: claimData.type,
+      expenseDate: new Date(claimData.date || new Date()).toISOString(),
+      receiptUrl: claimData.receiptUrl,
+      ocrSource: claimData.ocrSource,
+      details: {
+        ...claimData.details,
+        title: claimData.title,
+      },
+    };
+    const res = await apiRequest('/claims', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    return mapClaim(res.data.claim);
+  },
+  async addActivityComment(id, actorName, actorRole, commentText) {
+    const numericId = id.replace("CLM-", "");
+    const res = await apiRequest(`/claims/${numericId}/comment`, {
+      method: 'POST',
+      body: JSON.stringify({ commentText }),
+    });
+    return mapActivity({
+      ...res.data.log,
+      executor: { name: actorName, role: actorRole }
+    });
+  },
+  async updateClaimFields(id, fields) {
+    const numericId = id.replace("CLM-", "");
+    const body: any = {};
+    if ('amount' in fields) body.amount = fields.amount;
+    if ('gstAmount' in fields) body.gstAmount = fields.gstAmount;
+    if ('merchant' in fields) body.merchant = fields.merchant;
+    if ('type' in fields) body.category = fields.type;
+    if ('date' in fields) body.expenseDate = new Date(fields.date!).toISOString();
+    
+    if ('details' in fields || 'title' in fields) {
+      body.details = {
+        ...fields.details,
+        ...(fields.title ? { title: fields.title } : {}),
+      };
+    }
+    
+    const res = await apiRequest(`/claims/${numericId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    return mapClaim(res.data.claim);
+  },
+};
+
+/**
+ * Switches per-call between the live API and the mock repository based on
+ * whether a backend session token is present. Deliberately no fallback: once
+ * authenticated against the real backend, calls stay live so a failure
+ * surfaces as an error rather than silently showing mock data underneath a
+ * real session.
+ */
+export const hybridClaimsRepository: ClaimsRepository = {
+  list() {
+    const token = typeof window !== 'undefined' ? localStorage.getItem("claimflow_token") : null;
+    if (token) return apiClaimsRepository.list();
+    return mockClaimsRepository.list();
+  },
+  getById(id) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem("claimflow_token") : null;
+    if (token) return apiClaimsRepository.getById(id);
+    return mockClaimsRepository.getById(id);
+  },
+  activityFor(id) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem("claimflow_token") : null;
+    if (token) return apiClaimsRepository.activityFor(id);
+    return mockClaimsRepository.activityFor(id);
+  },
+  updateStatus(id, status, actorName, actorRole, reason) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem("claimflow_token") : null;
+    if (token) return apiClaimsRepository.updateStatus(id, status, actorName, actorRole, reason);
+    return mockClaimsRepository.updateStatus(id, status, actorName, actorRole, reason);
+  },
+  addClaim(claim) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem("claimflow_token") : null;
+    if (token) return apiClaimsRepository.addClaim(claim);
+    return mockClaimsRepository.addClaim(claim);
+  },
+  addActivityComment(id, actorName, actorRole, commentText) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem("claimflow_token") : null;
+    if (token) return apiClaimsRepository.addActivityComment(id, actorName, actorRole, commentText);
+    return mockClaimsRepository.addActivityComment(id, actorName, actorRole, commentText);
+  },
+  updateClaimFields(id, fields) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem("claimflow_token") : null;
+    if (token) return apiClaimsRepository.updateClaimFields(id, fields);
+    return mockClaimsRepository.updateClaimFields(id, fields);
+  },
+};
+
+export const claimsRepository: ClaimsRepository = hybridClaimsRepository;

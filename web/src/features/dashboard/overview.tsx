@@ -25,16 +25,26 @@ import {
   Sun,
   Moon,
   X,
+  Cpu,
+  CreditCard,
+  Car,
+  UtensilsCrossed,
+  Laptop,
+  Heart,
+  Circle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useClaims, useUpdateClaimFields } from "@/features/claims/api/queries";
 import { ClaimRow } from "@/features/claims/components/claim-row";
+import { CategoryIcon } from "@/components/ui/category-icon";
 import { formatSGD } from "@/core/domain/money";
+import { categoryBudget, TREASURY_LIMIT, DEPARTMENT_BUDGET } from "@/core/domain/budgets";
 import { motion, useMotionValue, useTransform, useSpring, AnimatePresence, useMotionTemplate, useIsPresent } from "motion/react";
 import { useSession } from "@/lib/session-context";
 import { NewClaimDialog } from "@/features/claims/components/new-claim-dialog";
 import { cn } from "@/lib/cn";
 import { CitiLogo } from "@/features/marketing/logo";
+import { CITI_CARD_TRANSACTIONS } from "@/data/mock/card";
 import { Button } from "@/components/ui/button";
 
 function Stat({
@@ -226,21 +236,29 @@ function DashboardSuggestionCard({
           ? "bg-white dark:bg-zinc-900 border border-border dark:border-zinc-800/80 shadow-[0_12px_36px_rgba(0,0,0,0.06)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.3)] cursor-grab active:cursor-grabbing touch-none z-20" 
           : isMiddle
             ? "bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/85 shadow-md cursor-pointer z-10"
-            : "bg-zinc-50 dark:bg-zinc-950 border border-zinc-250/60 dark:border-zinc-900/80 shadow-sm z-0"
+            : "bg-zinc-50 dark:bg-zinc-950 border border-zinc-200/60 dark:border-zinc-900/80 shadow-sm z-0"
       )}
     >
       {isFront ? (
         <>
           <div className="flex gap-3 items-start text-left">
-            <div className="relative h-7 w-7 rounded-full bg-zinc-150 dark:bg-zinc-800 flex items-center justify-center text-zinc-650 dark:text-zinc-350 shrink-0 mt-0.5 shadow-inner font-sans">
+            <div className="relative h-7 w-7 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 shrink-0 mt-0.5 shadow-inner font-sans">
               <motion.span
                 animate={{ scale: [1, 1.25, 1], opacity: [0.25, 0.5, 0.25] }}
                 transition={{ duration: 2, repeat: Infinity }}
                 className="absolute inset-0 rounded-full bg-indigo-500/25 filter blur-[2px]"
               />
-              <Bot className="h-4 w-4 text-zinc-550 dark:text-zinc-400 relative z-10" />
+              {(() => {
+                const CardIcon = task.icon || Bot;
+                return <CardIcon className="h-4 w-4 text-zinc-500 dark:text-zinc-400 relative z-10" />;
+              })()}
             </div>
             <div className="min-w-0 flex-grow font-sans text-left">
+              {task.eyebrow && (
+                <span className={cn("text-[9px] font-bold uppercase tracking-wider block mb-0.5 select-none", task.eyebrowColor || "text-indigo-500")}>
+                  {task.eyebrow}
+                </span>
+              )}
               <p className="font-bold text-fg">{task.title}</p>
               <p className="mt-0.5 leading-relaxed text-zinc-500 font-medium text-[11px] truncate-2-lines text-left">
                 {task.description}
@@ -260,7 +278,7 @@ function DashboardSuggestionCard({
             >
               {task.isLoading ? (
                 <>
-                  <Loader2 className="h-3 w-3 animate-spin text-zinc-450" />
+                  <Loader2 className="h-3 w-3 animate-spin text-zinc-400" />
                   Processing...
                 </>
               ) : (
@@ -271,17 +289,7 @@ function DashboardSuggestionCard({
         </>
       ) : null}
 
-      {isMiddle && (
-        <div 
-          className={cn(
-            "absolute bottom-1 inset-x-0 flex items-center justify-center gap-1.5 px-4 font-sans transition-opacity duration-200 select-none",
-            stackHovered ? "opacity-0" : "opacity-60"
-          )}
-        >
-          <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-555">Up Next:</span>
-          <span className="text-[9px] font-bold text-zinc-550 dark:text-zinc-400 truncate max-w-[180px]">{task.title}</span>
-        </div>
-      )}
+      {/* Clean stacked layers without overlapping text */}
     </motion.div>
   );
 }
@@ -289,6 +297,7 @@ function DashboardSuggestionCard({
 function DashboardGreetingHero({
   role,
   onNewClaimClick,
+  onPrefillClaim,
   filteredClaims,
   pendingFinanceClaims,
   batchApproving,
@@ -303,10 +312,11 @@ function DashboardGreetingHero({
 }: {
   role: string;
   onNewClaimClick: () => void;
+  onPrefillClaim: (tx: { category: string; title: string; amount: string; merchant: string; date: string }) => void;
   filteredClaims: any[];
   pendingFinanceClaims: any[];
   batchApproving: boolean;
-  handleBatchApprove: () => void;
+  handleBatchApprove: (claimsToApprove?: any[]) => void;
   payoutRunning: boolean;
   payoutStep: number;
   handleBatchDisburse: () => void;
@@ -373,16 +383,35 @@ function DashboardGreetingHero({
   }, []);
 
   useEffect(() => {
-    const hr = new Date().getHours();
-    setTimeout(() => {
-      if (hr >= 5 && hr < 12) {
-        setGreeting("Good morning");
-      } else if (hr >= 12 && hr < 17) {
-        setGreeting("Good afternoon");
-      } else {
-        setGreeting("Good evening");
+    const updateGreeting = () => {
+      try {
+        const formatter = new Intl.DateTimeFormat("en-US", {
+          timeZone: "Asia/Singapore",
+          hour: "numeric",
+          hour12: false
+        });
+        const hr = parseInt(formatter.format(new Date()), 10);
+        if (hr >= 5 && hr < 12) {
+          setGreeting("Good morning");
+        } else if (hr >= 12 && hr < 17) {
+          setGreeting("Good afternoon");
+        } else {
+          setGreeting("Good evening");
+        }
+      } catch (e) {
+        const hr = new Date().getHours();
+        if (hr >= 5 && hr < 12) {
+          setGreeting("Good morning");
+        } else if (hr >= 12 && hr < 17) {
+          setGreeting("Good afternoon");
+        } else {
+          setGreeting("Good evening");
+        }
       }
-    }, 0);
+    };
+    updateGreeting();
+    const interval = setInterval(updateGreeting, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const firstName = user?.name ? user.name.split(" ")[0] : "Sarah";
@@ -400,11 +429,20 @@ function DashboardGreetingHero({
 
   const hasFlags = flaggedCount > 0;
 
+  // Treasury figures for the Finance task — derived so they match the
+  // liquidity stat + reports rather than a contradicting hardcoded number.
+  const financeReserve = useMemo(() => {
+    const outstanding = (claimsData ?? [])
+      .filter((c) => c.status === "Endorsed")
+      .reduce((a, c) => a + c.amount, 0);
+    return { outstanding, available: Math.max(0, TREASURY_LIMIT - outstanding) };
+  }, [claimsData]);
+
   const cards = {
     "Employee": {
       sub: hasFlags
-        ? `You have ${flaggedCount} flagged submission${flaggedCount > 1 ? "s" : ""} requiring correction. Autofill scanning recommendations below.`
-        : "You have CITIBANK transactions pending sync. Snap receipts to file in under a second.",
+        ? `You have ${flaggedCount} flagged claim${flaggedCount > 1 ? "s" : ""} requiring revision. Resolve them using the compliance deck.`
+        : `Your corporate card transactions are synchronized. No pending items require your attention.`,
       cta: (
         <button
           onClick={onNewClaimClick}
@@ -414,15 +452,15 @@ function DashboardGreetingHero({
           File New Claim
         </button>
       ),
-      pill: hasFlags ? "Action Required" : "AI OCR Ready",
+      pill: hasFlags ? "Fix Flags" : "Card Sync Active",
       pillClass: hasFlags
-        ? "bg-amber-500/10 text-amber-700 dark:text-amber-450 border-amber-500/20"
-        : "bg-indigo-500/10 text-indigo-650 dark:text-indigo-400 border-indigo-500/20",
+        ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+        : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
     },
     "Approving Officer": {
       sub: hasFlags
-        ? `You have ${flaggedCount} team claim${flaggedCount > 1 ? "s" : ""} with compliance warnings awaiting your review and endorsement.`
-        : "Review and endorse pending team claims. Endorsed claims are immediately queued for payout.",
+        ? `You have ${flaggedCount} team claim${flaggedCount > 1 ? "s" : ""} with compliance flags. Review them to resume fast approvals.`
+        : `Your approval queue is clear. All team expenses conform to company policy rules.`,
       cta: (
         <Link
           href="/approvals"
@@ -432,15 +470,15 @@ function DashboardGreetingHero({
           <ArrowRight className="h-4 w-4" />
         </Link>
       ),
-      pill: hasFlags ? "Review Flags" : "Approvals Queue Active",
+      pill: hasFlags ? "Review Flags" : "Approvals Active",
       pillClass: hasFlags
         ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
         : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
     },
     "Finance Admin": {
       sub: hasFlags
-        ? `You have ${flaggedCount} payout disbursement${flaggedCount > 1 ? "s" : ""} with active flags requiring audit clearance.`
-        : "Citibank treasury node active. Audit clearance and settle queued bank disbursements.",
+        ? `You have ${flaggedCount} claim${flaggedCount > 1 ? "s" : ""} pending final audit check. Verify details to clear payouts.`
+        : `Citibank FAST gateway ledger is fully reconciled. All team payouts have been settled.`,
       cta: (
         <Link
           href="/payouts"
@@ -450,7 +488,7 @@ function DashboardGreetingHero({
           <ArrowRight className="h-4 w-4" />
         </Link>
       ),
-      pill: hasFlags ? "Audit Review Required" : "Citibank FAST Live",
+      pill: hasFlags ? "Audit Flags" : "FAST Gateway Live",
       pillClass: hasFlags
         ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
         : "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20",
@@ -471,7 +509,7 @@ function DashboardGreetingHero({
       imgOverlay: "from-sky-500 to-emerald-500",
     },
     "Good evening": {
-      gradient: "from-indigo-600/[0.06] via-purple-650/[0.02] to-transparent",
+      gradient: "from-indigo-600/[0.06] via-purple-600/[0.02] to-transparent",
       image: "/sg_evening_workspace.png",
       imgOverlay: "from-indigo-500 to-purple-500",
     },
@@ -487,14 +525,20 @@ function DashboardGreetingHero({
       isLoading?: boolean;
       isSuccess?: boolean;
       customContent?: React.ReactNode;
+      eyebrow?: string;
+      icon?: any;
+      eyebrowColor?: string;
     }> = [];
 
     if (role === "Employee") {
       if (hasFlags) {
         list.push({
           id: "gst-typo",
-          title: "AI Assistant suggestion",
-          description: "I scanned receipt #1042 and found a GST typo. Autofill the correct value?",
+          title: "GST Form Correction",
+          eyebrow: "Auto-check",
+          icon: ReceiptText,
+          eyebrowColor: "text-indigo-500 dark:text-indigo-400",
+          description: "Receipt GST typo detected. Autofill corrected amount?",
           actionLabel: updateClaimFieldsMutation.isSuccess ? "Corrected ✓" : "Autofill S$26.29",
           isLoading: updateClaimFieldsMutation.isPending && fixingId === "CLM-1042",
           onAction: () => {
@@ -509,10 +553,10 @@ function DashboardGreetingHero({
           customContent: (
             <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
               <span className="text-[10px] text-zinc-400 font-semibold font-sans">Form:</span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-400 line-through bg-zinc-100 dark:bg-zinc-800 border border-zinc-250 dark:border-zinc-800">S$28.00</span>
-              <span className="text-[10px] text-zinc-450">→</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-400 line-through bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800">S$28.00</span>
+              <span className="text-[10px] text-zinc-400 font-medium">→</span>
               <span className="text-[10px] text-zinc-400 font-semibold font-sans ml-1">Receipt:</span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono text-zinc-850 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800">S$26.29</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono text-zinc-800 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800">S$26.29</span>
             </div>
           )
         });
@@ -520,13 +564,20 @@ function DashboardGreetingHero({
 
       list.push({
         id: "citi-sync",
-        title: "Citibank CardSync Activity",
-        description: "You have an unfiled corporate card charge of S$24.80 at Starbucks. Create claim?",
+        title: "Card Charge Sync",
+        eyebrow: "Citibank",
+        icon: CreditCard,
+        eyebrowColor: "text-indigo-500 dark:text-indigo-400",
+        description: "New Starbucks charge (S$24.80) synced. Pre-fill claim?",
         actionLabel: "Autofill Starbucks Claim",
-        onAction: onNewClaimClick,
+        onAction: () => {
+          const tx = CITI_CARD_TRANSACTIONS.find((t) => t.merchant.includes("Starbucks"));
+          if (tx) onPrefillClaim({ category: tx.category, title: tx.title, amount: String(tx.amount), merchant: tx.merchant, date: tx.date });
+          else onNewClaimClick();
+        },
         customContent: (
           <div className="flex items-center gap-1.5 mt-1.5">
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-650 dark:text-indigo-400 border border-indigo-500/20">CITIBANK VISA</span>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">CITIBANK VISA</span>
             <span className="text-[10px] font-mono text-fg-tertiary">2026-06-24 · S$24.80</span>
           </div>
         )
@@ -534,48 +585,67 @@ function DashboardGreetingHero({
 
       list.push({
         id: "policy-warning",
-        title: "Policy Audit Requirement",
-        description: "Claim CLM-1039 (AWS Training) is missing internal attendee documentation. Add details?",
+        title: "Add Attendees",
+        eyebrow: "Policy Check",
+        icon: ShieldCheck,
+        eyebrowColor: "text-amber-500 dark:text-amber-400",
+        description: "AWS Training claim is missing attendee list. Add now?",
         actionLabel: "Add Attendees Now",
         onAction: () => alert("Navigating to policy form...")
       });
     } else if (role === "Approving Officer") {
       if (filteredClaims.length > 0) {
-        list.push({
-          id: "batch-endorse",
-          title: "AI Endorsement Recommendation",
-          description: `All team documents satisfy compliance policies (100% score). Endorse all ${filteredClaims.length} pending claims?`,
-          actionLabel: batchApproving ? "Endorsing..." : "Batch Endorse Team",
-          isLoading: batchApproving,
-          onAction: handleBatchApprove,
-          customContent: (
-            <div className="flex items-center gap-2 mt-1.5 select-none">
-              <span className="text-[10px] text-zinc-400 font-semibold">Queue:</span>
-              <div className="flex items-center gap-1.5">
-                {filteredClaims.slice(0, 3).map((c) => (
-                  <div key={c.id} className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full px-2 py-0.5 text-[9px] font-bold font-mono text-zinc-600 dark:text-zinc-400">
-                    {c.id}
-                  </div>
-                ))}
-                {filteredClaims.length > 3 && <span className="text-[9px] text-zinc-400">+{filteredClaims.length - 3} more</span>}
+        const cleanClaims = filteredClaims.filter(c => !c.flagged);
+        const teamFlaggedCount = filteredClaims.filter(c => c.flagged).length;
+        
+        if (cleanClaims.length > 0) {
+          list.push({
+            id: "batch-endorse",
+            title: "Batch Endorse",
+            eyebrow: "Auto-check",
+            icon: Layers,
+            eyebrowColor: "text-amber-500 dark:text-amber-400",
+            description: teamFlaggedCount > 0
+              ? `${cleanClaims.length} clean claims pass policy checks. Approve them?`
+              : `${filteredClaims.length} claims pass policy checks. Approve all?`,
+            actionLabel: batchApproving ? "Endorsing..." : (teamFlaggedCount > 0 ? "Batch Endorse Clean" : "Batch Endorse Team"),
+            isLoading: batchApproving,
+            onAction: () => handleBatchApprove(cleanClaims),
+            customContent: (
+              <div className="flex items-center gap-2 mt-1.5 select-none">
+                <span className="text-[10px] text-zinc-400 font-semibold">Queue:</span>
+                <div className="flex items-center gap-1.5">
+                  {cleanClaims.slice(0, 3).map((c) => (
+                    <div key={c.id} className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full px-2 py-0.5 text-[9px] font-bold font-mono text-zinc-600 dark:text-zinc-400">
+                      {c.id}
+                    </div>
+                  ))}
+                  {cleanClaims.length > 3 && <span className="text-[9px] text-zinc-400">+{cleanClaims.length - 3} more</span>}
+                </div>
               </div>
-            </div>
-          )
-        });
+            )
+          });
+        }
       }
 
       list.push({
         id: "duplicate-check",
-        title: "Compliance Shield Alert",
-        description: "Potential double-billing detected: Jumbo Seafood client dinner matches a Citibank Visa Sync txn. Resolve?",
+        title: "Duplicate Check",
+        eyebrow: "Policy",
+        icon: ShieldCheck,
+        eyebrowColor: "text-amber-500 dark:text-amber-400",
+        description: "Jumbo Seafood matches Citibank Visa transaction. Resolve duplicate?",
         actionLabel: "Compare Receipts",
         onAction: () => alert("Opening receipt compare panel...")
       });
 
       list.push({
         id: "high-value-audit",
-        title: "High Value Audit Review",
-        description: "A claim for Singapore Airlines (CLM-1052) exceeds S$500. Complete high-value checklist?",
+        title: "Limit Review",
+        eyebrow: "Policy",
+        icon: ShieldCheck,
+        eyebrowColor: "text-amber-500 dark:text-amber-400",
+        description: "Singapore Airlines claim (CLM-1052) exceeds S$500 threshold. Verify details?",
         actionLabel: "Complete Checklist",
         onAction: () => alert("Opening high-value review checklist...")
       });
@@ -583,14 +653,17 @@ function DashboardGreetingHero({
       if (pendingFinanceClaims.length > 0) {
         list.push({
           id: "batch-disburse",
-          title: "FAST Gateway Payout",
-          description: `All compliance audits passed. Ready to settle ${pendingFinanceClaims.length} claims via Citibank FAST?`,
+          title: "Bulk Payout",
+          eyebrow: "Citibank",
+          icon: Wallet,
+          eyebrowColor: "text-pink-500 dark:text-pink-400",
+          description: `Ready to disburse ${pendingFinanceClaims.length} approved claims via Citibank FAST.`,
           actionLabel: payoutRunning ? "Settling..." : "Disburse FAST",
           isLoading: payoutRunning,
           onAction: handleBatchDisburse,
           customContent: (
             <div className="flex flex-col gap-1 mt-1.5">
-              <div className="w-full max-w-[200px] h-1 bg-zinc-150 dark:bg-zinc-800/80 rounded-full relative overflow-hidden">
+              <div className="w-full max-w-[200px] h-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-full relative overflow-hidden">
                 <motion.div
                   initial={{ width: "0%" }}
                   animate={{
@@ -604,9 +677,9 @@ function DashboardGreetingHero({
                 />
               </div>
               <div className="flex justify-between items-center w-full max-w-[200px] text-[7px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider select-none">
-                <span className={cn(payoutStep >= 1 ? "text-zinc-850 dark:text-zinc-200" : "")}>1. Audit</span>
-                <span className={cn(payoutStep >= 2 ? "text-zinc-850 dark:text-zinc-200" : "")}>2. Gateway</span>
-                <span className={cn(payoutStep >= 3 ? "text-zinc-850 dark:text-zinc-200" : "")}>3. Settle</span>
+                <span className={cn(payoutStep >= 1 ? "text-zinc-800 dark:text-zinc-200" : "")}>1. Audit</span>
+                <span className={cn(payoutStep >= 2 ? "text-zinc-800 dark:text-zinc-200" : "")}>2. Gateway</span>
+                <span className={cn(payoutStep >= 3 ? "text-zinc-800 dark:text-zinc-200" : "")}>3. Settle</span>
               </div>
             </div>
           )
@@ -615,15 +688,18 @@ function DashboardGreetingHero({
 
       list.push({
         id: "liquidity-warning",
-        title: "FAST Liquidity Level",
-        description: "Citibank FAST gateway ledger is down to S$11,800. Allocate more liquidity?",
-        actionLabel: "Replenish Gateway Pool",
+        title: "Treasury Reserve",
+        eyebrow: "Citibank",
+        icon: Wallet,
+        eyebrowColor: "text-pink-500 dark:text-pink-400",
+        description: `${formatSGD(financeReserve.outstanding)} endorsed and awaiting payout. ${formatSGD(financeReserve.available)} reserve remains. Pre-fund the gateway?`,
+        actionLabel: "Replenish pool",
         onAction: () => alert("Gateway pool replenished!")
       });
     }
 
     return list;
-  }, [role, hasFlags, updateClaimFieldsMutation.isPending, updateClaimFieldsMutation.isSuccess, fixingId, filteredClaims, batchApproving, pendingFinanceClaims, payoutRunning, payoutStep, onNewClaimClick, handleBatchApprove, handleBatchDisburse]);
+  }, [role, hasFlags, updateClaimFieldsMutation.isPending, updateClaimFieldsMutation.isSuccess, fixingId, filteredClaims, batchApproving, pendingFinanceClaims, payoutRunning, payoutStep, onNewClaimClick, onPrefillClaim, handleBatchApprove, handleBatchDisburse, financeReserve]);
 
   const tasks = useMemo(() => {
     return rawTasks.filter((t) => !dismissedTaskIds.includes(t.id));
@@ -656,7 +732,7 @@ function DashboardGreetingHero({
       animate={{ opacity: 1, y: 0 }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className={`relative overflow-hidden rounded-2xl border border-white/30 dark:border-white/10 bg-white/[0.06] dark:bg-black/[0.12] backdrop-blur-3xl py-6 px-7 flex flex-col justify-between gap-5 shadow-[0_20px_50px_rgba(0,0,0,0.03)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.22)] bg-gradient-to-r ${activeTheme.gradient} group`}
+      className={`relative overflow-hidden rounded-2xl border border-white/30 dark:border-white/10 glass-panel py-6 px-7 flex flex-col justify-between gap-5 shadow-[0_20px_50px_rgba(0,0,0,0.03)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.22)] bg-gradient-to-r ${activeTheme.gradient} group`}
     >
       {/* Glossy liquid glass reflection sheen overlay */}
       <motion.div
@@ -745,8 +821,8 @@ function DashboardGreetingHero({
 
       {/* Main Side-by-Side Flex Box */}
       <div className="flex flex-col lg:flex-row justify-between items-stretch gap-6 z-20 relative w-full min-h-0">
-        {/* Left Side: Welcome Gree        {/* Left Side: Welcome Greeting */}
-        <div className="flex-grow flex flex-col justify-between py-1 z-20 flex-1">
+        {/* Left Side: Welcome Greeting */}
+        <div className="flex-grow flex flex-col justify-between py-1 z-20 flex-1 min-w-0">
           <div>
             <div className="flex items-center gap-2.5">
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${activeCard.pillClass}`}>
@@ -765,7 +841,7 @@ function DashboardGreetingHero({
                   y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
                   scale: { type: "spring", stiffness: 300, damping: 15 }
                 }}
-                className="h-8 w-8 md:h-9 md:w-9 shrink-0 rounded-full border border-white/20 dark:border-zinc-800 bg-white/20 dark:bg-zinc-850/30 overflow-hidden shadow-sm"
+                className="h-8 w-8 md:h-9 md:w-9 shrink-0 rounded-full border border-white/20 dark:border-zinc-800 bg-white/20 dark:bg-zinc-800/30 overflow-hidden shadow-sm"
               >
                 <img
                   src={
@@ -777,7 +853,7 @@ function DashboardGreetingHero({
                   className="w-full h-full object-cover scale-[1.05]"
                 />
               </motion.div>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-900 via-zinc-850 to-zinc-950 dark:from-white dark:via-zinc-200 dark:to-zinc-100">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-950 dark:from-white dark:via-zinc-200 dark:to-zinc-100">
                 {greeting},
               </span>
               <motion.span
@@ -838,6 +914,34 @@ function DashboardGreetingHero({
                 ))}
               </AnimatePresence>
             </div>
+
+            {/* Suggestions stack indicator & navigation helper */}
+            {tasks.length > 0 && (
+              <div className="flex items-center justify-between mt-1 px-1.5 select-none font-sans">
+                <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
+                    {tasks.slice(0, 5).map((t, idx) => (
+                      <div 
+                        key={t.id} 
+                        className={cn(
+                          "h-1 rounded-full transition-all duration-300",
+                          idx === 0 ? "w-3 bg-indigo-500" : "w-1 bg-zinc-300 dark:bg-zinc-700"
+                        )}
+                      />
+                    ))}
+                    {tasks.length > 5 && (
+                      <span className="text-[8px] text-zinc-400 font-extrabold">+ {tasks.length - 5}</span>
+                    )}
+                  </div>
+                  <span className="text-[9px] font-bold text-fg-secondary">
+                    {tasks.length} smart recommendation{tasks.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+                <span className="text-[9px] text-fg-tertiary font-semibold flex items-center gap-1">
+                  Swipe to dismiss <span className="opacity-40">|</span> Tap to view all
+                </span>
+              </div>
+            )}
 
             {/* macOS-style Notification Drawer Panel */}
             {mounted && createPortal(
@@ -902,13 +1006,21 @@ function DashboardGreetingHero({
                                 initial={{ opacity: 0, y: 15 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, x: -100 }}
-                                className="bg-white/[0.05] dark:bg-black/[0.08] backdrop-blur-md border border-white/20 dark:border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.01),inset_0_1px_1px_rgba(255,255,255,0.15)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.02)] rounded-xl p-3.5 flex flex-col justify-between gap-3 text-xs shrink-0 cursor-grab active:cursor-grabbing touch-none hover:bg-white/[0.1] dark:hover:bg-black/[0.14] transition-all duration-300"
+                                className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm rounded-xl p-3.5 flex flex-col justify-between gap-3 text-xs shrink-0 cursor-grab active:cursor-grabbing touch-none hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-all duration-300"
                               >
                                 <div className="flex gap-3 items-start text-left">
-                                  <div className="relative h-7 w-7 rounded-full bg-zinc-150 dark:bg-zinc-800 flex items-center justify-center text-zinc-550 dark:text-zinc-400 shrink-0 mt-0.5 shadow-inner">
-                                    <Bot className="h-4 w-4" />
+                                  <div className="relative h-7 w-7 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 shrink-0 mt-0.5 shadow-inner">
+                                    {(() => {
+                                      const CardIcon = task.icon || Bot;
+                                      return <CardIcon className="h-4 w-4 relative z-10" />;
+                                    })()}
                                   </div>
                                   <div className="min-w-0 flex-grow font-sans">
+                                    {task.eyebrow && (
+                                      <span className={cn("text-[9px] font-bold uppercase tracking-wider block mb-0.5 select-none", task.eyebrowColor || "text-indigo-500")}>
+                                        {task.eyebrow}
+                                      </span>
+                                    )}
                                     <p className="font-bold text-fg">{task.title}</p>
                                     <p className="mt-0.5 leading-relaxed text-zinc-500 font-medium text-[11px] truncate-3-lines">
                                       {task.description}
@@ -928,7 +1040,7 @@ function DashboardGreetingHero({
                                   >
                                     {task.isLoading ? (
                                       <>
-                                        <Loader2 className="h-3 w-3 animate-spin text-zinc-450" />
+                                        <Loader2 className="h-3 w-3 animate-spin text-zinc-400" />
                                         Processing...
                                       </>
                                     ) : (
@@ -1061,7 +1173,7 @@ function VisaCorporateCard({
 
             {/* Center part: Gold Microchip & Number */}
             <div className="flex items-center justify-between z-10 my-1" style={{ transform: "translateZ(20px)" }}>
-              <svg className="h-6 w-8 text-zinc-650 shrink-0" viewBox="0 0 36 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg className="h-6 w-8 text-zinc-600 shrink-0" viewBox="0 0 36 28" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="0.5" y="0.5" width="35" height="27" rx="3.5" fill="#18181b" stroke="#3f3f46" strokeWidth="0.75" />
                 <path d="M9 1v26M27 1v26M1 9h34M1 19h34" stroke="#3f3f46" strokeWidth="0.5" />
                 <rect x="13.5" y="7.5" width="9" height="13" rx="1.5" fill="#a1a1aa" stroke="#3f3f46" strokeWidth="0.5" />
@@ -1088,7 +1200,7 @@ function VisaCorporateCard({
           {/* Back Side (Citi Card Sync Feed) */}
           <div 
             className={cn(
-              "absolute inset-0 w-full h-full rounded-xl p-3.5 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-lg border border-zinc-200 dark:border-zinc-850/80 flex flex-col justify-between select-none transition-all duration-300",
+              "absolute inset-0 w-full h-full rounded-xl p-3.5 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-lg border border-zinc-200 dark:border-zinc-800/80 flex flex-col justify-between select-none transition-all duration-300",
               isFlipped ? "opacity-100 z-10" : "opacity-0 pointer-events-none"
             )}
             style={{ 
@@ -1110,29 +1222,7 @@ function VisaCorporateCard({
 
             {/* Scrollable list of transactions */}
             <div className="flex flex-col gap-1.5 overflow-y-auto pr-1 max-h-[112px] z-10 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-zinc-300 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
-              {[
-                {
-                  merchant: "Grab Taxi SG",
-                  title: "Grab ride to Suntec Client Meeting",
-                  amount: "18.20",
-                  date: "25 Jun",
-                  category: "Transport",
-                },
-                {
-                  merchant: "Peach Garden",
-                  title: "Lunch discussions with Acme partners",
-                  amount: "124.50",
-                  date: "24 Jun",
-                  category: "Entertainment",
-                },
-                {
-                  merchant: "Starbucks Coffee",
-                  title: "Team alignment coffee session",
-                  amount: "24.80",
-                  date: "24 Jun",
-                  category: "Entertainment",
-                },
-              ].map((tx, idx) => (
+              {CITI_CARD_TRANSACTIONS.map((tx, idx) => (
                 <div
                   key={idx}
                   className="flex items-center justify-between py-1.5 px-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/80 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-950 transition-all select-none leading-tight"
@@ -1144,21 +1234,23 @@ function VisaCorporateCard({
                         {tx.merchant}
                       </span>
                       <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold block truncate mt-0.5">
-                        {tx.date} &middot; {tx.category}
+                        {tx.dateLabel} &middot; {tx.category}
                       </span>
                     </div>
                   </div>
                   <div className="text-right shrink-0 flex items-center gap-2">
                     <span className="text-xs font-mono font-bold text-zinc-900 dark:text-zinc-200">
-                      {formatSGD(parseFloat(tx.amount))}
+                      {formatSGD(tx.amount)}
                     </span>
                     <button
                       onClick={(e) => {
                         e.stopPropagation(); // Prevent card flip
-                        onClaimClick({ 
-                          ...tx, 
-                          date: "2026-06-25", 
-                          category: tx.category === "Transport" ? "Transport" : "Client Entertainment" 
+                        onClaimClick({
+                          category: tx.category,
+                          title: tx.title,
+                          amount: String(tx.amount),
+                          merchant: tx.merchant,
+                          date: tx.date,
                         });
                       }}
                       className="px-2.5 py-0.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-100 text-[10px] font-extrabold transition-all active:scale-95 cursor-pointer shadow-sm border border-transparent"
@@ -1335,7 +1427,7 @@ export function DashboardOverview() {
           {
             icon: Building,
             label: "Citibank Liquidity",
-            value: formatSGD(Math.max(0, 48138 - endorsedClaims.reduce((a, c) => a + c.amount, 0))),
+            value: formatSGD(Math.max(0, TREASURY_LIMIT - endorsedClaims.reduce((a, c) => a + c.amount, 0))),
             sub: "Citibank FAST gateway cap",
             claims: endorsedClaims,
           },
@@ -1347,6 +1439,32 @@ export function DashboardOverview() {
       };
     }
   }, [data, role, user, mockPaidIds, mockApprovedIds]);
+
+  // Live category breakdowns derived from the claim ledger so the budget
+  // trackers + department gauge always agree with the actual claims.
+  const categoryViews = useMemo(() => {
+    const rows = data ?? [];
+    const sum = (list: typeof rows) => list.reduce((a, c) => a + c.amount, 0);
+    const groupByType = (list: typeof rows) =>
+      list.reduce<Record<string, number>>((acc, c) => {
+        acc[c.type] = (acc[c.type] ?? 0) + c.amount;
+        return acc;
+      }, {});
+
+    const mine = rows.filter((c) => c.employee === "Sarah Tan" || c.employee === user?.name);
+    const employeeCaps = Object.entries(groupByType(mine))
+      .map(([label, spent]) => ({ label, spent, limit: categoryBudget(label) }))
+      .sort((a, b) => b.spent - a.spent);
+
+    const dept = rows.filter((c) => c.department === user?.department);
+    const deptTotal = sum(dept);
+    const deptDist = Object.entries(groupByType(dept))
+      .map(([label, amt]) => ({ label, amt, pct: Math.round((amt / (deptTotal || 1)) * 100) }))
+      .sort((a, b) => b.amt - a.amt)
+      .slice(0, 3);
+
+    return { employeeCaps, deptDist, deptTotal, deptName: user?.department ?? "Team" };
+  }, [data, user]);
 
   const handleLaunchPrefill = (tx: {
     category: string;
@@ -1385,11 +1503,12 @@ export function DashboardOverview() {
     }, 1000);
   };
 
-  const handleBatchApprove = () => {
-    if (filteredClaims.length === 0) return;
+  const handleBatchApprove = (claimsToApprove?: any[]) => {
+    const targets = Array.isArray(claimsToApprove) ? claimsToApprove : filteredClaims;
+    if (targets.length === 0) return;
     setBatchApproving(true);
     setTimeout(() => {
-      const ids = filteredClaims.map((c) => c.id);
+      const ids = targets.map((c) => c.id);
       setMockApprovedIds((prev) => [...prev, ...ids]);
       setBatchApproving(false);
     }, 1200);
@@ -1413,11 +1532,12 @@ export function DashboardOverview() {
   };
 
   return (
-    <div className="flex flex-col gap-4 max-w-7xl mx-auto w-full px-1 lg:h-[calc(100vh-6rem)] lg:overflow-hidden">
+    <div className="flex flex-col gap-4 max-w-7xl mx-auto w-full px-1 lg:flex-1 lg:min-h-0 lg:overflow-hidden">
       {/* Dashboard Greeting Hero with nested Stats Cards */}
-      <DashboardGreetingHero 
-        role={role} 
-        onNewClaimClick={() => setClaimDialogOpen(true)} 
+      <DashboardGreetingHero
+        role={role}
+        onNewClaimClick={() => setClaimDialogOpen(true)}
+        onPrefillClaim={handleLaunchPrefill}
         filteredClaims={filteredClaims}
         pendingFinanceClaims={pendingFinanceClaims}
         batchApproving={batchApproving}
@@ -1575,7 +1695,7 @@ export function DashboardOverview() {
                 </p>
               </div>
               <button
-                onClick={handleBatchApprove}
+                onClick={() => handleBatchApprove()}
                 disabled={batchApproving}
                 className="w-full sm:w-auto px-4 py-2 bg-fg hover:opacity-90 disabled:opacity-50 text-canvas rounded-xl text-xs font-semibold transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
               >
@@ -1602,33 +1722,38 @@ export function DashboardOverview() {
                 Q3 Cap Allocations
               </span>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[
-                  { label: "Transport & Commute", spent: 18.2, limit: 300 },
-                  { label: "Client Entertainment", spent: 0, limit: 500 },
-                  { label: "Software & Subscriptions", spent: 300.0, limit: 500 },
-                  { label: "Wellness & Medical", spent: 0, limit: 200 },
-                ].map((cap) => {
-                  const pct = Math.min(100, (cap.spent / cap.limit) * 100);
-                  return (
-                    <div key={cap.label} className="bg-canvas/20 border border-border p-3 md:p-3.5 rounded-xl flex flex-col justify-between">
-                      <div className="flex justify-between items-start leading-tight">
-                        <span className="text-xs font-semibold text-fg-secondary">{cap.label}</span>
-                        <span className="font-mono text-xs font-semibold text-fg">{formatSGD(cap.spent)}</span>
-                      </div>
-                      <div className="mt-2.5">
-                        <div className="w-full bg-surface dark:bg-zinc-800 h-1 rounded-full overflow-hidden relative">
-                          <div className="h-full bg-fg rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+              {categoryViews.employeeCaps.length === 0 ? (
+                <p className="text-xs text-fg-tertiary font-medium py-6 text-center">
+                  No claims filed yet — your category spend will appear here.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {categoryViews.employeeCaps.map((cap) => {
+                    const pct = Math.min(100, (cap.spent / cap.limit) * 100);
+                    const over = cap.spent > cap.limit;
+                    return (
+                      <div key={cap.label} className="bg-canvas/20 border border-border p-3 md:p-3.5 rounded-xl flex flex-col justify-between">
+                        <div className="flex justify-between items-start leading-tight">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <CategoryIcon category={cap.label} className="h-4 w-4 shrink-0" />
+                            <span className="text-xs font-semibold text-fg-secondary truncate">{cap.label}</span>
+                          </div>
+                          <span className="font-mono text-xs font-semibold text-fg shrink-0">{formatSGD(cap.spent)}</span>
                         </div>
-                        <div className="flex justify-between text-[9px] text-fg-tertiary mt-1 font-semibold uppercase tracking-wider">
-                          <span>Limit: {formatSGD(cap.limit)}</span>
-                          <span>{pct.toFixed(0)}%</span>
+                        <div className="mt-2.5">
+                          <div className="w-full bg-surface dark:bg-zinc-800 h-1 rounded-full overflow-hidden relative">
+                            <div className={cn("h-full rounded-full transition-all duration-500", over ? "bg-rose-500" : "bg-fg")} style={{ width: `${pct}%` }} />
+                          </div>
+                          <div className="flex justify-between text-[9px] text-fg-tertiary mt-1 font-semibold uppercase tracking-wider">
+                            <span>Limit: {formatSGD(cap.limit)}</span>
+                            <span className={cn(over && "text-rose-500")}>{pct.toFixed(0)}%</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -1639,24 +1764,29 @@ export function DashboardOverview() {
                 Department Expense Distribution
               </span>
               
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {[
-                  { label: "Client Entertainment", val: 45, amt: "$1,102.68" },
-                  { label: "Transport & Commute", val: 30, amt: "$735.12" },
-                  { label: "Training & Equipment", val: 25, amt: "$612.60" },
-                ].map((item) => (
-                  <div key={item.label} className="bg-canvas/20 border border-border p-3 md:p-3.5 rounded-xl flex flex-col justify-between">
-                    <span className="text-xs font-semibold text-fg-secondary leading-tight">{item.label}</span>
-                    <div className="mt-2.5">
-                      <span className="font-mono text-base font-semibold text-fg block">{item.amt}</span>
-                      <div className="w-full bg-surface dark:bg-zinc-800 h-1 rounded-full overflow-hidden mt-1.5">
-                        <div className="h-full bg-fg" style={{ width: `${item.val}%` }} />
+              {categoryViews.deptDist.length === 0 ? (
+                <p className="text-xs text-fg-tertiary font-medium py-6 text-center">
+                  No team claims yet — the {categoryViews.deptName} spend mix will appear here.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {categoryViews.deptDist.map((item) => (
+                    <div key={item.label} className="bg-canvas/20 border border-border p-3 md:p-3.5 rounded-xl flex flex-col justify-between">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <CategoryIcon category={item.label} className="h-4 w-4 shrink-0" />
+                        <span className="text-xs font-semibold text-fg-secondary leading-tight truncate">{item.label}</span>
                       </div>
-                      <span className="text-[9px] text-fg-tertiary mt-1 block font-semibold uppercase tracking-wider">{item.val}% of budget</span>
+                      <div className="mt-2.5">
+                        <span className="font-mono text-base font-semibold text-fg block">{formatSGD(item.amt)}</span>
+                        <div className="w-full bg-surface dark:bg-zinc-800 h-1 rounded-full overflow-hidden mt-1.5">
+                          <div className="h-full bg-fg" style={{ width: `${item.pct}%` }} />
+                        </div>
+                        <span className="text-[9px] text-fg-tertiary mt-1 block font-semibold uppercase tracking-wider">{item.pct}% of {categoryViews.deptName} spend</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1708,7 +1838,7 @@ export function DashboardOverview() {
                   <div className="flex flex-col gap-2.5 font-sans text-xs flex-grow justify-center mt-1.5">
                     <div className="flex justify-between items-center leading-none">
                       <span className="font-semibold text-fg-secondary">QuickBooks Ledger</span>
-                      <span className="text-[9px] text-emerald-600 bg-emerald-500/5 px-2 py-0.5 rounded uppercase font-bold tracking-wide border border-emerald-550/15">Active</span>
+                      <span className="text-[9px] text-emerald-600 bg-emerald-500/5 px-2 py-0.5 rounded uppercase font-bold tracking-wide border border-emerald-500/15">Active</span>
                     </div>
                     
                     {ledgerValidState === "success" ? (
@@ -1726,21 +1856,42 @@ export function DashboardOverview() {
                           <Loader2 className="h-3 w-3 text-fg animate-spin" />
                         </div>
                         <div className="flex flex-col gap-1">
-                          <div className={cn("flex items-center gap-1", auditStep >= 1 ? "text-fg font-semibold" : "text-fg-tertiary")}>
-                            {auditStep >= 1 ? "✓" : "○"} QuickBooks handshake
+                          <div className={cn("flex items-center gap-1.5", auditStep >= 1 ? "text-fg font-semibold" : "text-fg-tertiary")}>
+                            {auditStep > 1 ? (
+                              <Check className="h-3 w-3 text-emerald-500 stroke-[3.5px] shrink-0 animate-scale-in" />
+                            ) : auditStep === 1 ? (
+                              <Loader2 className="h-3 w-3 text-fg animate-spin shrink-0" />
+                            ) : (
+                              <Circle className="h-3 w-3 text-fg-tertiary/60 shrink-0" />
+                            )}
+                            <span>QuickBooks handshake</span>
                           </div>
-                          <div className={cn("flex items-center gap-1", auditStep >= 2 ? "text-fg font-semibold" : "text-fg-tertiary")}>
-                            {auditStep >= 2 ? "✓" : "○"} Verify MAS node signatures
+                          <div className={cn("flex items-center gap-1.5", auditStep >= 2 ? "text-fg font-semibold" : "text-fg-tertiary")}>
+                            {auditStep > 2 ? (
+                              <Check className="h-3 w-3 text-emerald-500 stroke-[3.5px] shrink-0 animate-scale-in" />
+                            ) : auditStep === 2 ? (
+                              <Loader2 className="h-3 w-3 text-fg animate-spin shrink-0" />
+                            ) : (
+                              <Circle className="h-3 w-3 text-fg-tertiary/60 shrink-0" />
+                            )}
+                            <span>Verify MAS node signatures</span>
                           </div>
-                          <div className={cn("flex items-center gap-1", auditStep >= 3 ? "text-fg font-semibold" : "text-fg-tertiary")}>
-                            {auditStep >= 3 ? "✓" : "○"} SHA-256 block hash integrity
+                          <div className={cn("flex items-center gap-1.5", auditStep >= 3 ? "text-fg font-semibold" : "text-fg-tertiary")}>
+                            {auditStep > 3 ? (
+                              <Check className="h-3 w-3 text-emerald-500 stroke-[3.5px] shrink-0 animate-scale-in" />
+                            ) : auditStep === 3 ? (
+                              <Loader2 className="h-3 w-3 text-fg animate-spin shrink-0" />
+                            ) : (
+                              <Circle className="h-3 w-3 text-fg-tertiary/60 shrink-0" />
+                            )}
+                            <span>SHA-256 block hash integrity</span>
                           </div>
                         </div>
                       </div>
                     ) : (
                       <button
                         onClick={handleValidateLedger}
-                        className="w-full py-2 border border-border hover:border-zinc-350 dark:hover:border-zinc-700 bg-card hover:bg-canvas rounded-lg text-[10px] font-bold uppercase tracking-wider text-fg transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1 shadow-sm"
+                        className="w-full py-2 border border-border hover:border-zinc-300 dark:hover:border-zinc-700 bg-card hover:bg-canvas rounded-lg text-[10px] font-bold uppercase tracking-wider text-fg transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1 shadow-sm"
                       >
                         Audit Ledger Hash
                       </button>
@@ -1786,7 +1937,7 @@ export function DashboardOverview() {
                         cx="28"
                         cy="28"
                         r="24"
-                        className="stroke-zinc-150 dark:stroke-zinc-800"
+                        className="stroke-zinc-100 dark:stroke-zinc-800"
                         strokeWidth="4.5"
                         fill="transparent"
                       />
@@ -1813,20 +1964,20 @@ export function DashboardOverview() {
 
           {role === "Approving Officer" && (
             <>
-              {/* Operations Department Budget (Asymmetrical Circular Layout) */}
+              {/* Department Budget (derived from the team's actual claims) */}
               <InteractiveFlipCard
-                title="Operations Department Budget"
-                backContent="This gauge tracks the remaining budget for the Operations team. Employees submitting transport or meal claims consume this balance. Reset takes place quarterly."
+                title={`${categoryViews.deptName} Department Budget`}
+                backContent={`This gauge tracks the remaining quarterly budget for the ${categoryViews.deptName} team. Every claim your team files consumes this balance. Reset takes place quarterly.`}
               >
                 <div className="bg-card p-4 md:p-[18px] rounded-xl border border-border shadow-sm flex items-center justify-between gap-4 select-none text-left w-full h-full">
                   <div className="flex-1 min-w-0 leading-tight">
-                    <span className="text-[9px] font-semibold text-fg-tertiary uppercase tracking-wider block">Operations Budget</span>
-                    <span className="text-2xl font-black text-amber-650 dark:text-amber-500 tracking-tight mt-1.5 block tabular-nums">S$2,450.40</span>
+                    <span className="text-[9px] font-semibold text-fg-tertiary uppercase tracking-wider block">{categoryViews.deptName} Budget</span>
+                    <span className="text-2xl font-black text-amber-600 dark:text-amber-500 tracking-tight mt-1.5 block tabular-nums">{formatSGD(categoryViews.deptTotal)}</span>
                     <span className="text-[10px] text-fg-secondary font-medium mt-2 block leading-relaxed">
-                      Limit: S$10,000.00 &middot; S$7,549.60 Available
+                      Limit: {formatSGD(DEPARTMENT_BUDGET)} &middot; {formatSGD(Math.max(0, DEPARTMENT_BUDGET - categoryViews.deptTotal))} Available
                     </span>
                   </div>
-                  
+
                   {/* Circular Gauge Ring */}
                   <div className="relative h-14 w-14 shrink-0 flex items-center justify-center select-none">
                     <svg className="w-full h-full transform -rotate-90">
@@ -1834,7 +1985,7 @@ export function DashboardOverview() {
                         cx="28"
                         cy="28"
                         r="24"
-                        className="stroke-zinc-150 dark:stroke-zinc-800"
+                        className="stroke-zinc-100 dark:stroke-zinc-800"
                         strokeWidth="4.5"
                         fill="transparent"
                       />
@@ -1847,12 +1998,12 @@ export function DashboardOverview() {
                         fill="transparent"
                         strokeDasharray={2 * Math.PI * 24}
                         initial={{ strokeDashoffset: 2 * Math.PI * 24 }}
-                        animate={{ strokeDashoffset: 2 * Math.PI * 24 * (1 - 0.245) }}
+                        animate={{ strokeDashoffset: 2 * Math.PI * 24 * (1 - Math.min(1, categoryViews.deptTotal / DEPARTMENT_BUDGET)) }}
                         transition={{ duration: 1, ease: "easeOut" }}
                         strokeLinecap="round"
                       />
                     </svg>
-                    <span className="absolute text-[10px] font-bold text-fg">25%</span>
+                    <span className="absolute text-[10px] font-bold text-fg">{Math.round(Math.min(100, (categoryViews.deptTotal / DEPARTMENT_BUDGET) * 100))}%</span>
                   </div>
                 </div>
               </InteractiveFlipCard>
@@ -1906,10 +2057,88 @@ export function DashboardOverview() {
 
                   <div className="mt-3 border-t border-border pt-2">
                     {payoutRunning ? (
-                      <div className="flex flex-col gap-1.5 bg-canvas rounded-lg p-2 border border-border font-sans leading-normal">
-                        <div className="flex items-center gap-1.5">
-                          <RefreshCw className="h-3 w-3 text-fg-secondary animate-spin" />
-                          <span className="text-[10px] font-semibold text-fg">Clearing...</span>
+                      <div className="flex flex-col gap-2 bg-canvas/30 rounded-xl p-2.5 border border-border font-sans select-none">
+                        <div className="flex justify-between items-center text-[8px] uppercase tracking-wider font-bold text-fg-secondary">
+                          <span>FAST Route Graph</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-extrabold">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                            {payoutStep === 1 ? "Audit Phase" : payoutStep === 2 ? "Gateway Auth" : "Final Settlement"}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between px-1.5 mt-1 relative h-10">
+                          {/* Background connector line */}
+                          <div className="absolute top-[13px] left-5 right-5 h-[2px] bg-zinc-200 dark:bg-zinc-800 -z-10" />
+                          
+                          {/* Animated progress connector line */}
+                          <motion.div 
+                            className="absolute top-[13px] left-5 h-[2px] bg-emerald-500 -z-10 origin-left"
+                            initial={{ scaleX: 0 }}
+                            animate={{ 
+                              scaleX: 
+                                payoutStep === 1 ? 0.33 : 
+                                payoutStep === 2 ? 0.66 : 
+                                payoutStep === 3 ? 1.0 : 0
+                            }}
+                            transition={{ duration: 0.5, ease: "easeOut" }}
+                            style={{ width: 'calc(100% - 40px)' }}
+                          />
+
+                          {/* Node 1: Server */}
+                          <div className="flex flex-col items-center gap-1 z-10">
+                            <div className={cn(
+                              "w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-300",
+                              payoutStep >= 1 
+                                ? "bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400" 
+                                : "bg-card border-border text-fg-tertiary"
+                            )}>
+                              <Cpu className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-[7px] font-bold uppercase tracking-wider text-fg-tertiary">Server</span>
+                          </div>
+
+                          {/* Node 2: Citibank FAST */}
+                          <div className="flex flex-col items-center gap-1 z-10">
+                            <div className={cn(
+                              "w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-300",
+                              payoutStep >= 2 
+                                ? "bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400" 
+                                : payoutStep === 1
+                                  ? "bg-card border-emerald-500/50 text-emerald-500 animate-pulse"
+                                  : "bg-card border-border text-fg-tertiary"
+                            )}>
+                              <Building className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-[7px] font-bold uppercase tracking-wider text-fg-tertiary">Citi</span>
+                          </div>
+
+                          {/* Node 3: MAS Clearing Node */}
+                          <div className="flex flex-col items-center gap-1 z-10">
+                            <div className={cn(
+                              "w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-300",
+                              payoutStep >= 3 
+                                ? "bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400" 
+                                : payoutStep === 2
+                                  ? "bg-card border-emerald-500/50 text-emerald-500 animate-pulse"
+                                  : "bg-card border-border text-fg-tertiary"
+                            )}>
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-[7px] font-bold uppercase tracking-wider text-fg-tertiary">MAS</span>
+                          </div>
+
+                          {/* Node 4: Employee */}
+                          <div className="flex flex-col items-center gap-1 z-10">
+                            <div className={cn(
+                              "w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-300",
+                              payoutStep === 3
+                                ? "bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400 animate-bounce"
+                                : "bg-card border-border text-fg-tertiary"
+                            )}>
+                              <CreditCard className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-[7px] font-bold uppercase tracking-wider text-fg-tertiary">Payee</span>
+                          </div>
                         </div>
                       </div>
                     ) : pendingFinanceClaims.length > 0 ? (
@@ -1939,11 +2168,25 @@ export function DashboardOverview() {
                 <div className="flex flex-col gap-2.5 text-xs">
                   <div className="flex justify-between items-center font-medium">
                     <span>Citibank FAST Gateway</span>
-                    <span className="text-[9px] text-emerald-600 bg-emerald-500/5 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-emerald-550/15">Online</span>
+                    <span className="text-[9px] text-emerald-600 bg-emerald-500/5 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-emerald-500/15 flex items-center gap-1.5 select-none">
+                      <motion.span
+                        className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0"
+                        animate={{ opacity: [0.4, 1, 0.4] }}
+                        transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                      />
+                      Online
+                    </span>
                   </div>
                   <div className="flex justify-between items-center font-medium border-t border-border pt-2.5">
                     <span>MAS Clearing Node 02</span>
-                    <span className="text-[9px] text-emerald-600 bg-emerald-500/5 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-emerald-550/15">Active</span>
+                    <span className="text-[9px] text-emerald-600 bg-emerald-500/5 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-emerald-500/15 flex items-center gap-1.5 select-none">
+                      <motion.span
+                        className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0"
+                        animate={{ opacity: [0.4, 1, 0.4] }}
+                        transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut", delay: 0.3 }}
+                      />
+                      Active
+                    </span>
                   </div>
                 </div>
               </div>

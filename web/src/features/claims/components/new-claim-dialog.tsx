@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "motion/react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { 
@@ -20,15 +20,19 @@ import {
   Utensils,
   BookOpen,
   Laptop,
-  HelpCircle,
-  QrCode,
-  Cloud,
-  Coffee
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAddClaim } from "../api/queries";
+import { useAddClaim, useClaims } from "../api/queries";
 import { useSession } from "@/lib/session-context";
 import { cn } from "@/lib/cn";
+import { evaluatePolicies, claimContextFromForm } from "@/core/domain/policy/engine";
+import { CITI_CARD_TRANSACTIONS, type CardTransaction } from "@/data/mock/card";
+import { parseReceiptFile } from "@/data/repositories/claims.repo";
+
+// Categories this form's dropdown actually offers — an OCR-guessed category
+// outside this set (e.g. "Meal", "Travel") is left for the user to pick manually.
+const RECOGNIZED_CATEGORIES = ["Transport", "Client Entertainment", "Office Supplies", "Training"];
 
 interface NewClaimDialogProps {
   open: boolean;
@@ -49,18 +53,14 @@ interface LineItem {
   amount: number;
 }
 
-const DEMO_TRANSACTIONS = [
-  { id: "TXN-2819", merchant: "Jumbo Seafood", date: "2026-06-25", amount: 318.40, category: "Client Entertainment", uen: "198701234K" },
-  { id: "TXN-1082", merchant: "Grab SG", date: "2026-06-10", amount: 23.10, category: "Transport", uen: "201314856E" },
-  { id: "TXN-9041", merchant: "Challenger", date: "2026-06-15", amount: 45.50, category: "Office Supplies", uen: "198402834W" },
-];
-
 export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDialogProps) {
   const { user } = useSession();
   const addClaimMutation = useAddClaim();
+  const { data: allClaims = [] } = useClaims();
   
   // Onboarding features
   const [showTips, setShowTips] = useState(true);
+  const [attemptedNext, setAttemptedNext] = useState(false);
 
   // Core Fields
   const [category, setCategory] = useState("Transport");
@@ -125,7 +125,13 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
   const [scanned, setScanned] = useState(false);
   const [scanMessage, setScanMessage] = useState("");
   const [ocrSource, setOcrSource] = useState<"mock" | "azure" | null>(null);
-  const [receiptFormat, setReceiptFormat] = useState<"grab" | "paynow" | "citibank" | "starbucks" | null>(null);
+  // Which ingestion route produced the current scanned/prefilled data —
+  // used only to pick accurate banner wording, since "Citi Card"/"Presets"
+  // and a real receipt OCR scan all set ocrSource("azure") but mean
+  // different things.
+  const [ingestionSource, setIngestionSource] = useState<"ocr" | "card" | "preset" | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [receiptUploadUrl, setReceiptUploadUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [ocrParticles, setOcrParticles] = useState<{ id: string; text: string; x: number }[]>([]);
   const [formStep, setFormStep] = useState(1);
@@ -149,7 +155,9 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
     setScanned(false);
     setScanMessage("");
     setOcrSource(null);
-    setReceiptFormat(null);
+    setIngestionSource(null);
+    setScanError(null);
+    setReceiptUploadUrl(null);
     setIntegrityScore(10);
 
     // Reset Category Types
@@ -179,9 +187,10 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
     setCourseVendor("General Assembly");
     setCourseName("Next.js Advanced Architecture");
     setSdfRefId("");
-    setAssociationName("");
+     setAssociationName("");
     setValidityPeriod("");
     setFormStep(1);
+    setAttemptedNext(false);
   };
 
   // OCR Particle drift simulation
@@ -226,7 +235,9 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
           setScanning(false);
           setScanned(true);
           setOcrSource("azure");
+          setIngestionSource("card");
           setLineItems([{ id: "1", description: prefillData.title, amount: parseFloat(prefillData.amount) || 0 }]);
+          setAttemptedNext(false);
         }, 0);
       } else {
         setTimeout(() => resetForm(), 0);
@@ -246,6 +257,32 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
   const isReceiptRequired = claimAmt > 50;
   const exceedsIrasLimit = category === "Client Entertainment" && claimAmt > 300;
   const perHeadSpend = category === "Client Entertainment" && attendees.length > 0 ? (claimAmt / attendees.length) : 0;
+
+  // Live policy-engine verdict — the SAME engine that runs on submit, so the
+  // filer sees auto-approve / manager-review / blocked (and why) as they type.
+  const liveVerdict = useMemo(() => {
+    const cat = category === "Other" ? customCategory.trim() : category;
+    const details: Record<string, unknown> = {
+      gstAmount: parseFloat((claimAmt * 9 / 109).toFixed(2)),
+      businessJustification: title.trim() || undefined,
+    };
+    if (cat === "Client Entertainment") {
+      details.clientCompany = clientCompany === "Other" ? customClientCompany.trim() : clientCompany;
+    }
+    if (attendees.length > 0) details.attendeeNotes = attendees.join(", ");
+    return evaluatePolicies(
+      claimContextFromForm({
+        category: cat,
+        amount: claimAmt,
+        receiptUrl: fileStaged ? "pending-upload" : null,
+        expenseDate: date || new Date().toISOString().split("T")[0],
+        details,
+        employee: user?.name || "Sarah Tan",
+        merchant: merchant || null,
+      }),
+      allClaims,
+    );
+  }, [category, customCategory, claimAmt, title, clientCompany, customClientCompany, attendees, fileStaged, date, merchant, user, allClaims]);
 
   // Validation Rules
   const isTitleValid = title.trim().length >= 3;
@@ -274,6 +311,7 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
     setDate(todayStr);
     setSelectedTxn(null);
     setOcrSource("azure");
+    setIngestionSource("preset");
     setFileStaged(true);
 
     if (preset === "grab") {
@@ -343,10 +381,10 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
         type: category === "Other" ? customCategory : category,
         title: title,
         amount: finalAmount,
-        gstAmount: parseFloat((finalAmount * 0.09).toFixed(2)),
+        gstAmount: parseFloat((finalAmount * 9 / 109).toFixed(2)),
         merchant: merchant || null,
         date: date || new Date().toISOString().split("T")[0],
-        receiptUrl: fileStaged ? `blob://receipts/${new Date().getTime()}.png` : null,
+        receiptUrl: receiptUploadUrl ?? (fileStaged ? `blob://receipts/${new Date().getTime()}.png` : null),
         ocrSource: ocrSource === "azure" ? "citibank_card_sync" : "sandbox_mock_ocr",
         details: {
           uenNumber,
@@ -374,9 +412,10 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
     );
   };
 
-  const handleTxnMatch = (txn: typeof DEMO_TRANSACTIONS[0]) => {
+  const handleTxnMatch = (txn: CardTransaction) => {
     setSelectedTxn(txn.id);
     setOcrSource("azure");
+    setIngestionSource("card");
     setCategory(txn.category);
     setTitle(`${txn.merchant} Verified Match`);
     setMerchant(txn.merchant);
@@ -387,108 +426,6 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
     setFileStaged(true);
     setFileName("Citi_Card_Receipt_Verify.pdf");
     setScanned(true);
-    setReceiptFormat(null);
-  };
-
-  const simulateReceiptScan = (format: "grab" | "paynow" | "citibank" | "starbucks") => {
-    setReceiptFormat(format);
-    setFileStaged(true);
-    setScanning(true);
-    setScanned(false);
-    setOcrSource("mock");
-    setSelectedTxn(null);
-
-    let steps: string[] = [];
-    let fileLabel = "";
-
-    if (format === "grab") {
-      fileLabel = "Grab_Ride_Booking_771A.pdf";
-      steps = [
-        "Connecting Grab API endpoint sync...",
-        "Identifying Grab Booking ID: ADR-0912-881A...",
-        "Reading ride origin: Cecil Street ClaimFlow HQ...",
-        "Destination: One-North Grab HQ...",
-        "Grab OCR match complete: S$23.10 extracted."
-      ];
-    } else if (format === "paynow") {
-      fileLabel = "DBS_PayNow_Screenshot_9812.png";
-      steps = [
-        "Scanning DBS PayNow transfer screenshot matrix...",
-        "Extracting transaction reference ID: 202606259012...",
-        "Recipient UEN check: 198701234K (Jumbo Seafood)...",
-        "PayNow validation complete: S$318.40 extracted."
-      ];
-    } else if (format === "citibank") {
-      fileLabel = "AWS_Hosting_Invoice_9041.pdf";
-      steps = [
-        "Connecting Citibank Corporate Invoice Feed...",
-        "Reading supplier: Amazon Web Services SG...",
-        "Extracting transaction reference: AWS-SIN-90412...",
-        "Validating Cloud Services tax compliance...",
-        "AWS billing match complete: S$220.00 extracted."
-      ];
-    } else {
-      fileLabel = "Starbucks_Coffee_Receipt_8102.png";
-      steps = [
-        "Parsing Starbucks Singapore receipt scan...",
-        "Extracting line items: Beverages & pastries...",
-        "Verifying team wellness allocation caps...",
-        "Starbucks receipt scan complete: S$45.50 extracted."
-      ];
-    }
-
-    setFileName(fileLabel);
-
-    steps.forEach((msg, idx) => {
-      setTimeout(() => {
-        setScanMessage(msg);
-        
-        if (idx === steps.length - 1) {
-          setScanning(false);
-          setScanned(true);
-          const todayStr = new Date().toISOString().split("T")[0];
-          setDate(todayStr);
-
-          if (format === "grab") {
-            setCategory("Transport");
-            setTransportType("ride");
-            setTitle("Grab ride to client office");
-            setMerchant("Grab SG");
-            setUenNumber("201314856E");
-            setInvoiceRef("INV-GRB-771A");
-            setRideProvider("Grab");
-            setRideType("GrabCar");
-            setFromLocation("ClaimFlow HQ");
-            setToLocation("Grab HQ");
-            setLineItems([{ id: "1", description: "Grab Ride - Client alignment", amount: 23.10 }]);
-          } else if (format === "paynow") {
-            setCategory("Client Entertainment");
-            setEntertainmentType("meal");
-            setTitle("DBS PayNow Jumbo Seafood Dinner");
-            setMerchant("Jumbo Seafood");
-            setUenNumber("198701234K");
-            setInvoiceRef("INV-JMB-9812");
-            setMealType("Dinner");
-            setClientCompany("JPMorgan Chase");
-            setLineItems([{ id: "1", description: "Client Dinner Meal (Jumbo Seafood)", amount: 318.40 }]);
-          } else if (format === "citibank") {
-            setCategory("Software");
-            setTitle("AWS Cloud Hosting Subscriptions");
-            setMerchant("Amazon Web Services SG");
-            setUenNumber("201802934D");
-            setInvoiceRef("AWS-SIN-90412");
-            setLineItems([{ id: "1", description: "AWS EC2 & S3 Cloud Hosting", amount: 220.00 }]);
-          } else {
-            setCategory("Wellness");
-            setTitle("Team Coffee Session Starbucks");
-            setMerchant("Starbucks Singapore");
-            setUenNumber("199602814G");
-            setInvoiceRef("SBUX-T3-8102");
-            setLineItems([{ id: "1", description: "Beverages & Pastries for Team Wellness", amount: 45.50 }]);
-          }
-        }
-      }, (idx + 1) * 600);
-    });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -497,18 +434,78 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
     processStagedFile(file);
   };
 
-  const processStagedFile = (file: File) => {
-    const name = file.name.toLowerCase();
-    if (name.includes("grab")) {
-      simulateReceiptScan("grab");
-    } else if (name.includes("paynow") || name.includes("dbs") || name.includes("jumbo") || name.includes("seafood")) {
-      simulateReceiptScan("paynow");
-    } else if (name.includes("aws") || name.includes("amazon") || name.includes("citibank") || name.includes("citi")) {
-      simulateReceiptScan("citibank");
-    } else if (name.includes("starbucks") || name.includes("coffee") || name.includes("cafe")) {
-      simulateReceiptScan("starbucks");
-    } else {
-      simulateReceiptScan("citibank");
+  // Real receipt upload: sends the file to the backend, which runs Azure
+  // Document Intelligence. No mock data and no fallback anywhere in this
+  // path — if the backend is unreachable, the upload fails, or Azure can't
+  // read the receipt, that's surfaced as an error for the user to fix or
+  // retry, never silently papered over with fake data.
+  const processStagedFile = async (file: File) => {
+    setScanError(null);
+    setReceiptUploadUrl(null);
+    setFileName(file.name);
+    setScanning(true);
+    setScanned(false);
+    setOcrSource(null);
+    setIngestionSource(null);
+    setScanMessage("Scanning receipt via Azure Document Intelligence...");
+
+    try {
+      const result = await parseReceiptFile(file);
+      setScanning(false);
+      setReceiptUploadUrl(result.receiptUrl);
+      // A receipt was uploaded regardless of whether OCR could read it —
+      // the amount/manual-fields requirement is satisfied either way.
+      setFileStaged(true);
+
+      if (result.source === "unavailable") {
+        setScanError("Couldn't read this receipt automatically — enter the details below manually.");
+        return;
+      }
+
+      setScanned(true);
+      setOcrSource("azure");
+      setIngestionSource("ocr");
+      if (result.merchant) {
+        setMerchant(result.merchant);
+        setTitle(`${result.merchant} receipt`);
+      }
+      if (result.total !== null) setAmount(result.total.toFixed(2));
+      if (result.expenseDate) setDate(result.expenseDate);
+      if (result.category && RECOGNIZED_CATEGORIES.includes(result.category)) {
+        setCategory(result.category);
+      }
+      if (result.items.length > 0) {
+        setLineItems(
+          result.items.map((description, idx) => ({
+            id: String(idx + 1),
+            description,
+            amount: idx === 0 ? (result.total ?? 0) : 0,
+          })),
+        );
+      } else if (result.total !== null) {
+        setLineItems([
+          { id: "1", description: result.merchant ? `${result.merchant} expense` : "Receipt line item", amount: result.total },
+        ]);
+      }
+      if (result.route) {
+        setCategory("Transport");
+        setTransportType("ride");
+        setFromLocation(result.route.from);
+        setToLocation(result.route.to);
+      }
+    } catch (err: any) {
+      setScanning(false);
+      setScanned(false);
+      setFileStaged(false);
+      // A network-level failure (backend down, CORS, offline) throws a generic
+      // TypeError("Failed to fetch") — swap that for a message that actually
+      // explains what to check. An HTTP error response has a real message.
+      const isNetworkFailure = err instanceof TypeError;
+      setScanError(
+        !isNetworkFailure && err?.message
+          ? err.message
+          : "Couldn't reach the receipt parsing service. Check the backend is running.",
+      );
     }
   };
 
@@ -696,7 +693,7 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                       </span>
                       
                       <div className="flex flex-col gap-2">
-                        {DEMO_TRANSACTIONS.map((txn) => {
+                        {CITI_CARD_TRANSACTIONS.map((txn) => {
                           const isMatched = selectedTxn === txn.id;
                           return (
                             <div
@@ -779,10 +776,17 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                             <Loader2 className="h-4.5 w-4.5 text-accent animate-spin" />
                             <span className="font-semibold text-accent text-xs leading-tight truncate w-full mt-1.5">{scanMessage}</span>
                           </div>
+                        ) : scanError ? (
+                          <div className="flex flex-col items-center gap-1.5 z-10 px-4 w-full text-center">
+                            <AlertCircle className="h-4.5 w-4.5 text-red-500" />
+                            <span className="font-bold text-red-600 dark:text-red-400 text-xs">Receipt scan failed</span>
+                            <span className="text-xs text-fg-secondary leading-snug">{scanError}</span>
+                            <span className="text-[10px] text-fg-tertiary font-medium mt-0.5">Click or drop again to retry</span>
+                          </div>
                         ) : scanned ? (
                           <div className="flex flex-col items-center leading-none z-10">
                             <Check className="h-4 w-4 text-emerald-500 mb-1 border border-emerald-500/20 bg-emerald-500/10 p-0.5 rounded-full" />
-                            <span className="font-bold text-emerald-600 dark:text-emerald-450 text-xs">Ingestion complete</span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">Ingestion complete</span>
                             <span className="text-xs text-fg-secondary mt-1 truncate max-w-[170px] font-medium">{fileName}</span>
                           </div>
                         ) : isDragging ? (
@@ -796,42 +800,6 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                             <div>
                               <span className="font-semibold text-fg text-sm leading-normal block">Drag & drop receipt here, or click to browse</span>
                               <span className="text-xs text-fg-secondary/80 font-medium block mt-0.5">Supports PDF, PNG, JPG (Max 10MB)</span>
-                            </div>
-                            
-                            <div className="border-t border-border/40 w-full my-1.5" />
-                            
-                            <div className="flex flex-col gap-1.5 w-full">
-                              <span className="text-[10px] font-semibold text-fg-tertiary uppercase tracking-wider block text-center">Or quick simulate scan:</span>
-                              <div className="flex flex-wrap gap-1.5 justify-center z-30">
-                                {[
-                                  { id: "grab", label: "Grab PDF", icon: Car },
-                                  { id: "paynow", label: "PayNow QR", icon: QrCode },
-                                  { id: "citibank", label: "Citi Invc", icon: Cloud },
-                                  { id: "starbucks", label: "Starbucks", icon: Coffee }
-                                ].map((sim) => {
-                                  const SimIcon = sim.icon;
-                                  const isActive = receiptFormat === sim.id;
-                                  return (
-                                    <button
-                                      key={sim.id}
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        simulateReceiptScan(sim.id as any);
-                                      }}
-                                      className={cn(
-                                        "h-6 px-2 rounded-md text-[10px] font-bold uppercase tracking-wider border cursor-pointer transition-all active:scale-95 flex items-center gap-1 hover:border-accent/40 bg-card z-30",
-                                        isActive
-                                          ? "bg-accent/10 border-accent/30 text-accent"
-                                          : "border-border text-fg-secondary bg-surface/50"
-                                      )}
-                                    >
-                                      <SimIcon className="h-3 w-3 shrink-0" />
-                                      {sim.label}
-                                    </button>
-                                  );
-                                })}
-                              </div>
                             </div>
                           </div>
                         )}
@@ -913,7 +881,34 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
               {formStep === 3 && (
                 <div className="bg-zinc-500/[0.03] border border-border p-4.5 rounded-2xl flex flex-col gap-2.5 text-left select-none relative overflow-hidden shadow-inner mt-1 animate-scale-in">
                   <div className="absolute -right-8 -top-8 w-16 h-16 rounded-full bg-accent/10 blur-xl pointer-events-none" />
-                  
+
+                  {/* Live policy-engine verdict — the same engine that runs on submit */}
+                  <div className={cn(
+                    "flex items-start gap-2.5 rounded-xl border p-3",
+                    liveVerdict.outcome === "auto-approve" ? "bg-emerald-500/10 border-emerald-500/25"
+                      : liveVerdict.outcome === "block" ? "bg-rose-500/10 border-rose-500/25"
+                      : "bg-amber-500/10 border-amber-500/25"
+                  )}>
+                    {liveVerdict.outcome === "auto-approve"
+                      ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5 stroke-[3px]" />
+                      : liveVerdict.outcome === "block"
+                        ? <AlertCircle className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                        : <ShieldCheck className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />}
+                    <div className="min-w-0">
+                      <span className={cn(
+                        "text-[10px] font-black uppercase tracking-wider block",
+                        liveVerdict.outcome === "auto-approve" ? "text-emerald-600 dark:text-emerald-400"
+                          : liveVerdict.outcome === "block" ? "text-rose-600 dark:text-rose-400"
+                          : "text-amber-600 dark:text-amber-400"
+                      )}>
+                        {liveVerdict.outcome === "auto-approve" ? "AI Policy · Auto-approves"
+                          : liveVerdict.outcome === "block" ? "AI Policy · Blocked"
+                          : "AI Policy · Manager review"}
+                      </span>
+                      <p className="text-[11px] text-fg-secondary font-medium leading-snug mt-0.5">{liveVerdict.message}</p>
+                    </div>
+                  </div>
+
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold uppercase tracking-wider text-fg flex items-center gap-1.5">
                       <ShieldCheck className="h-4 w-4 text-accent" />
@@ -932,7 +927,7 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                       className={cn(
                         "h-full rounded-full transition-all duration-500 ease-out",
                         integrityScore >= 90 
-                          ? "bg-emerald-500 dark:bg-emerald-450 shadow-[0_0_10px_rgba(16,185,129,0.5)]" 
+                          ? "bg-emerald-500 dark:bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]" 
                           : integrityScore >= 60 
                           ? "bg-indigo-500" 
                           : "bg-amber-500"
@@ -987,33 +982,28 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
 
               {/* Data Ingestion Status Banner */}
               {scanned && (
-                <div className={cn(
-                  "p-3 rounded-xl border flex items-center justify-between gap-3 text-[10px] font-bold select-none text-left transition-all duration-300 animate-scale-in",
-                  ocrSource === "azure"
-                    ? "bg-indigo-500/[0.04] dark:bg-indigo-500/[0.08] border-indigo-500/20 text-indigo-650 dark:text-indigo-400"
-                    : "bg-amber-500/[0.04] dark:bg-amber-500/[0.08] border-amber-500/20 text-amber-650 dark:text-amber-400"
-                )}>
+                <div className="p-3 rounded-xl border flex items-center justify-between gap-3 text-[10px] font-bold select-none text-left transition-all duration-300 animate-scale-in bg-indigo-500/[0.04] dark:bg-indigo-500/[0.08] border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
                   <div className="flex items-center gap-2.5">
                     <Info className="h-4 w-4 shrink-0" />
                     <div className="leading-tight">
                       <span className="block font-black">
-                        {ocrSource === "azure" 
-                          ? "Citibank FAST Sync Active" 
-                          : receiptFormat === "grab" 
-                          ? "Mock Grab OCR Active" 
-                          : receiptFormat === "paynow" 
-                          ? "Mock DBS PayNow OCR Active" 
-                          : "Mock Standard Invoice Ingested"}
+                        {ingestionSource === "card"
+                          ? "Citibank FAST Sync Active"
+                          : ingestionSource === "preset"
+                          ? "Cheatsheet Preset Applied"
+                          : "Azure Document Intelligence Scan Complete"}
                       </span>
                       <span className="text-[8.5px] text-fg-secondary font-medium leading-normal block mt-0.5">
-                        {ocrSource === "azure" 
+                        {ingestionSource === "card"
                           ? "Extracted parameters verified with Citibank card terminal."
-                          : "Simulating live engine parse. Connected to mock prefill registry."}
+                          : ingestionSource === "preset"
+                          ? "Prefilled from a saved scenario template — verify before submitting."
+                          : "Receipt fields extracted from the uploaded file — verify before submitting."}
                       </span>
                     </div>
                   </div>
                   <span className="font-mono text-[8px] uppercase tracking-wider bg-white dark:bg-zinc-900 px-2 py-0.5 rounded border border-border/80 shrink-0">
-                    {ocrSource === "azure" ? "Bank Match" : receiptFormat ? `${receiptFormat} template` : "Mock Ingest"}
+                    {ingestionSource === "card" ? "Bank Match" : ingestionSource === "preset" ? "Preset" : "OCR Match"}
                   </span>
                 </div>
               )}
@@ -1056,9 +1046,14 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                       placeholder="e.g. Lunch client alignment meeting"
                       className={cn(
                         "h-9 rounded-xl border px-3 text-xs text-fg focus:outline-none bg-card",
-                        !isTitleValid && title.length > 0 ? "border-rose-500 focus:border-rose-500" : "border-border focus:border-accent"
+                        !isTitleValid && (title.length > 0 || attemptedNext) ? "border-rose-500 focus:border-rose-500" : "border-border focus:border-accent"
                       )}
                     />
+                    {attemptedNext && !isTitleValid && (
+                      <span className="text-[9px] text-rose-500 font-bold mt-1 select-none animate-scale-in">
+                        * Claim Title must be at least 3 characters.
+                      </span>
+                    )}
                     {showTips && (
                       <span className="text-[8px] text-accent/80 font-semibold mt-0.5 italic leading-normal select-none">
                         * Provide a descriptive reason for audit reference (min 3 chars).
@@ -1077,9 +1072,14 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                         placeholder="e.g. Marketing & Advertising / Postage fees"
                         className={cn(
                           "h-9 rounded-xl border px-3 text-xs text-fg focus:outline-none bg-card font-semibold",
-                          !isCategoryValid ? "border-rose-500 focus:border-rose-500" : "border-border focus:border-accent"
+                          !isCategoryValid && (customCategory.length > 0 || attemptedNext) ? "border-rose-500 focus:border-rose-500" : "border-border focus:border-accent"
                         )}
                       />
+                      {attemptedNext && !isCategoryValid && (
+                        <span className="text-[9px] text-rose-500 font-bold mt-1 select-none animate-scale-in">
+                          * Please specify custom category (min 2 characters).
+                        </span>
+                      )}
                     </div>
                   )}
 
@@ -1101,8 +1101,16 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                       required
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
-                      className="h-9 rounded-xl border border-border bg-card px-3 text-xs text-fg focus:border-accent focus:outline-none font-sans font-bold"
+                      className={cn(
+                        "h-9 rounded-xl border bg-card px-3 text-xs text-fg focus:border-accent focus:outline-none font-sans font-bold",
+                        attemptedNext && date.trim() === "" ? "border-rose-500 focus:border-rose-500" : "border-border focus:border-accent"
+                      )}
                     />
+                    {attemptedNext && date.trim() === "" && (
+                      <span className="text-[9px] text-rose-500 font-bold mt-1 select-none animate-scale-in">
+                        * Filing date is required.
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1112,7 +1120,7 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                 <span className="text-[10px] font-black uppercase tracking-wider text-fg-secondary text-left border-b border-border pb-1.5 select-none">
                   2. Tax & Audit Registry
                 </span>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="flex flex-col gap-1 text-left">
                     <label className="text-[10px] font-extrabold uppercase tracking-wider text-fg-secondary">Tax ID / UEN</label>
                     <input
@@ -1255,9 +1263,14 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                                 placeholder="e.g. Private Limousine Service / Charter Bus"
                                 className={cn(
                                   "h-8 rounded-lg border px-2.5 text-xs text-fg focus:outline-none bg-card font-semibold",
-                                  !isProviderValid ? "border-rose-500 focus:border-rose-500" : "border-border focus:border-accent"
+                                  !isProviderValid && (customRideProvider.length > 0 || attemptedNext) ? "border-rose-500 focus:border-rose-500" : "border-border focus:border-accent"
                                 )}
                               />
+                              {attemptedNext && !isProviderValid && (
+                                <span className="text-[9px] text-rose-500 font-bold mt-1 select-none animate-scale-in">
+                                  * Please specify ride provider (min 2 characters).
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1351,9 +1364,14 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                                   placeholder="e.g. Temasek / Google Singapore"
                                   className={cn(
                                     "h-8 rounded-lg border px-2.5 text-xs text-fg focus:outline-none bg-card font-semibold",
-                                    !isCompanyValid ? "border-rose-500 focus:border-rose-500" : "border-border focus:border-accent"
+                                    !isCompanyValid && (customClientCompany.length > 0 || attemptedNext) ? "border-rose-500 focus:border-rose-500" : "border-border focus:border-accent"
                                   )}
                                 />
+                                {attemptedNext && !isCompanyValid && (
+                                  <span className="text-[9px] text-rose-500 font-bold mt-1 select-none animate-scale-in">
+                                    * Please specify client company name (min 2 characters).
+                                  </span>
+                                )}
                               </div>
                             )}
                           </div>
@@ -1706,9 +1724,23 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                 )}
               </div>
 
+              {/* Step 3 Validation Block Warnings */}
+              {(claimAmt <= 0 || (isReceiptRequired && !fileStaged)) && (
+                <div className="bg-rose-500/[0.04] border border-rose-500/15 p-4 rounded-[1.25rem] text-xs text-rose-600 dark:text-rose-455 font-bold leading-relaxed flex gap-2 items-start select-none animate-scale-in">
+                  <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
+                  <div className="text-left">
+                    <span>Filing Incomplete</span>
+                    <p className="font-medium text-[10.5px] text-fg-secondary mt-1 leading-relaxed">
+                      {claimAmt <= 0 && "• Total claim amount must be greater than S$0.00. Please add line items and specify their amounts.\n"}
+                      {isReceiptRequired && !fileStaged && `• Receipt document is required for claims exceeding S$50.00 (current total: S$${claimAmt.toFixed(2)}). Please return to Step 1 to drag & drop a file or scan a preset.`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Section 5: Compliance Audit Summary Card */}
               {claimAmt > 0 && (
-                <div className="bg-zinc-550/[0.015] dark:bg-white/[0.01] border border-border/80 rounded-[1.25rem] p-4.5 flex flex-col gap-3.5 transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] select-none animate-scale-in">
+                <div className="bg-zinc-500/[0.015] dark:bg-white/[0.01] border border-border/80 rounded-[1.25rem] p-4.5 flex flex-col gap-3.5 transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] select-none animate-scale-in">
                   <div className="flex items-center justify-between border-b border-border pb-1.5">
                     <span className="text-xs font-bold uppercase tracking-wider text-fg flex items-center gap-1">
                       <ShieldCheck className="h-4 w-4 text-emerald-500" />
@@ -1736,7 +1768,7 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                     )}
 
                     {!isUenValid && (
-                      <div className="bg-amber-500/[0.04] border border-amber-500/15 p-2 rounded-lg text-xs text-amber-600 dark:text-amber-450 font-bold leading-relaxed flex gap-1.5 items-start animate-scale-in">
+                      <div className="bg-amber-500/[0.04] border border-amber-500/15 p-2 rounded-lg text-xs text-amber-600 dark:text-amber-400 font-bold leading-relaxed flex gap-1.5 items-start animate-scale-in">
                         <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                         <div>
                           <span>UEN Format Mismatch</span>
@@ -1768,7 +1800,7 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                           </span>
                         </div>
                         {perHeadSpend > 80 && (
-                          <p className="text-[10.5px] text-amber-600 dark:text-amber-450 leading-relaxed font-bold">
+                          <p className="text-[10.5px] text-amber-600 dark:text-amber-400 leading-relaxed font-bold">
                             ⚠️ Note: Single dining expense exceeds standard S$80 per-head threshold. Single head spend is S${perHeadSpend.toFixed(2)}. Justification remarks will be routed for manual review.
                           </p>
                         )}
@@ -1841,7 +1873,25 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
               {formStep < 3 ? (
                 <Button
                   type="button"
-                  onClick={() => setFormStep(prev => prev + 1)}
+                  onClick={() => {
+                    if (formStep === 1) {
+                      const step1Valid = isTitleValid && isCategoryValid && date.trim() !== "";
+                      if (!step1Valid) {
+                        setAttemptedNext(true);
+                        return;
+                      }
+                      setAttemptedNext(false);
+                      setFormStep(2);
+                    } else if (formStep === 2) {
+                      const step2Valid = isProviderValid && isCompanyValid;
+                      if (!step2Valid) {
+                        setAttemptedNext(true);
+                        return;
+                      }
+                      setAttemptedNext(false);
+                      setFormStep(3);
+                    }
+                  }}
                   className="font-bold px-6 bg-accent text-accent-fg hover:bg-accent-hover active:scale-[0.98] transition-all cursor-pointer"
                 >
                   Next

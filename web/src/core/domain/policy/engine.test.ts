@@ -53,6 +53,23 @@ describe("policy engine (ported SG rules)", () => {
     expect(r.ruleId).toBe("route-large-amount");
   });
 
+  it("routes Client Entertainment over S$300 for attendee review", () => {
+    const r = evaluatePolicies(
+      claimContextFromForm({
+        category: "Client Entertainment",
+        amount: 318.4,
+        receiptUrl: "blob://x",
+        expenseDate: "2026-06-01",
+        details: {
+          clientCompany: "Acme Pte Ltd",
+          businessJustification: "Q3 renewal discussion",
+        },
+      }),
+    );
+    expect(r.outcome).toBe("route-to-human");
+    expect(r.ruleId).toBe("route-entertainment-over-300");
+  });
+
   it("treats a pending file upload as a present receipt", () => {
     const ctx = claimContextFromForm({
       category: "Meal",

@@ -114,6 +114,16 @@
       "message": "Meals over S$50 need a short note on who attended so the approver can confirm it's a working meal."
     },
     {
+      "id": "route-entertainment-over-300",
+      "label": "Client Entertainment over S$300",
+      "when": [
+        { "field": "category", "op": "==", "value": "Client Entertainment" },
+        { "field": "amount", "op": ">", "value": 300 }
+      ],
+      "then": "route-to-human",
+      "message": "Client entertainment over S$300 needs manager review — confirm the attendee list and per-head spend (IRAS)."
+    },
+    {
       "id": "route-large-amount",
       "label": "Above auto-approve ceiling",
       "when": [

@@ -1,4 +1,5 @@
 const http = require('http');
+const crypto = require('crypto');
 const logUtil = require('./logUtil');
 const config = require('./config/config');
 
@@ -6,6 +7,76 @@ const BASE_SERVICE_CONFIG = {
     host: config.baseServiceHost,
     port: config.baseServicePort,
     timeout: config.baseServiceTimeout
+};
+
+// OCR (Azure Document Intelligence) + blob upload can legitimately take much
+// longer than a normal CRUD call — give it its own generous ceiling instead
+// of reusing the short default meant for plain JSON round-trips.
+const RECEIPT_PARSE_TIMEOUT_MS = 45_000;
+
+// Rebuild a single-file multipart/form-data body to forward to the Base
+// Service. We proxy raw bytes rather than re-encoding as JSON so the
+// receipt buffer (image/PDF) survives the hop unchanged.
+const buildMultipartBody = (fieldName, file) => {
+    const boundary = `ClaimFlowGateway${crypto.randomBytes(16).toString('hex')}`;
+    const head = Buffer.from(
+        `--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="${fieldName}"; filename="${file.originalname.replace(/"/g, '')}"\r\n` +
+        `Content-Type: ${file.mimetype}\r\n\r\n`,
+    );
+    const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
+    return {
+        body: Buffer.concat([head, file.buffer, tail]),
+        contentType: `multipart/form-data; boundary=${boundary}`,
+    };
+};
+
+// Like makeInternalRequest, but forwards a pre-built raw body (e.g. multipart
+// file upload) instead of JSON-encoding a plain object, and allows a custom
+// timeout for slow downstream calls (OCR, blob storage).
+const makeInternalRequestRaw = (method, path, body, contentType, token = null, timeoutMs = BASE_SERVICE_CONFIG.timeout) => {
+    return new Promise((resolve, reject) => {
+        const options = {
+            hostname: BASE_SERVICE_CONFIG.host,
+            port: BASE_SERVICE_CONFIG.port,
+            path: path.startsWith('/api') ? path : `/api${path}`,
+            method: method,
+            headers: {
+                'Content-Type': contentType,
+                'Content-Length': body.length,
+            },
+        };
+
+        if (token) {
+            options.headers['Authorization'] = token;
+        }
+
+        logUtil.info(`[Feign] Calling Base Service (raw): ${method} ${options.path}`);
+
+        const req = http.request(options, (res) => {
+            const chunks = [];
+            res.on('data', (chunk) => chunks.push(chunk));
+            res.on('end', () => {
+                const responseBody = Buffer.concat(chunks).toString('utf8');
+                logUtil.info(`Base Service responded with status: ${res.statusCode}`);
+                try {
+                    const parsed = JSON.parse(responseBody);
+                    if (res.statusCode >= 400) reject(parsed);
+                    else resolve(parsed);
+                } catch (e) {
+                    reject({ status: 'error', message: 'Invalid JSON from Base Service' });
+                }
+            });
+        });
+
+        req.on('error', (err) => reject({ status: 'error', message: `Base Service Unreachable: ${err.message}` }));
+        req.setTimeout(timeoutMs, () => {
+            req.destroy(new Error(`Base Service timed out after ${timeoutMs}ms`));
+        });
+
+        req.write(body);
+        req.end();
+    });
 };
 
 const makeInternalRequest = (method, path, data = null, token = null) => {
@@ -54,6 +125,11 @@ module.exports = {
     fetchClaims: (token) => makeInternalRequest('GET', '/claims', null, token),
     createClaim: (claimData, token) => makeInternalRequest('POST', '/claims', claimData, token),
     updateClaimStatus: (claimId, statusData, token) => makeInternalRequest('PATCH', `/workflow/review/${claimId}`, statusData, token),
+    getReceiptViewUrl: (claimId, token) => makeInternalRequest('GET', `/claims/${claimId}/receipt`, null, token),
+    parseReceipt: (file, token) => {
+        const { body, contentType } = buildMultipartBody('receipt', file);
+        return makeInternalRequestRaw('POST', '/claims/parse-receipt', body, contentType, token, RECEIPT_PARSE_TIMEOUT_MS);
+    },
     verifyUser: (credentials) => makeInternalRequest('POST', '/users/verify', credentials),
     registerUser: (userData) => makeInternalRequest('POST', '/users/register', userData),
     updatePassword: (updateData, token) => makeInternalRequest('PATCH', '/users/update-password', updateData, token)

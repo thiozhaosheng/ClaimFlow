@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { randomInt } from 'crypto';
 import * as userModel from '../models/user.model';
-import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/constants';
+import { JWT_SECRET, JWT_EXPIRES_IN, NODE_ENV } from '../config/constants';
 
 const GENERIC_AUTH_ERROR = { message: 'Invalid email or password' };
 
@@ -11,12 +12,11 @@ const GENERIC_AUTH_ERROR = { message: 'Invalid email or password' };
 // ---------------------------------------------------------------------------
 
 // Small, readable random string for the demo "forgot password" flow.
-// Never use this generator in real auth — it has no entropy guarantees.
 function generateDemoPassword(length = 10): string {
   const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789'; // no l/i/o/0/1 to avoid confusion
   let out = '';
   for (let i = 0; i < length; i++) {
-    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    out += alphabet[randomInt(alphabet.length)];
   }
   return out;
 }
@@ -108,6 +108,10 @@ export const me = async (req: Request, res: Response) => {
  *       200: { description: New password issued }
  */
 export const forgotPassword = async (req: Request, res: Response) => {
+  if (NODE_ENV === 'production') {
+    return res.status(404).json({ message: 'Not found' });
+  }
+
   const { email } = req.body ?? {};
   const emailNormalised = typeof email === 'string' ? email.trim().toLowerCase() : '';
   if (!emailNormalised) {

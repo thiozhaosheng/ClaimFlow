@@ -21,6 +21,10 @@ build/
 .vscode/
 *.swp
 
+# Local AI tooling config (not part of the project)
+.claude/
+**/.claude/
+
 # Prisma local artifacts
 backend/api/prisma/migrations/.lock
 

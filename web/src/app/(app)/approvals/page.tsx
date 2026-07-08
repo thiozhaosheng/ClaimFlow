@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { useClaims, useUpdateClaimStatus } from "@/features/claims/api/queries";
@@ -20,9 +20,27 @@ export default function ApprovalsPage() {
   const updateStatus = useUpdateClaimStatus();
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  // Endorse is "armed" on first click and only commits on the second — keeps it
+  // fast (two clicks, same spot) while preventing accidental approvals.
+  const [armedId, setArmedId] = useState<string | null>(null);
+  const disarmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const armEndorse = (id: string) => {
+    setRejectingId(null);
+    setArmedId(id);
+    if (disarmTimer.current) clearTimeout(disarmTimer.current);
+    disarmTimer.current = setTimeout(() => setArmedId(null), 3500);
+  };
+  const disarm = () => {
+    if (disarmTimer.current) clearTimeout(disarmTimer.current);
+    setArmedId(null);
+  };
 
   useEffect(() => {
     document.title = "Approvals Queue & Review | ClaimFlow";
+    return () => {
+      if (disarmTimer.current) clearTimeout(disarmTimer.current);
+    };
   }, []);
 
   const pendingClaims = useMemo(() => {
@@ -204,27 +222,41 @@ export default function ApprovalsPage() {
                           </div>
                         ) : (
                           <div className="flex items-center gap-1.5">
-                            <Button
-                              size="sm"
-                              className="h-8 px-3 rounded-lg text-xs bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-0.5 cursor-pointer shadow-sm active:scale-95 transition-transform"
-                              onClick={() => {
-                                updateStatus.mutate({
-                                  id: c.id,
-                                  status: "Endorsed",
-                                  actorName: user.name,
-                                  actorRole: user.role,
-                                });
-                              }}
-                              disabled={updateStatus.isPending}
-                            >
-                              <Check className="h-3.5 w-3.5 stroke-[3px]" />
-                              Endorse
-                            </Button>
+                            {armedId === c.id ? (
+                              <Button
+                                size="sm"
+                                className="h-8 px-3 rounded-lg text-xs bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1 cursor-pointer shadow-sm active:scale-95 transition-transform ring-2 ring-emerald-500/40 font-bold animate-scale-in"
+                                onClick={() => {
+                                  updateStatus.mutate({
+                                    id: c.id,
+                                    status: "Endorsed",
+                                    actorName: user.name,
+                                    actorRole: user.role,
+                                  });
+                                  disarm();
+                                }}
+                                disabled={updateStatus.isPending}
+                              >
+                                <Check className="h-3.5 w-3.5 stroke-[3px]" />
+                                Confirm endorse
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                className="h-8 px-3 rounded-lg text-xs bg-emerald-600/90 hover:bg-emerald-600 text-white flex items-center gap-0.5 cursor-pointer shadow-sm active:scale-95 transition-transform"
+                                onClick={() => armEndorse(c.id)}
+                                disabled={updateStatus.isPending}
+                                title="Click to endorse — you'll confirm once more"
+                              >
+                                <Check className="h-3.5 w-3.5 stroke-[3px]" />
+                                Endorse
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="danger"
                               className="h-8 px-2.5 rounded-lg text-xs flex items-center gap-0.5 cursor-pointer active:scale-95 transition-transform"
-                              onClick={() => setRejectingId(c.id)}
+                              onClick={() => { disarm(); setRejectingId(c.id); }}
                               disabled={updateStatus.isPending}
                             >
                               <X className="h-3.5 w-3.5" />

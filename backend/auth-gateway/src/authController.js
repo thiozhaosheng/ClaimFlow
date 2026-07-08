@@ -86,3 +86,30 @@ exports.reviewClaim = async (req, res) => {
         res.status(400).json({ status: 'error', message: 'Review action failed' });
     }
 };
+
+exports.parseReceipt = async (req, res) => {
+    const file = req.file;
+    if (!file) {
+        return res.status(400).json({ status: 'error', message: 'No receipt file uploaded' });
+    }
+    try {
+        const token = req.headers.authorization;
+        logUtil.info(`Proxying receipt OCR upload: ${file.originalname} (${file.size} bytes)`);
+        const result = await baseServiceConnector.parseReceipt(file, token);
+        res.status(200).json(result);
+    } catch (err) {
+        logUtil.error('Receipt parse proxy failed', err);
+        res.status(502).json({ status: 'error', message: 'Receipt parsing failed' });
+    }
+};
+
+exports.getReceiptViewUrl = async (req, res) => {
+    try {
+        const token = req.headers.authorization;
+        const { id } = req.params;
+        const result = await baseServiceConnector.getReceiptViewUrl(id, token);
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(400).json({ status: 'error', message: 'Failed to fetch receipt URL' });
+    }
+};

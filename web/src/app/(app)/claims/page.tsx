@@ -11,7 +11,7 @@ export default function ClaimsPage() {
         title="Claims"
         subtitle="Track every claim from receipt capture to GIRO/PayNow payout."
       />
-      <div id="claims-ledger-table" className="mt-4">
+      <div id="claims-ledger-table" className="mt-4 flex-1 flex flex-col min-h-0">
         <ClaimList />
       </div>
     </>

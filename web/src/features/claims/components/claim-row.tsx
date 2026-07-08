@@ -36,7 +36,8 @@ export function ClaimRow({ claim, dense = false }: { claim: Claim; dense?: boole
               {claim.title}
             </p>
             {claim.flagged && (
-              <span className="shrink-0 inline-flex items-center gap-1 rounded bg-rose-500/10 dark:bg-rose-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-455 border border-rose-500/20">
+              <span className="shrink-0 inline-flex items-center gap-1 rounded bg-rose-500/10 dark:bg-rose-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                <AlertTriangle className="h-3 w-3 text-rose-500 dark:text-rose-400 animate-pulse shrink-0" />
                 Flagged
               </span>
             )}

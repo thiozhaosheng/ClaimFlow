@@ -11,6 +11,12 @@ const formatSGD = (amount: number) =>
     maximumFractionDigits: 2,
   })}`;
 
+const parsePositiveIntegerParam = (value: string): number | null => {
+  if (!/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
 /**
  * @swagger
  * /api/workflow/pay/{id}:
@@ -21,11 +27,12 @@ const formatSGD = (amount: number) =>
  *       - bearerAuth: []
  */
 export const markAsPaid = async (req: Request, res: Response) => {
-  const { id } = req.params;
   const { remarks } = req.body ?? {};
+  const claimId = parsePositiveIntegerParam(req.params.id);
+  if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
 
   try {
-    const claim = await claimModel.findById(Number(id));
+    const claim = await claimModel.findById(claimId);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
 
     if (claim.status !== ClaimStatus.Endorsed) {
@@ -37,10 +44,10 @@ export const markAsPaid = async (req: Request, res: Response) => {
     const oldStatus = claim.status;
     const newStatus = ClaimStatus.Paid;
 
-    const updatedClaim = await claimModel.updateClaimStatus(Number(id), newStatus);
+    const updatedClaim = await claimModel.updateClaimStatus(claimId, newStatus);
 
     await auditModel.createAuditLog({
-      claimId: Number(id),
+      claimId,
       action: 'FINANCE_REIMBURSEMENT',
       performedBy: req.user!.id,
       oldStatus,
@@ -101,11 +108,16 @@ export const getAuditTrail = async (_req: Request, res: Response) => {
  *       - bearerAuth: []
  */
 export const reviewClaim = async (req: Request, res: Response) => {
-  const { id } = req.params;
   const { action, remarks } = req.body;
+  const claimId = parsePositiveIntegerParam(req.params.id);
+  if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
+
+  if (action !== 'approve' && action !== 'reject') {
+    return res.status(400).json({ message: 'Action must be approve or reject' });
+  }
 
   try {
-    const claim = await claimModel.findById(Number(id));
+    const claim = await claimModel.findById(claimId);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
 
     const reviewer = await userModel.findById(req.user!.id);
@@ -114,10 +126,10 @@ export const reviewClaim = async (req: Request, res: Response) => {
     const oldStatus = claim.status;
     const newStatus = action === 'approve' ? ClaimStatus.Endorsed : ClaimStatus.Rejected;
 
-    const updatedClaim = await claimModel.updateClaimStatus(Number(id), newStatus);
+    const updatedClaim = await claimModel.updateClaimStatus(claimId, newStatus);
 
     await auditModel.createAuditLog({
-      claimId: Number(id),
+      claimId,
       action: action === 'approve' ? 'MANAGER_APPROVAL' : 'MANAGER_REJECTION',
       performedBy: req.user!.id,
       oldStatus: oldStatus,

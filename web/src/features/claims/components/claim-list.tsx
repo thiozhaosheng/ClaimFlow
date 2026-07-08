@@ -31,12 +31,12 @@ import Link from "next/link";
 import { getEmployeeAvatar } from "@/core/domain/avatars";
 import { InteractiveFlipCard } from "@/components/ui/interactive-flip-card";
 
-const STATUS_FILTERS: Array<{ label: string; value: "All" | ClaimStatus }> = [
-  { label: "All Statuses", value: "All" },
-  { label: "Pending", value: "Pending" },
-  { label: "Endorsed", value: "Endorsed" },
-  { label: "Paid", value: "Paid" },
-  { label: "Rejected", value: "Rejected" },
+const STATUS_FILTERS: Array<{ label: string; value: "All" | ClaimStatus; icon: any }> = [
+  { label: "All Statuses", value: "All", icon: Inbox },
+  { label: "Pending", value: "Pending", icon: Clock },
+  { label: "Endorsed", value: "Endorsed", icon: TrendingUp },
+  { label: "Paid", value: "Paid", icon: CheckCircle2 },
+  { label: "Rejected", value: "Rejected", icon: AlertTriangle },
 ];
 
 export function ClaimList() {
@@ -152,7 +152,7 @@ export function ClaimList() {
   }, [filteredClaims]);
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-5">
+    <div className="flex flex-col gap-4 sm:gap-5 flex-1 min-h-0">
       {/* 1. Dynamic Claims Metrics Banner */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         {/* Total Submissions */}
@@ -213,8 +213,9 @@ export function ClaimList() {
         title="Interactive Ledger Filters"
         backContent="This control bar allows you to search claims instantly by merchant name, employee name, or description. Filter items by status tab, date ranges, or amount brackets. Toggle layout between a list and a Kanban board, and export reports directly."
         layout="horizontal"
+        className="h-auto"
       >
-        <div className="bg-card border border-border p-3 sm:p-4 rounded-xl shadow-sm flex flex-col gap-3 text-left w-full h-full">
+        <div className="bg-card border border-border p-3 sm:p-4 rounded-xl shadow-sm flex flex-col gap-3 text-left w-full h-auto">
           {/* Row 1: Search & Export */}
           <div className="flex items-center gap-2 w-full">
             <label className="relative flex-1 items-center min-w-0">
@@ -246,20 +247,25 @@ export function ClaimList() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 w-full">
             {/* Status Tab buttons (Scrollable on mobile) */}
             <div className="flex bg-surface border border-border rounded-lg p-0.5 overflow-x-auto scrollbar-none flex-nowrap shrink-0 max-w-full" role="tablist">
-              {STATUS_FILTERS.map((f) => (
-                <button
-                  key={f.value}
-                  onClick={() => setStatusFilter(f.value)}
-                  className={cn(
-                    "px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap",
-                    statusFilter === f.value
-                      ? "bg-card text-fg shadow-sm border border-border"
-                      : "text-fg-tertiary hover:text-fg-secondary"
-                  )}
-                >
-                  {f.label}
-                </button>
-              ))}
+              {STATUS_FILTERS.map((f) => {
+                const Icon = f.icon;
+                const isActive = statusFilter === f.value;
+                return (
+                  <button
+                    key={f.value}
+                    onClick={() => setStatusFilter(f.value)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5",
+                      isActive
+                        ? "bg-card text-fg shadow-sm border border-border"
+                        : "text-fg-tertiary hover:text-fg-secondary"
+                    )}
+                  >
+                    <Icon className={cn("h-3.5 w-3.5 shrink-0 transition-colors", isActive ? "text-accent" : "text-fg-tertiary/80")} />
+                    <span>{f.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Selectors and Layout switches */}
@@ -348,7 +354,7 @@ export function ClaimList() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card/45 dark:bg-card/25 backdrop-blur-3xl saturate-210 p-10 text-center shadow-sm"
+          className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card/45 dark:bg-card/25 backdrop-blur-xl saturate-180 p-10 text-center shadow-sm"
         >
           <AlertTriangle className="h-6 w-6 text-danger" />
           <div>
@@ -368,7 +374,7 @@ export function ClaimList() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card/45 dark:bg-card/25 backdrop-blur-3xl saturate-210 p-12 text-center shadow-sm"
+          className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card/45 dark:bg-card/25 backdrop-blur-xl saturate-180 p-12 text-center shadow-sm"
         >
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-surface text-fg-tertiary">
             <Inbox className="h-5 w-5" />
@@ -392,9 +398,9 @@ export function ClaimList() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="overflow-hidden rounded-xl border border-border bg-card/45 dark:bg-card/25 backdrop-blur-3xl shadow-sm text-left"
+              className="overflow-hidden rounded-xl border border-border bg-card/45 dark:bg-card/25 backdrop-blur-xl shadow-sm text-left flex flex-col lg:flex-1 h-auto min-h-[280px]"
             >
-              <div className="flex items-center justify-between border-b border-border px-4 py-2.5 bg-zinc-50/50 dark:bg-zinc-900/10">
+              <div className="flex items-center justify-between border-b border-border px-4 py-2.5 bg-zinc-50/50 dark:bg-zinc-900/10 shrink-0">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-fg-secondary">
                   File Repository ({filteredClaims.length} entries)
                 </span>
@@ -409,7 +415,7 @@ export function ClaimList() {
                 }}
                 initial="hidden"
                 animate="show"
-                className="divide-y divide-border"
+                className="divide-y divide-border overflow-y-auto flex-1"
               >
                 {filteredClaims.map((c) => (
                   <motion.li
@@ -432,7 +438,7 @@ export function ClaimList() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:flex-1 h-auto lg:min-h-0 min-h-[280px]"
             >
               {(["Pending", "Endorsed", "Paid", "Rejected"] as const).map((status) => {
                 const columnClaims = boardColumns[status] || [];
@@ -447,19 +453,19 @@ export function ClaimList() {
                   Pending: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
                   Endorsed: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20",
                   Paid: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
-                  Rejected: "bg-rose-500/10 text-rose-700 dark:text-rose-450 border-rose-500/20",
+                  Rejected: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20",
                 }[status];
 
                 return (
                   <div 
                     key={status} 
                     className={cn(
-                      "rounded-xl border border-border border-t-[3.5px] p-3 text-left flex flex-col gap-3 min-h-[400px] shadow-sm bg-card",
+                      "rounded-xl border border-border border-t-[3.5px] p-3 text-left flex flex-col gap-3 h-full min-h-0 shadow-sm bg-card",
                       columnColors
                     )}
                   >
                     {/* Column Header */}
-                    <div className="flex items-center justify-between border-b border-border/80 pb-2">
+                    <div className="flex items-center justify-between border-b border-border/80 pb-2 shrink-0">
                       <span className="text-xs font-bold text-fg flex items-center gap-1.5">
                         {status === "Pending" && <Clock className="h-3.5 w-3.5 text-amber-500" />}
                         {status === "Endorsed" && <TrendingUp className="h-3.5 w-3.5 text-indigo-500" />}
@@ -473,7 +479,7 @@ export function ClaimList() {
                     </div>
 
                     {/* Column Scrollable Cards */}
-                    <div className="flex-1 flex flex-col gap-2.5 overflow-y-auto max-h-[500px] pr-0.5">
+                    <div className="flex-1 flex flex-col gap-2.5 overflow-y-auto pr-0.5">
                       {columnClaims.length === 0 ? (
                         <div className="flex-1 flex items-center justify-center py-10 text-[10px] text-fg-tertiary select-none">
                           No items
@@ -489,16 +495,26 @@ export function ClaimList() {
                             )}
                           >
                             <div className="flex justify-between items-start gap-2">
-                              <span className="font-mono text-[9px] text-fg-tertiary font-bold">{claim.id}</span>
+                              <span className="font-mono text-[9px] text-fg-tertiary font-bold flex items-center gap-1.5">
+                                {claim.flagged && <AlertTriangle className="h-3.5 w-3.5 text-rose-500 animate-pulse shrink-0" />}
+                                <span>{claim.id}</span>
+                              </span>
                               <span className="text-[10px] font-bold tabular-nums text-fg">{formatSGD(claim.amount)}</span>
                             </div>
-                            <h4 className="text-xs font-semibold text-fg mt-1 truncate">{claim.title}</h4>
+                            <div className="flex items-center gap-1.5 mt-1 min-w-0">
+                              <h4 className="text-xs font-semibold text-fg truncate flex-1">{claim.title}</h4>
+                              {claim.flagged && (
+                                <span className="shrink-0 inline-flex items-center gap-0.5 rounded bg-rose-500/10 dark:bg-rose-500/20 px-1 py-0.2 text-[8px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                                  Flagged
+                                </span>
+                              )}
+                            </div>
                             <p className="text-[9px] text-fg-tertiary mt-1 font-medium">{formatDate(claim.date)}</p>
 
                             <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-border/50">
                               {/* Horizontal progress bar */}
                               <div className="flex items-center gap-1">
-                                <div className="w-8 h-1 bg-zinc-150 dark:bg-zinc-800 rounded-full overflow-hidden shrink-0">
+                                <div className="w-8 h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden shrink-0">
                                   <div 
                                     className={cn("h-full rounded-full", claim.flagged ? "bg-rose-500" : "bg-emerald-500")} 
                                     style={{ width: claim.flagged ? "75%" : "100%" }}

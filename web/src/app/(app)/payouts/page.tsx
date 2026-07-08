@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { useClaims, useUpdateClaimStatus } from "@/features/claims/api/queries";
@@ -23,6 +23,20 @@ export default function PayoutsPage() {
   
   const [payingId, setPayingId] = useState<string | null>(null);
   const [payStep, setPayStep] = useState(0);
+  // Disburse moves real money — arm on first click, settle on the second.
+  const [armedId, setArmedId] = useState<string | null>(null);
+  const disarmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const armDisburse = (id: string) => {
+    setArmedId(id);
+    if (disarmTimer.current) clearTimeout(disarmTimer.current);
+    disarmTimer.current = setTimeout(() => setArmedId(null), 3500);
+  };
+  const disarm = () => {
+    if (disarmTimer.current) clearTimeout(disarmTimer.current);
+    setArmedId(null);
+  };
+  useEffect(() => () => { if (disarmTimer.current) clearTimeout(disarmTimer.current); }, []);
 
   const endorsedClaims = useMemo(() => {
     return claims.filter((c) => c.status === "Endorsed");
@@ -182,15 +196,28 @@ export default function PayoutsPage() {
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5">
-                          <Button
-                            size="sm"
-                            className="h-8 px-3 rounded-lg text-xs bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1.5 cursor-pointer shadow-sm"
-                            onClick={() => handleDisburse(c.id)}
-                            disabled={payingId !== null}
-                          >
-                            <Wallet className="h-3.5 w-3.5" />
-                            Disburse
-                          </Button>
+                          {armedId === c.id ? (
+                            <Button
+                              size="sm"
+                              className="h-8 px-3 rounded-lg text-xs bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1.5 cursor-pointer shadow-sm ring-2 ring-indigo-500/40 font-bold animate-scale-in"
+                              onClick={() => { handleDisburse(c.id); disarm(); }}
+                              disabled={payingId !== null}
+                            >
+                              <Wallet className="h-3.5 w-3.5" />
+                              Confirm payout
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="h-8 px-3 rounded-lg text-xs bg-indigo-600/90 hover:bg-indigo-600 text-white flex items-center gap-1.5 cursor-pointer shadow-sm"
+                              onClick={() => armDisburse(c.id)}
+                              disabled={payingId !== null}
+                              title="Click to disburse — you'll confirm once more"
+                            >
+                              <Wallet className="h-3.5 w-3.5" />
+                              Disburse
+                            </Button>
+                          )}
                           <Button
                             asChild
                             variant="ghost"

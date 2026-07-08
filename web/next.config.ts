@@ -7,12 +7,19 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
-  allowedDevOrigins: [
-    "localhost:3000",
-    "127.0.0.1:3000",
-    "192.168.0.12:3000",
-    "192.168.0.12",
-  ],
+  allowedDevOrigins: ["192.168.0.12", "localhost", "127.0.0.1"],
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "GET,POST,PUT,DELETE,OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

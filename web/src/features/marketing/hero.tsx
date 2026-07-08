@@ -15,6 +15,7 @@ import {
   Check,
   FileText,
   Shield,
+  ShieldCheck,
   Loader2,
 } from "lucide-react";
 import {
@@ -344,9 +345,9 @@ export function Hero() {
               }}
               className="hidden sm:flex absolute top-14 right-4 bg-white dark:bg-zinc-950 border border-teal-500/30 dark:border-teal-500/20 p-2.5 pr-4 rounded-xl shadow-lg items-center gap-2.5 select-none pointer-events-none z-50 w-[190px] text-left scale-[0.8] sm:scale-100 origin-top-right will-change-transform"
             >
-              {/* Compliance / Singapore Crest Icon */}
-              <div className="h-9 w-9 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800 flex items-center justify-center shrink-0 shadow-sm p-1">
-                <img src="/logo_sg_crest.svg" alt="SG Crest" className="h-full w-full object-contain" />
+              {/* Compliance Guard Icon */}
+              <div className="h-9 w-9 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800 flex items-center justify-center shrink-0 shadow-sm">
+                <ShieldCheck className="h-5 w-5 text-teal-600 dark:text-teal-400" />
               </div>
               <div className="text-left font-sans">
                 <span className="block text-[10px] font-black uppercase tracking-wider text-teal-600 dark:text-teal-400">Compliance Guard</span>

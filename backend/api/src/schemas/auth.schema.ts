@@ -5,4 +5,8 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required').max(200),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Email must be a valid email address').max(254),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;

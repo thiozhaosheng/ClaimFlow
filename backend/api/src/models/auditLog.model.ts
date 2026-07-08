@@ -5,10 +5,11 @@ export async function createAuditLog(data: Prisma.AuditLogUncheckedCreateInput):
   return db.auditLog.create({ data });
 }
 
-export async function getAuditLogsByClaim(claimId: number): Promise<AuditLog[]> {
+export async function getAuditLogsByClaim(claimId: number) {
   return db.auditLog.findMany({
     where: { claimId },
     orderBy: { createdAt: 'asc' },
+    include: { executor: { select: { id: true, name: true, email: true, role: true } } },
   });
 }
 
