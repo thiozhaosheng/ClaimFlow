@@ -67,7 +67,7 @@ model Notification {
   recipientId Int       @map("recipient_id")
   claim       Claim?    @relation(fields: [claimId], references: [id], name: "ClaimNotifications")
   claimId     Int?      @map("claim_id")
-  kind        String    // 'auto-endorsed' | 'route-to-human' | 'claim-endorsed' | 'claim-rejected' | 'claim-paid' | 'ocr-unavailable' | 'claim-edited'
+  kind        String    // 'auto-endorsed' | 'route-to-human' | 'claim-endorsed' | 'claim-rejected' | 'claim-paid' | 'ocr-unavailable' | 'ocr-incomplete' | 'claim-edited' | 'receipt-needs-attention'
   title       String
   body        String
   // Optional inline hint shown when the recipient opens the claim — surfaces

@@ -131,7 +131,18 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
   // different things.
   const [ingestionSource, setIngestionSource] = useState<"ocr" | "card" | "preset" | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
+  // "unreadable": the scanning service ran fine but couldn't extract this
+  // particular receipt — not a system problem, so it gets a calmer amber
+  // treatment. "unreachable": the service itself didn't respond (down,
+  // network error, or rejected the upload outright) — a real error, shown
+  // in red. Distinguishing these matters: one is "this image was hard to
+  // read", the other is "something is actually broken right now".
+  const [scanErrorKind, setScanErrorKind] = useState<"unreadable" | "unreachable" | null>(null);
   const [receiptUploadUrl, setReceiptUploadUrl] = useState<string | null>(null);
+  // Fields the OCR scan couldn't read (empty array = fully captured). Shown
+  // to the uploader immediately and carried into the claim so the approver
+  // sees the same thing later — see handleSubmit.
+  const [ocrMissingFields, setOcrMissingFields] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [ocrParticles, setOcrParticles] = useState<{ id: string; text: string; x: number }[]>([]);
   const [formStep, setFormStep] = useState(1);
@@ -157,7 +168,9 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
     setOcrSource(null);
     setIngestionSource(null);
     setScanError(null);
+    setScanErrorKind(null);
     setReceiptUploadUrl(null);
+    setOcrMissingFields([]);
     setIntegrityScore(10);
 
     // Reset Category Types
@@ -374,6 +387,35 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
     const finalAmount = parseFloat(amount) || 0;
     if (!title || finalAmount <= 0) return;
 
+    // Real backend enum ("azure" | "mock" | "unavailable" | null) — this is
+    // what claim.controller.ts reads to suppress auto-approval and what
+    // visual-pipeline.tsx reads to show extraction status, so it has to be
+    // one of those literal values, not an invented label.
+    //   - "ocr" ingestion (this session's real Azure call) -> "azure"
+    //   - card match / preset -> "mock" (automated, but not real receipt OCR)
+    //   - scanError set (couldn't read the receipt, or couldn't reach the
+    //     scanning service at all) -> "unavailable"
+    //   - nothing ever attempted (pure manual entry) -> null
+    const submittedOcrSource: "azure" | "mock" | "unavailable" | null =
+      ingestionSource === "ocr"
+        ? "azure"
+        : ingestionSource === "card" || ingestionSource === "preset"
+        ? "mock"
+        : scanError
+        ? "unavailable"
+        : null;
+
+    // True when OCR was attempted (this upload went through the real Azure
+    // pipeline) but didn't come back complete — either it failed outright,
+    // or it read some fields but not others. Pure manual entry (no scan
+    // attempted at all) is a different, already-distinguishable case via
+    // ocrSource === null, so it's not counted here. The backend reads this
+    // to decide whether to suppress auto-approval and notify the approver —
+    // see claim.controller.ts.
+    const ocrIncomplete =
+      submittedOcrSource === "unavailable" ||
+      (submittedOcrSource === "azure" && ocrMissingFields.length > 0);
+
     addClaimMutation.mutate(
       {
         employee: user?.name || "Sarah Tan",
@@ -385,8 +427,10 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
         merchant: merchant || null,
         date: date || new Date().toISOString().split("T")[0],
         receiptUrl: receiptUploadUrl ?? (fileStaged ? `blob://receipts/${new Date().getTime()}.png` : null),
-        ocrSource: ocrSource === "azure" ? "citibank_card_sync" : "sandbox_mock_ocr",
+        ocrSource: submittedOcrSource,
         details: {
+          ocrIncomplete,
+          ocrMissingFields: ocrMissingFields.join(", "),
           uenNumber,
           invoiceRef,
           paymentMethod,
@@ -441,7 +485,9 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
   // retry, never silently papered over with fake data.
   const processStagedFile = async (file: File) => {
     setScanError(null);
+    setScanErrorKind(null);
     setReceiptUploadUrl(null);
+    setOcrMissingFields([]);
     setFileName(file.name);
     setScanning(true);
     setScanned(false);
@@ -458,13 +504,28 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
       setFileStaged(true);
 
       if (result.source === "unavailable") {
-        setScanError("Couldn't read this receipt automatically — enter the details below manually.");
+        setScanErrorKind("unreadable");
+        setScanError(
+          "We couldn't read anything from this receipt. No problem — fill in the details below and submit as usual; your approver will double-check them against the receipt image.",
+        );
+        setOcrMissingFields(["Merchant", "Amount", "Date"]);
         return;
       }
 
       setScanned(true);
       setOcrSource("azure");
       setIngestionSource("ocr");
+
+      // Tell the uploader exactly which fields the scan couldn't read, so
+      // they know what to check before submitting — not just "it worked" /
+      // "it didn't". This list also travels with the claim (see
+      // handleSubmit) so the approver sees the same thing later.
+      const missing: string[] = [];
+      if (!result.merchant) missing.push("Merchant");
+      if (result.total === null) missing.push("Amount");
+      if (!result.expenseDate) missing.push("Date");
+      setOcrMissingFields(missing);
+
       if (result.merchant) {
         setMerchant(result.merchant);
         setTitle(`${result.merchant} receipt`);
@@ -497,14 +558,17 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
       setScanning(false);
       setScanned(false);
       setFileStaged(false);
-      // A network-level failure (backend down, CORS, offline) throws a generic
-      // TypeError("Failed to fetch") — swap that for a message that actually
-      // explains what to check. An HTTP error response has a real message.
+      setScanErrorKind("unreachable");
+      // A network-level failure (service down, CORS, offline) throws a
+      // generic TypeError("Failed to fetch") — swap that dev-facing message
+      // for plain language that reassures the user and points at the
+      // fallback. An HTTP error response already has a real, user-facing
+      // message (e.g. "Receipt must be 10 MB or smaller"), so keep that one.
       const isNetworkFailure = err instanceof TypeError;
       setScanError(
         !isNetworkFailure && err?.message
           ? err.message
-          : "Couldn't reach the receipt parsing service. Check the backend is running.",
+          : "Our receipt-scanning service isn't responding right now. You can still file this claim — just fill in the details below by hand.",
       );
     }
   };
@@ -778,10 +842,19 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
                           </div>
                         ) : scanError ? (
                           <div className="flex flex-col items-center gap-1.5 z-10 px-4 w-full text-center">
-                            <AlertCircle className="h-4.5 w-4.5 text-red-500" />
-                            <span className="font-bold text-red-600 dark:text-red-400 text-xs">Receipt scan failed</span>
+                            <AlertCircle className={cn("h-4.5 w-4.5", scanErrorKind === "unreadable" ? "text-amber-500" : "text-red-500")} />
+                            <span className={cn(
+                              "font-bold text-xs",
+                              scanErrorKind === "unreadable"
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-red-600 dark:text-red-400",
+                            )}>
+                              {scanErrorKind === "unreadable" ? "Couldn't read this receipt" : "Receipt scan unavailable"}
+                            </span>
                             <span className="text-xs text-fg-secondary leading-snug">{scanError}</span>
-                            <span className="text-[10px] text-fg-tertiary font-medium mt-0.5">Click or drop again to retry</span>
+                            <span className="text-[10px] text-fg-tertiary font-medium mt-0.5">
+                              {scanErrorKind === "unreadable" ? "Try a clearer photo, or drop a different file" : "Click or drop again to retry"}
+                            </span>
                           </div>
                         ) : scanned ? (
                           <div className="flex flex-col items-center leading-none z-10">
@@ -981,32 +1054,63 @@ export function NewClaimDialog({ open, onOpenChange, prefillData }: NewClaimDial
               </div>
 
               {/* Data Ingestion Status Banner */}
-              {scanned && (
-                <div className="p-3 rounded-xl border flex items-center justify-between gap-3 text-[10px] font-bold select-none text-left transition-all duration-300 animate-scale-in bg-indigo-500/[0.04] dark:bg-indigo-500/[0.08] border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
-                  <div className="flex items-center gap-2.5">
-                    <Info className="h-4 w-4 shrink-0" />
-                    <div className="leading-tight">
-                      <span className="block font-black">
-                        {ingestionSource === "card"
-                          ? "Citibank FAST Sync Active"
-                          : ingestionSource === "preset"
-                          ? "Cheatsheet Preset Applied"
-                          : "Azure Document Intelligence Scan Complete"}
-                      </span>
-                      <span className="text-[8.5px] text-fg-secondary font-medium leading-normal block mt-0.5">
-                        {ingestionSource === "card"
-                          ? "Extracted parameters verified with Citibank card terminal."
-                          : ingestionSource === "preset"
-                          ? "Prefilled from a saved scenario template — verify before submitting."
-                          : "Receipt fields extracted from the uploaded file — verify before submitting."}
-                      </span>
+              {scanned && (() => {
+                const isPartialOcr = ingestionSource === "ocr" && ocrMissingFields.length > 0;
+                return (
+                  <div
+                    className={cn(
+                      "p-3 rounded-xl border flex items-center justify-between gap-3 text-[10px] font-bold select-none text-left transition-all duration-300 animate-scale-in",
+                      isPartialOcr
+                        ? "bg-amber-500/[0.05] dark:bg-amber-500/[0.1] border-amber-500/25 text-amber-700 dark:text-amber-400"
+                        : "bg-indigo-500/[0.04] dark:bg-indigo-500/[0.08] border-indigo-500/20 text-indigo-600 dark:text-indigo-400",
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      {isPartialOcr ? (
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                      ) : (
+                        <Info className="h-4 w-4 shrink-0" />
+                      )}
+                      <div className="leading-tight">
+                        <span className="block font-black">
+                          {ingestionSource === "card"
+                            ? "Citibank FAST Sync Active"
+                            : ingestionSource === "preset"
+                            ? "Cheatsheet Preset Applied"
+                            : isPartialOcr
+                            ? "Receipt Partially Read"
+                            : "Azure Document Intelligence Scan Complete"}
+                        </span>
+                        <span className="text-[8.5px] text-fg-secondary font-medium leading-normal block mt-0.5">
+                          {ingestionSource === "card"
+                            ? "Extracted parameters verified with Citibank card terminal."
+                            : ingestionSource === "preset"
+                            ? "Prefilled from a saved scenario template — verify before submitting."
+                            : isPartialOcr
+                            ? `Couldn't read: ${ocrMissingFields.join(", ")} — please fill ${ocrMissingFields.length > 1 ? "these" : "this"} in below. Your approver will see this claim needed manual entry.`
+                            : "Receipt fields extracted from the uploaded file — verify before submitting."}
+                        </span>
+                      </div>
                     </div>
+                    <span
+                      className={cn(
+                        "font-mono text-[8px] uppercase tracking-wider px-2 py-0.5 rounded border shrink-0",
+                        isPartialOcr
+                          ? "bg-white dark:bg-zinc-900 border-amber-500/40"
+                          : "bg-white dark:bg-zinc-900 border-border/80",
+                      )}
+                    >
+                      {ingestionSource === "card"
+                        ? "Bank Match"
+                        : ingestionSource === "preset"
+                        ? "Preset"
+                        : isPartialOcr
+                        ? "Partial Match"
+                        : "OCR Match"}
+                    </span>
                   </div>
-                  <span className="font-mono text-[8px] uppercase tracking-wider bg-white dark:bg-zinc-900 px-2 py-0.5 rounded border border-border/80 shrink-0">
-                    {ingestionSource === "card" ? "Bank Match" : ingestionSource === "preset" ? "Preset" : "OCR Match"}
-                  </span>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Section 1 Card */}
               {formStep === 1 && (

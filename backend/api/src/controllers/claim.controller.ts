@@ -53,13 +53,17 @@ async function notifyDepartmentManager(args: {
   submitterId: number;
   submitterDepartment: string | null;
   claimId: number;
-  kind: 'auto-endorsed' | 'route-to-human' | 'ocr-unavailable';
+  kind: 'auto-endorsed' | 'route-to-human' | 'ocr-unavailable' | 'ocr-incomplete';
   category: string;
   amount: number;
   merchant: string | null;
   submitterName: string;
   ruleId: string;
   ruleMessage: string;
+  // Which fields the scan couldn't read, e.g. "Merchant, Date" — only set
+  // for the ocr-incomplete kind, used to make the hint specific instead of
+  // a generic "something's missing" message.
+  ocrMissingFields?: string;
 }) {
   // Find managers in the same department; fall back to any manager.
   const managers = await userModel.findAll();
@@ -76,13 +80,16 @@ async function notifyDepartmentManager(args: {
     'auto-endorsed': 'Auto-endorsed',
     'route-to-human': 'New claim to review',
     'ocr-unavailable': 'Manual review needed',
+    'ocr-incomplete': 'Manual review needed',
   }[args.kind];
 
   const body = `${args.category} · ${args.merchant ?? '—'} · ${formatSGD(args.amount)}`;
   const hint =
     args.kind === 'ocr-unavailable'
-      ? 'OCR could not read the receipt — verify the receipt image matches the entered amount and date.'
-      : `Rule: ${args.ruleId} — ${args.ruleMessage}`;
+      ? 'OCR could not read the receipt at all — verify every field against the receipt image.'
+      : args.kind === 'ocr-incomplete'
+      ? `OCR couldn't read: ${args.ocrMissingFields || 'some fields'} — the submitter entered ${args.ocrMissingFields?.includes(',') ? 'these' : 'this'} by hand. Verify against the receipt image.`
+      : `Rule: ${args.ruleId} — ${args.ruleMessage}${args.ocrMissingFields ? ` · OCR also couldn't read: ${args.ocrMissingFields}` : ''}`;
 
   await Promise.all(
     candidates.map((manager) =>
@@ -101,7 +108,7 @@ async function notifyDepartmentManager(args: {
 async function notifySubmitter(args: {
   submitterId: number;
   claimId: number;
-  kind: 'claim-endorsed' | 'claim-rejected' | 'claim-paid' | 'claim-edited';
+  kind: 'claim-endorsed' | 'claim-rejected' | 'claim-paid' | 'claim-edited' | 'receipt-needs-attention';
   title: string;
   body: string;
   hint?: string;
@@ -175,12 +182,18 @@ export const createClaim = async (req: Request, res: Response) => {
       });
     }
 
-    // OCR-failure suppression: even if the rule says auto-approve, an
-    // unreadable receipt means the manager must double-check the manually
-    // entered fields against the receipt image.
+    // OCR-issue suppression: even if the rule says auto-approve, a receipt
+    // OCR couldn't fully read means the manager must double-check the
+    // manually-entered fields against the receipt image. Covers both a full
+    // failure (ocrSource === 'unavailable') and a partial read (some fields
+    // came back but not all — flagged by the frontend as details.ocrIncomplete,
+    // e.g. the scan found the merchant but not the date).
     const ocrUnavailable = ocrSource === 'unavailable';
+    const ocrIncomplete = ocrUnavailable || details?.ocrIncomplete === true;
+    const ocrMissingFieldsList: string =
+      typeof details?.ocrMissingFields === 'string' ? details.ocrMissingFields : '';
     const wouldAutoApprove = policy.outcome === 'auto-approve';
-    const autoApprove = wouldAutoApprove && !ocrUnavailable;
+    const autoApprove = wouldAutoApprove && !ocrIncomplete;
 
     const initialStatus = autoApprove ? ClaimStatus.Endorsed : ClaimStatus.Pending;
 
@@ -219,38 +232,62 @@ export const createClaim = async (req: Request, res: Response) => {
         ruleId: policy.ruleId,
         ruleMessage: policy.message,
       });
-    } else if (wouldAutoApprove && ocrUnavailable) {
-      // Auto-approve was suppressed by OCR failure — log + notify so the
-      // approver knows to do a manual check.
+    } else if (wouldAutoApprove && ocrIncomplete) {
+      // Auto-approve was suppressed because OCR didn't fully read the
+      // receipt (either it failed outright, or read some fields but not
+      // all) — log + notify the approver so they know to do a manual check,
+      // and notify the submitter too so they know why their claim didn't
+      // auto-endorse like usual.
       await auditModel.createAuditLog({
         claimId: newClaim.id,
-        action: 'AUTO_APPROVAL_SUPPRESSED_OCR_UNAVAILABLE',
+        action: ocrUnavailable
+          ? 'AUTO_APPROVAL_SUPPRESSED_OCR_UNAVAILABLE'
+          : 'AUTO_APPROVAL_SUPPRESSED_OCR_INCOMPLETE',
         performedBy: req.user!.id,
         oldStatus: ClaimStatus.Pending,
         newStatus: ClaimStatus.Pending,
-        remarks: `${policy.ruleId} (suppressed because OCR did not read the receipt)`,
+        remarks: ocrUnavailable
+          ? `${policy.ruleId} (suppressed because OCR did not read the receipt)`
+          : `${policy.ruleId} (suppressed because OCR could not read: ${ocrMissingFieldsList || 'some fields'})`,
       });
       await notifyDepartmentManager({
         submitterId: submitter.id,
         submitterDepartment: submitter.department,
         claimId: newClaim.id,
-        kind: 'ocr-unavailable',
+        kind: ocrUnavailable ? 'ocr-unavailable' : 'ocr-incomplete',
         category,
         amount: Number(amount),
         merchant: merchant ?? null,
         submitterName: submitter.name,
         ruleId: policy.ruleId,
         ruleMessage: policy.message,
+        ocrMissingFields: ocrMissingFieldsList,
+      });
+      await notifySubmitter({
+        submitterId: submitter.id,
+        claimId: newClaim.id,
+        kind: 'receipt-needs-attention',
+        title: 'Your receipt needs a second look',
+        body: ocrUnavailable
+          ? "We couldn't read your receipt automatically, so this claim is going to your manager for manual review instead of auto-approving."
+          : `We couldn't read ${ocrMissingFieldsList || 'some fields'} from your receipt automatically, so this claim is going to your manager for manual review instead of auto-approving.`,
+        hint: 'This is expected — no action needed unless your approver reaches out with a question.',
       });
     } else {
       // route-to-human (or default) — log + notify approver with rule hint.
+      // This claim needs human review regardless of OCR, but if the receipt
+      // also had OCR issues that's worth flagging in the same notification
+      // rather than silently dropping it — and the submitter still deserves
+      // to know their receipt didn't scan cleanly.
       await auditModel.createAuditLog({
         claimId: newClaim.id,
         action: 'ROUTED_TO_HUMAN',
         performedBy: req.user!.id,
         oldStatus: ClaimStatus.Pending,
         newStatus: ClaimStatus.Pending,
-        remarks: policy.ruleId,
+        remarks: ocrIncomplete
+          ? `${policy.ruleId} (also: OCR could not read ${ocrUnavailable ? 'the receipt' : ocrMissingFieldsList || 'some fields'})`
+          : policy.ruleId,
       });
       await notifyDepartmentManager({
         submitterId: submitter.id,
@@ -263,7 +300,20 @@ export const createClaim = async (req: Request, res: Response) => {
         submitterName: submitter.name,
         ruleId: policy.ruleId,
         ruleMessage: policy.message,
+        ocrMissingFields: ocrIncomplete ? ocrUnavailable ? 'the whole receipt' : ocrMissingFieldsList : undefined,
       });
+      if (ocrIncomplete) {
+        await notifySubmitter({
+          submitterId: submitter.id,
+          claimId: newClaim.id,
+          kind: 'receipt-needs-attention',
+          title: 'Your receipt needs a second look',
+          body: ocrUnavailable
+            ? "We couldn't read your receipt automatically — your manager will verify the details you entered."
+            : `We couldn't read ${ocrMissingFieldsList || 'some fields'} from your receipt automatically — your manager will verify the details you entered.`,
+          hint: 'This is expected — no action needed unless your approver reaches out with a question.',
+        });
+      }
     }
 
     res.status(201).json({

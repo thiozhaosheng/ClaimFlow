@@ -26,8 +26,10 @@ export interface Claim {
   receiptUrl: string | null;
   /** Which OCR engine produced the prefill, if any. */
   ocrSource: "azure" | "mock" | "demo" | "unavailable" | null;
-  /** Per-category structured details (see category-fields). */
-  details: Record<string, string | number | null>;
+  /** Per-category structured details (see category-fields). Also carries
+   * OCR provenance flags: ocrIncomplete (boolean) and ocrMissingFields
+   * (comma-joined string of field labels the scan couldn't read). */
+  details: Record<string, string | number | boolean | null>;
   flagged?: boolean;
 }
 

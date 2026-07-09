@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   ScanLine,
   Clock,
+  FileWarning,
 } from "lucide-react";
 import { useClaim, useClaimActivity, useUpdateClaimStatus, useAddClaimComment, useUpdateClaimFields } from "@/features/claims/api/queries";
 import {
@@ -800,6 +801,19 @@ export default function ClaimDetailPage({
           )}
         </div>
       </div>
+
+      {/* Receipt OCR completeness — separate from the policy-flag warning
+          system below, since this is about scan quality, not compliance. */}
+      {claim.details?.ocrIncomplete === true && (
+        <div className="w-full bg-amber-500/[0.05] dark:bg-amber-500/[0.08] border border-amber-500/25 rounded-2xl px-4 py-3 flex items-center gap-2.5 shrink-0 text-xs font-semibold text-amber-700 dark:text-amber-400">
+          <FileWarning className="h-4 w-4 shrink-0" />
+          <span>
+            {claim.details?.ocrMissingFields
+              ? `Receipt scan couldn't read: ${claim.details.ocrMissingFields} — entered manually by ${claim.employee}. Verify against the receipt image.`
+              : `Receipt scan couldn't read this receipt — all fields entered manually by ${claim.employee}. Verify against the receipt image.`}
+          </span>
+        </div>
+      )}
 
       {/* Integrated Live Claim Tracker Banner */}
       <div className="w-full bg-card border border-border/85 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-5 shrink-0 relative overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.16)] select-none font-sans">

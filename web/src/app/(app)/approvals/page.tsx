@@ -7,7 +7,7 @@ import { useClaims, useUpdateClaimStatus } from "@/features/claims/api/queries";
 import { formatSGD } from "@/core/domain/money";
 import { formatDate } from "@/core/domain/dates";
 import { Button } from "@/components/ui/button";
-import { ShieldAlert, Check, X, ArrowRight, AlertTriangle } from "lucide-react";
+import { ShieldAlert, Check, X, ArrowRight, AlertTriangle, FileWarning } from "lucide-react";
 import { useSession } from "@/lib/session-context";
 import { motion, AnimatePresence } from "motion/react";
 import { CategoryIcon } from "@/components/ui/category-icon";
@@ -155,6 +155,19 @@ export default function ApprovalsPage() {
                               <span className="shrink-0 inline-flex items-center gap-1 rounded bg-rose-500/10 dark:bg-rose-500/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 border border-rose-500/20">
                                 <AlertTriangle className="h-3 w-3 text-rose-500 dark:text-rose-400 animate-pulse shrink-0" />
                                 Flagged
+                              </span>
+                            )}
+                            {c.details?.ocrIncomplete === true && (
+                              <span
+                                className="shrink-0 inline-flex items-center gap-1 rounded bg-amber-500/10 dark:bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                title={
+                                  c.details?.ocrMissingFields
+                                    ? `Scan couldn't read: ${c.details.ocrMissingFields}`
+                                    : "Scan couldn't read this receipt — entered manually"
+                                }
+                              >
+                                <FileWarning className="h-3 w-3 shrink-0" />
+                                Unverified Receipt
                               </span>
                             )}
                           </div>

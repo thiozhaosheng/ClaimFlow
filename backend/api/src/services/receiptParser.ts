@@ -157,10 +157,30 @@ function parseTransportRoute(items: string[]): { from: string; to: string } | nu
   return null;
 }
 
+// Screenshot receipts (Grab app, bank/PayNow confirmation emails, etc.) often
+// include phone status-bar chrome — clock, battery %, signal — in the top
+// sliver of the image. Confirmed on a real Grab e-receipt screenshot: Azure
+// extracted "4:47" as TransactionTime with 0.987 confidence, but that was the
+// phone's clock (bounding box y: 75-121 on a 2868px-tall page, i.e. the top
+// ~4%) — the receipt's actual content (merchant, date, total) all starts
+// past y:190. A receipt's real transaction time is never printed above its
+// own header, so a time field anchored in the top slice of the page is a
+// reliable signal it's UI chrome, not receipt data.
+const STATUS_BAR_HEIGHT_FRACTION = 0.05;
+
+function isInStatusBarRegion(field: any, pageHeight: number | undefined): boolean {
+  if (!pageHeight) return false;
+  const polygon = field?.boundingRegions?.[0]?.polygon;
+  if (!Array.isArray(polygon) || polygon.length === 0) return false;
+  const maxY = Math.max(...polygon.map((p: any) => (typeof p?.y === 'number' ? p.y : 0)));
+  return maxY < pageHeight * STATUS_BAR_HEIGHT_FRACTION;
+}
+
 // Read the TransactionTime field (HH:MM:SS or HH:MM string).
-function readTransactionTime(fields: any): string | null {
+function readTransactionTime(fields: any, pageHeight?: number): string | null {
   const f = fields?.TransactionTime;
   if (!f) return null;
+  if (isInStatusBarRegion(f, pageHeight)) return null;
   const v = f.value ?? f.valueTime ?? f.content;
   if (typeof v !== 'string') return null;
   const m = v.match(/(\d{1,2}):(\d{2})/);
@@ -602,7 +622,7 @@ async function parseWithAzure(
 
   // lineItems was already read above for merchant inference.
   const route = parseTransportRoute(lineItems);
-  const transactionTime = readTransactionTime(fields);
+  const transactionTime = readTransactionTime(fields, result.pages?.[0]?.height);
 
   return {
     merchant,
