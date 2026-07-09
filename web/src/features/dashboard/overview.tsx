@@ -272,6 +272,11 @@ function DashboardSuggestionCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                // Some actions (e.g. prefilling a claim) open another dialog
+                // on the same page instead of navigating away — nothing else
+                // would close the expanded drawer in that case, so do it here
+                // regardless of which kind of action this is.
+                setIsExpanded(false);
                 task.onAction();
               }}
               disabled={task.isLoading}
@@ -914,6 +919,15 @@ function DashboardGreetingHero({
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      // Actions that open another dialog on
+                                      // the same page (e.g. prefilling a
+                                      // claim) instead of navigating away
+                                      // would otherwise leave this drawer's
+                                      // high z-index backdrop stuck on top
+                                      // of it, blurring and blocking the new
+                                      // dialog. Close the drawer regardless
+                                      // of which kind of action this is.
+                                      setIsExpanded(false);
                                       task.onAction();
                                     }}
                                     disabled={task.isLoading}
