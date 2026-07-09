@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { InteractiveFlipCard } from "@/components/ui/interactive-flip-card";
 import {
   ReceiptText,
@@ -34,7 +35,7 @@ import {
   Circle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useClaims, useUpdateClaimFields } from "@/features/claims/api/queries";
+import { useClaims } from "@/features/claims/api/queries";
 import { ClaimRow } from "@/features/claims/components/claim-row";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { formatSGD } from "@/core/domain/money";
@@ -300,11 +301,6 @@ function DashboardGreetingHero({
   onPrefillClaim,
   filteredClaims,
   pendingFinanceClaims,
-  batchApproving,
-  handleBatchApprove,
-  payoutRunning,
-  payoutStep,
-  handleBatchDisburse,
   stats,
   isLoading,
   activeStatIndex,
@@ -315,21 +311,15 @@ function DashboardGreetingHero({
   onPrefillClaim: (tx: { category: string; title: string; amount: string; merchant: string; date: string }) => void;
   filteredClaims: any[];
   pendingFinanceClaims: any[];
-  batchApproving: boolean;
-  handleBatchApprove: (claimsToApprove?: any[]) => void;
-  payoutRunning: boolean;
-  payoutStep: number;
-  handleBatchDisburse: () => void;
   stats: any[];
   isLoading: boolean;
   activeStatIndex: number | null;
   setActiveStatIndex: (idx: number | null) => void;
 }) {
+  const router = useRouter();
   const { user } = useSession();
   const { data: claimsData } = useClaims();
-  const updateClaimFieldsMutation = useUpdateClaimFields();
   const [greeting, setGreeting] = useState("Good morning");
-  const [fixingId, setFixingId] = useState<string | null>(null);
   const [timeStr, setTimeStr] = useState("");
   const [activeTaskIndex, setActiveTaskIndex] = useState(0);
   const [dismissedTaskIds, setDismissedTaskIds] = useState<string[]>([]);
@@ -431,13 +421,6 @@ function DashboardGreetingHero({
 
   // Treasury figures for the Finance task — derived so they match the
   // liquidity stat + reports rather than a contradicting hardcoded number.
-  const financeReserve = useMemo(() => {
-    const outstanding = (claimsData ?? [])
-      .filter((c) => c.status === "Endorsed")
-      .reduce((a, c) => a + c.amount, 0);
-    return { outstanding, available: Math.max(0, TREASURY_LIMIT - outstanding) };
-  }, [claimsData]);
-
   const cards = {
     "Employee": {
       sub: hasFlags
@@ -538,18 +521,13 @@ function DashboardGreetingHero({
           eyebrow: "Auto-check",
           icon: ReceiptText,
           eyebrowColor: "text-indigo-500 dark:text-indigo-400",
-          description: "Receipt GST typo detected. Autofill corrected amount?",
-          actionLabel: updateClaimFieldsMutation.isSuccess ? "Corrected ✓" : "Autofill S$26.29",
-          isLoading: updateClaimFieldsMutation.isPending && fixingId === "CLM-1042",
-          onAction: () => {
-            setFixingId("CLM-1042");
-            updateClaimFieldsMutation.mutate({
-              id: "CLM-1042",
-              fields: { gstAmount: 26.29 }
-            }, {
-              onSuccess: () => setFixingId(null)
-            });
-          },
+          description: "Receipt GST typo detected on CLM-1042. Review and correct it on the claim.",
+          actionLabel: "Review Claim",
+          // Financial figures on a filed claim don't get silently rewritten
+          // by a dashboard suggestion card — this takes the employee to the
+          // claim's own edit flow, where they see both values and make the
+          // change themselves.
+          onAction: () => router.push("/claims/CLM-1042"),
           customContent: (
             <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
               <span className="text-[10px] text-zinc-400 font-semibold font-sans">Form:</span>
@@ -583,16 +561,6 @@ function DashboardGreetingHero({
         )
       });
 
-      list.push({
-        id: "policy-warning",
-        title: "Add Attendees",
-        eyebrow: "Policy Check",
-        icon: ShieldCheck,
-        eyebrowColor: "text-amber-500 dark:text-amber-400",
-        description: "AWS Training claim is missing attendee list. Add now?",
-        actionLabel: "Add Attendees Now",
-        onAction: () => alert("Navigating to policy form...")
-      });
     } else if (role === "Approving Officer") {
       if (filteredClaims.length > 0) {
         const cleanClaims = filteredClaims.filter(c => !c.flagged);
@@ -601,16 +569,19 @@ function DashboardGreetingHero({
         if (cleanClaims.length > 0) {
           list.push({
             id: "batch-endorse",
-            title: "Batch Endorse",
+            title: "Claims Awaiting Review",
             eyebrow: "Auto-check",
             icon: Layers,
             eyebrowColor: "text-amber-500 dark:text-amber-400",
             description: teamFlaggedCount > 0
-              ? `${cleanClaims.length} clean claims pass policy checks. Approve them?`
-              : `${filteredClaims.length} claims pass policy checks. Approve all?`,
-            actionLabel: batchApproving ? "Endorsing..." : (teamFlaggedCount > 0 ? "Batch Endorse Clean" : "Batch Endorse Team"),
-            isLoading: batchApproving,
-            onAction: () => handleBatchApprove(cleanClaims),
+              ? `${cleanClaims.length} claims pass automated policy checks — each still needs your endorsement.`
+              : `${filteredClaims.length} claims pass automated policy checks — each still needs your endorsement.`,
+            // Policy passing isn't the same as approved — an officer endorses
+            // each claim individually in the queue, not in bulk from a
+            // suggestion card. This opens that queue rather than approving
+            // anything itself.
+            actionLabel: "Open Review Queue",
+            onAction: () => router.push("/approvals"),
             customContent: (
               <div className="flex items-center gap-2 mt-1.5 select-none">
                 <span className="text-[10px] text-zinc-400 font-semibold">Queue:</span>
@@ -629,77 +600,48 @@ function DashboardGreetingHero({
       }
 
       list.push({
-        id: "duplicate-check",
-        title: "Duplicate Check",
-        eyebrow: "Policy",
-        icon: ShieldCheck,
-        eyebrowColor: "text-amber-500 dark:text-amber-400",
-        description: "Jumbo Seafood matches Citibank Visa transaction. Resolve duplicate?",
-        actionLabel: "Compare Receipts",
-        onAction: () => alert("Opening receipt compare panel...")
-      });
-
-      list.push({
         id: "high-value-audit",
         title: "Limit Review",
         eyebrow: "Policy",
         icon: ShieldCheck,
         eyebrowColor: "text-amber-500 dark:text-amber-400",
         description: "Singapore Airlines claim (CLM-1052) exceeds S$500 threshold. Verify details?",
-        actionLabel: "Complete Checklist",
-        onAction: () => alert("Opening high-value review checklist...")
+        actionLabel: "Review Claim",
+        onAction: () => router.push("/claims/CLM-1052")
       });
     } else if (role === "Finance Admin") {
       if (pendingFinanceClaims.length > 0) {
         list.push({
           id: "batch-disburse",
-          title: "Bulk Payout",
+          title: "Claims Awaiting Payout",
           eyebrow: "Citibank",
           icon: Wallet,
           eyebrowColor: "text-pink-500 dark:text-pink-400",
-          description: `Ready to disburse ${pendingFinanceClaims.length} approved claims via Citibank FAST.`,
-          actionLabel: payoutRunning ? "Settling..." : "Disburse FAST",
-          isLoading: payoutRunning,
-          onAction: handleBatchDisburse,
+          description: `${pendingFinanceClaims.length} approved claims are ready — each payout still needs to be released individually.`,
+          // Moving money isn't a one-click action from a suggestion card —
+          // this opens the payouts queue where each disbursement is
+          // reviewed and released on its own.
+          actionLabel: "Open Payouts Queue",
+          onAction: () => router.push("/payouts"),
           customContent: (
-            <div className="flex flex-col gap-1 mt-1.5">
-              <div className="w-full max-w-[200px] h-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-full relative overflow-hidden">
-                <motion.div
-                  initial={{ width: "0%" }}
-                  animate={{
-                    width: 
-                      payoutStep === 1 ? "33%" :
-                      payoutStep === 2 ? "66%" :
-                      payoutStep === 3 ? "100%" :
-                      payoutRunning ? "15%" : "0%"
-                  }}
-                  className="absolute left-0 h-full bg-zinc-900 dark:bg-zinc-100 rounded-full"
-                />
-              </div>
-              <div className="flex justify-between items-center w-full max-w-[200px] text-[7px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider select-none">
-                <span className={cn(payoutStep >= 1 ? "text-zinc-800 dark:text-zinc-200" : "")}>1. Audit</span>
-                <span className={cn(payoutStep >= 2 ? "text-zinc-800 dark:text-zinc-200" : "")}>2. Gateway</span>
-                <span className={cn(payoutStep >= 3 ? "text-zinc-800 dark:text-zinc-200" : "")}>3. Settle</span>
+            <div className="flex items-center gap-2 mt-1.5 select-none">
+              <span className="text-[10px] text-zinc-400 font-semibold">Queue:</span>
+              <div className="flex items-center gap-1.5">
+                {pendingFinanceClaims.slice(0, 3).map((c) => (
+                  <div key={c.id} className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full px-2 py-0.5 text-[9px] font-bold font-mono text-zinc-600 dark:text-zinc-400">
+                    {c.id}
+                  </div>
+                ))}
+                {pendingFinanceClaims.length > 3 && <span className="text-[9px] text-zinc-400">+{pendingFinanceClaims.length - 3} more</span>}
               </div>
             </div>
           )
         });
       }
-
-      list.push({
-        id: "liquidity-warning",
-        title: "Treasury Reserve",
-        eyebrow: "Citibank",
-        icon: Wallet,
-        eyebrowColor: "text-pink-500 dark:text-pink-400",
-        description: `${formatSGD(financeReserve.outstanding)} endorsed and awaiting payout. ${formatSGD(financeReserve.available)} reserve remains. Pre-fund the gateway?`,
-        actionLabel: "Replenish pool",
-        onAction: () => alert("Gateway pool replenished!")
-      });
     }
 
     return list;
-  }, [role, hasFlags, updateClaimFieldsMutation.isPending, updateClaimFieldsMutation.isSuccess, fixingId, filteredClaims, batchApproving, pendingFinanceClaims, payoutRunning, payoutStep, onNewClaimClick, onPrefillClaim, handleBatchApprove, handleBatchDisburse, financeReserve]);
+  }, [role, hasFlags, filteredClaims, pendingFinanceClaims, router, onNewClaimClick, onPrefillClaim]);
 
   const tasks = useMemo(() => {
     return rawTasks.filter((t) => !dismissedTaskIds.includes(t.id));
@@ -1281,7 +1223,6 @@ export function DashboardOverview() {
 
   // Local simulated approvals for Manager
   const [mockApprovedIds, setMockApprovedIds] = useState<string[]>([]);
-  const [batchApproving, setBatchApproving] = useState(false);
 
   // Local state for interactive ledger validation
   const [ledgerValidState, setLedgerValidState] = useState<"idle" | "validating" | "success">("idle");
@@ -1300,7 +1241,6 @@ export function DashboardOverview() {
       setMockApprovedIds([]);
       setPayoutRunning(false);
       setPayoutStep(0);
-      setBatchApproving(false);
       setLedgerValidState("idle");
       setAuditStep(0);
       setActiveStatIndex(null);
@@ -1484,36 +1424,6 @@ export function DashboardOverview() {
     setClaimDialogOpen(true);
   };
 
-  const handleBatchDisburse = () => {
-    if (pendingFinanceClaims.length === 0) return;
-    setPayoutRunning(true);
-    setPayoutStep(1);
-
-    setTimeout(() => {
-      setPayoutStep(2);
-      setTimeout(() => {
-        setPayoutStep(3);
-        setTimeout(() => {
-          const ids = pendingFinanceClaims.map((c) => c.id);
-          setMockPaidIds((prev) => [...prev, ...ids]);
-          setPayoutRunning(false);
-          setPayoutStep(0);
-        }, 900);
-      }, 1000);
-    }, 1000);
-  };
-
-  const handleBatchApprove = (claimsToApprove?: any[]) => {
-    const targets = Array.isArray(claimsToApprove) ? claimsToApprove : filteredClaims;
-    if (targets.length === 0) return;
-    setBatchApproving(true);
-    setTimeout(() => {
-      const ids = targets.map((c) => c.id);
-      setMockApprovedIds((prev) => [...prev, ...ids]);
-      setBatchApproving(false);
-    }, 1200);
-  };
-
   const handleValidateLedger = () => {
     setLedgerValidState("validating");
     setAuditStep(1);
@@ -1540,11 +1450,6 @@ export function DashboardOverview() {
         onPrefillClaim={handleLaunchPrefill}
         filteredClaims={filteredClaims}
         pendingFinanceClaims={pendingFinanceClaims}
-        batchApproving={batchApproving}
-        handleBatchApprove={handleBatchApprove}
-        payoutRunning={payoutRunning}
-        payoutStep={payoutStep}
-        handleBatchDisburse={handleBatchDisburse}
         stats={stats}
         isLoading={isLoading}
         activeStatIndex={activeStatIndex}
@@ -1685,32 +1590,24 @@ export function DashboardOverview() {
             )}
           </div>
 
-          {/* Quick Actions Panel for Approving Officer (Inside Left Column) */}
+          {/* Approving Officer: link to the real review queue, not a
+              one-click bulk endorse — endorsement policy requires each
+              claim to be reviewed on its own, flagged or not. */}
           {role === "Approving Officer" && filteredClaims.length > 0 && (
             <div className="p-4 rounded-xl border border-border bg-card flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm text-left">
               <div className="leading-normal">
-                <h4 className="text-xs font-semibold text-fg">Batch endorsement available</h4>
+                <h4 className="text-xs font-semibold text-fg">{filteredClaims.length} claims awaiting endorsement</h4>
                 <p className="text-[11px] text-fg-secondary mt-0.5">
-                  Approve all {filteredClaims.length} pending claims instantly if they match auto-policy rules.
+                  Each claim is reviewed and endorsed individually — auto-policy checks narrow the queue, they don&apos;t approve on their own.
                 </p>
               </div>
-              <button
-                onClick={() => handleBatchApprove()}
-                disabled={batchApproving}
-                className="w-full sm:w-auto px-4 py-2 bg-fg hover:opacity-90 disabled:opacity-50 text-canvas rounded-xl text-xs font-semibold transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+              <Link
+                href="/approvals"
+                className="w-full sm:w-auto px-4 py-2 bg-fg hover:opacity-90 text-canvas rounded-xl text-xs font-semibold transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
               >
-                {batchApproving ? (
-                  <>
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                    Endorsing Queue...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-3.5 w-3.5" />
-                    Endorse All {filteredClaims.length} Claims
-                  </>
-                )}
-              </button>
+                <CheckCircle className="h-3.5 w-3.5" />
+                Open Review Queue
+              </Link>
             </div>
           )}
 
@@ -2142,13 +2039,13 @@ export function DashboardOverview() {
                         </div>
                       </div>
                     ) : pendingFinanceClaims.length > 0 ? (
-                      <button
-                        onClick={handleBatchDisburse}
+                      <Link
+                        href="/payouts"
                         className="w-full bg-fg hover:opacity-90 text-canvas rounded-xl py-1.5 text-xs font-semibold transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
                       >
                         <Wallet className="h-4 w-4" />
-                        Batch Disburse S$1,862.00
-                      </button>
+                        Review & Release Payouts
+                      </Link>
                     ) : (
                       <div className="w-full bg-emerald-500/5 border border-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl py-1.5 text-center text-xs font-semibold flex items-center justify-center gap-1 select-none">
                         <Check className="h-3.5 w-3.5 stroke-[3px]" />
