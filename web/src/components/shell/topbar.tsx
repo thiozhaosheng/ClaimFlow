@@ -37,6 +37,24 @@ export function Topbar() {
     return () => window.removeEventListener("shortcut-trigger", handler);
   }, []);
 
+  // The mobile drawer is a Radix Dialog — its Overlay/Content render into a
+  // portal on document.body, not inside the "lg:hidden" wrapper that hides
+  // the trigger button. So if it's open and the viewport crosses into the
+  // desktop breakpoint (window resize, device rotation, DevTools closing),
+  // the hamburger button disappears but the blurred overlay and drawer stay
+  // mounted on top of the desktop layout with no visible way to close them.
+  // Force it shut once we're past the breakpoint where it can't be reopened
+  // anyway, matching Tailwind's default `lg` (1024px).
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches) setMobileMenuOpen(false);
+    };
+    handleChange(mql);
+    mql.addEventListener("change", handleChange);
+    return () => mql.removeEventListener("change", handleChange);
+  }, []);
+
   return (
     <header className="glass-panel flex h-14 items-center gap-3 border-b border-white/20 dark:border-white/10 px-4 sm:px-6 shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.4)] dark:shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.05)]">
       {/* Mobile Hamburger Navigation Menu & Brand */}
