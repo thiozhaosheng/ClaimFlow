@@ -299,8 +299,6 @@ function DashboardGreetingHero({
   role,
   onNewClaimClick,
   onPrefillClaim,
-  filteredClaims,
-  pendingFinanceClaims,
   stats,
   isLoading,
   activeStatIndex,
@@ -309,8 +307,6 @@ function DashboardGreetingHero({
   role: string;
   onNewClaimClick: () => void;
   onPrefillClaim: (tx: { category: string; title: string; amount: string; merchant: string; date: string }) => void;
-  filteredClaims: any[];
-  pendingFinanceClaims: any[];
   stats: any[];
   isLoading: boolean;
   activeStatIndex: number | null;
@@ -562,43 +558,10 @@ function DashboardGreetingHero({
       });
 
     } else if (role === "Approving Officer") {
-      if (filteredClaims.length > 0) {
-        const cleanClaims = filteredClaims.filter(c => !c.flagged);
-        const teamFlaggedCount = filteredClaims.filter(c => c.flagged).length;
-        
-        if (cleanClaims.length > 0) {
-          list.push({
-            id: "batch-endorse",
-            title: "Claims Awaiting Review",
-            eyebrow: "Auto-check",
-            icon: Layers,
-            eyebrowColor: "text-amber-500 dark:text-amber-400",
-            description: teamFlaggedCount > 0
-              ? `${cleanClaims.length} claims pass automated policy checks — each still needs your endorsement.`
-              : `${filteredClaims.length} claims pass automated policy checks — each still needs your endorsement.`,
-            // Policy passing isn't the same as approved — an officer endorses
-            // each claim individually in the queue, not in bulk from a
-            // suggestion card. This opens that queue rather than approving
-            // anything itself.
-            actionLabel: "Open Review Queue",
-            onAction: () => router.push("/approvals"),
-            customContent: (
-              <div className="flex items-center gap-2 mt-1.5 select-none">
-                <span className="text-[10px] text-zinc-400 font-semibold">Queue:</span>
-                <div className="flex items-center gap-1.5">
-                  {cleanClaims.slice(0, 3).map((c) => (
-                    <div key={c.id} className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full px-2 py-0.5 text-[9px] font-bold font-mono text-zinc-600 dark:text-zinc-400">
-                      {c.id}
-                    </div>
-                  ))}
-                  {cleanClaims.length > 3 && <span className="text-[9px] text-zinc-400">+{cleanClaims.length - 3} more</span>}
-                </div>
-              </div>
-            )
-          });
-        }
-      }
-
+      // No "claims awaiting review" suggestion card here — the claims list
+      // right below on this same dashboard already shows every one of them
+      // in full, and the panel under that list already links to /approvals.
+      // A third summary of the same queue was pure repetition.
       list.push({
         id: "high-value-audit",
         title: "Limit Review",
@@ -610,38 +573,14 @@ function DashboardGreetingHero({
         onAction: () => router.push("/claims/CLM-1052")
       });
     } else if (role === "Finance Admin") {
-      if (pendingFinanceClaims.length > 0) {
-        list.push({
-          id: "batch-disburse",
-          title: "Claims Awaiting Payout",
-          eyebrow: "Citibank",
-          icon: Wallet,
-          eyebrowColor: "text-pink-500 dark:text-pink-400",
-          description: `${pendingFinanceClaims.length} approved claims are ready — each payout still needs to be released individually.`,
-          // Moving money isn't a one-click action from a suggestion card —
-          // this opens the payouts queue where each disbursement is
-          // reviewed and released on its own.
-          actionLabel: "Open Payouts Queue",
-          onAction: () => router.push("/payouts"),
-          customContent: (
-            <div className="flex items-center gap-2 mt-1.5 select-none">
-              <span className="text-[10px] text-zinc-400 font-semibold">Queue:</span>
-              <div className="flex items-center gap-1.5">
-                {pendingFinanceClaims.slice(0, 3).map((c) => (
-                  <div key={c.id} className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full px-2 py-0.5 text-[9px] font-bold font-mono text-zinc-600 dark:text-zinc-400">
-                    {c.id}
-                  </div>
-                ))}
-                {pendingFinanceClaims.length > 3 && <span className="text-[9px] text-zinc-400">+{pendingFinanceClaims.length - 3} more</span>}
-              </div>
-            </div>
-          )
-        });
-      }
+      // No "claims awaiting payout" suggestion card here either — same
+      // reasoning as Approving Officer above. The pending-payouts list on
+      // this dashboard and the "Process Payouts" link already cover it;
+      // a third repetition of the same queue added nothing.
     }
 
     return list;
-  }, [role, hasFlags, filteredClaims, pendingFinanceClaims, router, onNewClaimClick, onPrefillClaim]);
+  }, [role, hasFlags, router, onNewClaimClick, onPrefillClaim]);
 
   const tasks = useMemo(() => {
     return rawTasks.filter((t) => !dismissedTaskIds.includes(t.id));
@@ -1448,8 +1387,6 @@ export function DashboardOverview() {
         role={role}
         onNewClaimClick={() => setClaimDialogOpen(true)}
         onPrefillClaim={handleLaunchPrefill}
-        filteredClaims={filteredClaims}
-        pendingFinanceClaims={pendingFinanceClaims}
         stats={stats}
         isLoading={isLoading}
         activeStatIndex={activeStatIndex}

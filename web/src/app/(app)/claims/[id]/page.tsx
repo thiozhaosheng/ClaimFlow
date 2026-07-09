@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo, useState, useEffect, Fragment } from "react";
+import { use, useMemo, useState, useEffect, useRef, Fragment } from "react";
 import Link from "next/link";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
@@ -220,6 +220,21 @@ export default function ClaimDetailPage({
   // Payout disbursement progress states
   const [paying, setPaying] = useState(false);
   const [payStep, setPayStep] = useState(0);
+  // Disburse moves real money — arm on first click, settle on the second
+  // (same pattern as the payouts list page). Auto-disarms after 3.5s so a
+  // stray click later doesn't fire a stale confirmation.
+  const [disburseArmed, setDisburseArmed] = useState(false);
+  const disburseDisarmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const armDisburse = () => {
+    setDisburseArmed(true);
+    if (disburseDisarmTimer.current) clearTimeout(disburseDisarmTimer.current);
+    disburseDisarmTimer.current = setTimeout(() => setDisburseArmed(false), 3500);
+  };
+  const disarmDisburse = () => {
+    if (disburseDisarmTimer.current) clearTimeout(disburseDisarmTimer.current);
+    setDisburseArmed(false);
+  };
+  useEffect(() => () => { if (disburseDisarmTimer.current) clearTimeout(disburseDisarmTimer.current); }, []);
   const [hoveredCheckId, setHoveredCheckId] = useState<string | null>(null);
 
   const [showNittyGritty, setShowNittyGritty] = useState(true);
@@ -513,14 +528,26 @@ export default function ClaimDetailPage({
         </p>
         
         {!paying ? (
-          <Button
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full py-3 font-semibold text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
-            onClick={handleDisburse}
-            disabled={updateStatusMutation.isPending}
-          >
-            <Wallet className="h-4 w-4" />
-            Disburse Funds (FAST / PayNow)
-          </Button>
+          disburseArmed ? (
+            <Button
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full py-3 font-semibold text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.98] ring-2 ring-indigo-500/40 animate-scale-in"
+              onClick={() => { handleDisburse(); disarmDisburse(); }}
+              disabled={updateStatusMutation.isPending}
+            >
+              <Wallet className="h-4 w-4" />
+              Confirm payout
+            </Button>
+          ) : (
+            <Button
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full py-3 font-semibold text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
+              onClick={armDisburse}
+              disabled={updateStatusMutation.isPending}
+              title="Click to disburse — you'll confirm once more"
+            >
+              <Wallet className="h-4 w-4" />
+              Disburse Funds (FAST / PayNow)
+            </Button>
+          )
         ) : (
           <div className="flex flex-col gap-3 bg-white/40 dark:bg-zinc-900/50 rounded-xl p-4 border border-border">
             <div className="flex items-center gap-2">
