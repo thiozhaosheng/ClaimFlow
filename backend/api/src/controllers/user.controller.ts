@@ -136,13 +136,21 @@ export const registerUser = async (req: Request, res: Response) => {
 export const updatePassword = async (req: Request, res: Response) => {
   try {
     const { email, newPassword } = req.body;
-    logUtil.info('Updating password for:', email);
+
+    if (!req.user) {
+      return res.status(401).json({ status: 'error', message: 'Not authenticated' });
+    }
 
     const user = await userModel.findByEmail(email);
 
     if (!user) {
       logUtil.error(`Update failed: User with email ${email} not found`);
       return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    // Only the account owner can change their own password.
+    if (user.id !== req.user.id) {
+      return res.status(403).json({ status: 'error', message: 'You can only update your own password' });
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);

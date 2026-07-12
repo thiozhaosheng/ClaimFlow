@@ -18,10 +18,14 @@ exports.login = async (req, res) => {
             { expiresIn: '1d' }
         );
 
+        // Strip passwordHash from the response — the frontend reads body.user
+        // and must never receive the password hash.
+        const { passwordHash, ...safeUser } = user;
+
         res.status(200).json({
             status: 'success',
             token: token,
-            data: { user: user }
+            user: safeUser
         });
     } catch (err) {
         logUtil.error('Login controller failed', err);
@@ -111,5 +115,96 @@ exports.getReceiptViewUrl = async (req, res) => {
         res.status(200).json(result);
     } catch (err) {
         res.status(400).json({ status: 'error', message: 'Failed to fetch receipt URL' });
+    }
+};
+
+exports.getMyClaims = async (req, res) => {
+    try {
+        const token = req.headers.authorization;
+        const data = await baseServiceConnector.fetchMyClaims(token);
+        res.status(200).json(data);
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: 'Proxy Failed' });
+    }
+};
+
+exports.getClaimById = async (req, res) => {
+    try {
+        const token = req.headers.authorization;
+        const { id } = req.params;
+        const data = await baseServiceConnector.fetchClaimById(id, token);
+        res.status(200).json(data);
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: 'Proxy Failed' });
+    }
+};
+
+exports.getClaimActivity = async (req, res) => {
+    try {
+        const token = req.headers.authorization;
+        const { id } = req.params;
+        const data = await baseServiceConnector.fetchClaimActivity(id, token);
+        res.status(200).json(data);
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: 'Proxy Failed' });
+    }
+};
+
+exports.addClaimComment = async (req, res) => {
+    try {
+        const token = req.headers.authorization;
+        const { id } = req.params;
+        const result = await baseServiceConnector.addClaimComment(id, req.body, token);
+        res.status(201).json(result);
+    } catch (err) {
+        res.status(400).json({ status: 'error', message: 'Failed to add comment' });
+    }
+};
+
+exports.updateClaimFields = async (req, res) => {
+    try {
+        const token = req.headers.authorization;
+        const { id } = req.params;
+        const result = await baseServiceConnector.updateClaimFields(id, req.body, token);
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(400).json({ status: 'error', message: 'Failed to update claim' });
+    }
+};
+
+exports.markClaimPaid = async (req, res) => {
+    try {
+        const token = req.headers.authorization;
+        const { id } = req.params;
+        const result = await baseServiceConnector.markClaimPaid(id, req.body, token);
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(400).json({ status: 'error', message: 'Payout action failed' });
+    }
+};
+
+exports.forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ status: 'error', message: 'Email is required' });
+        }
+        const result = await baseServiceConnector.forgotPassword(email);
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(400).json({ status: 'error', message: 'Password reset request failed' });
+    }
+};
+
+exports.getProfile = async (req, res) => {
+    try {
+        const token = req.headers.authorization;
+        if (!token) {
+            return res.status(401).json({ status: 'error', message: 'No token provided' });
+        }
+        const result = await baseServiceConnector.fetchProfile(token);
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(401).json({ status: 'error', message: 'Invalid or expired token' });
     }
 };

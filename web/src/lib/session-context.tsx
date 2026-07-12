@@ -50,14 +50,21 @@ export const DEMO_USERS: Record<string, UserSession> = {
  * front-end demo standalone) we skip the network call entirely and fall back
  * to the mock session — no failed request, no dev-overlay noise.
  */
-const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+const RAW_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+// Both claims.repo.ts and the gateway's env.example expect
+// NEXT_PUBLIC_API_URL to include the /api path segment (default:
+// "http://localhost:4000/api"). Normalise here so that callers don't
+// need to append yet another /api.
+const API_URL = RAW_URL?.endsWith("/api") ? RAW_URL : null;
+// When API_URL is available it already ends in /api — callers should
+// append just the route, e.g. /auth/login (NOT /api/auth/login).
 
 async function backendLogin(
   email: string,
 ): Promise<{ user: UserSession; token: string } | null> {
   if (!API_URL) return null;
   try {
-    const res = await fetch(`${API_URL}/api/auth/login`, {
+    const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password: "claimflow-demo" }),
@@ -94,38 +101,66 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const stored = localStorage.getItem("claimflow_user");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (parsed.email && DEMO_USERS[parsed.email]) {
-          const matched = DEMO_USERS[parsed.email];
-          // Force update local storage if user cache does not match specification
-          if (!parsed.avatarUrl || parsed.avatarUrl !== matched.avatarUrl) {
-            localStorage.setItem("claimflow_user", JSON.stringify(matched));
+    const restore = async () => {
+      const token = localStorage.getItem("claimflow_token");
+      const stored = localStorage.getItem("claimflow_user");
+
+      // If we have a backend token, verify it first.
+      if (token && API_URL) {
+        try {
+          const res = await fetch(`${API_URL}/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const body = await res.json();
+            const roleMapped =
+              body.role === "Employee"
+                ? ("Employee" as const)
+                : body.role === "Manager"
+                ? ("Approving Officer" as const)
+                : ("Finance Admin" as const);
+            const backendUser: UserSession = {
+              email: body.email,
+              name: body.name,
+              role: roleMapped,
+              department: body.department || (roleMapped === "Employee" ? "Sales" : roleMapped === "Approving Officer" ? "Operations" : "Finance"),
+              avatarUrl: body.avatarUrl || (roleMapped === "Employee" ? "/animoji_employee.jpg" : roleMapped === "Approving Officer" ? "/animoji_approver.jpg" : "/animoji_finance.jpg"),
+            };
+            localStorage.setItem("claimflow_user", JSON.stringify(backendUser));
+            setUser(backendUser);
+            setLoading(false);
+            return;
           }
-          setTimeout(() => {
-            setUser(matched);
-            setLoading(false);
-          }, 0);
-        } else {
-          setTimeout(() => {
-            setUser(parsed);
-            setLoading(false);
-          }, 0);
+        } catch {
+          // Token validation failed — fall through to localStorage restore.
         }
-      } catch (e) {
-        localStorage.removeItem("claimflow_user");
-        setTimeout(() => setLoading(false), 0);
       }
-    } else {
-      const defaultUser = DEMO_USERS["demo.employee@claimflow.com"];
-      localStorage.setItem("claimflow_user", JSON.stringify(defaultUser));
-      setTimeout(() => {
+
+      // Fall back to localStorage or default guest session.
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed.email && DEMO_USERS[parsed.email]) {
+            const matched = DEMO_USERS[parsed.email];
+            if (!parsed.avatarUrl || parsed.avatarUrl !== matched.avatarUrl) {
+              localStorage.setItem("claimflow_user", JSON.stringify(matched));
+            }
+            setUser(matched);
+          } else {
+            setUser(parsed);
+          }
+        } catch {
+          localStorage.removeItem("claimflow_user");
+        }
+      } else {
+        const defaultUser = DEMO_USERS["demo.employee@claimflow.com"];
+        localStorage.setItem("claimflow_user", JSON.stringify(defaultUser));
         setUser(defaultUser);
-        setLoading(false);
-      }, 0);
-    }
+      }
+      setLoading(false);
+    };
+
+    restore();
   }, []);
 
   const login = async (email: string) => {

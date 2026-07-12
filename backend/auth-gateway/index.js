@@ -63,14 +63,23 @@ const apiLimiter = rateLimit({
 app.use(express.static(path.join(__dirname, config.staticFolder)));
 
 // Auth endpoints — strict per-IP throttle
-app.post("/api/users/login", authLimiter, authService.login);
+app.post("/api/auth/login", authLimiter, authService.login);
+app.post("/api/users/login", authLimiter, authService.login); // legacy alias
 app.post("/api/users/register", authLimiter, authService.register);
 app.patch("/api/users/update-password", authLimiter, authService.updatePassword);
+app.post("/api/auth/forgot-password", authLimiter, authService.forgotPassword);
+app.get("/api/auth/me", authLimiter, authService.getProfile);
 
 // General API endpoints — loose throttle
+app.get("/api/claims/my", apiLimiter, authService.getMyClaims);
 app.get("/api/claims", apiLimiter, authService.getAllClaims);
+app.get("/api/claims/:id", apiLimiter, authService.getClaimById);
+app.get("/api/claims/:id/activity", apiLimiter, authService.getClaimActivity);
 app.post("/api/claims", apiLimiter, authService.createClaim);
+app.patch("/api/claims/:id", apiLimiter, authService.updateClaimFields);
+app.post("/api/claims/:id/comment", apiLimiter, authService.addClaimComment);
 app.patch("/api/workflow/review/:id", apiLimiter, authService.reviewClaim);
+app.patch("/api/workflow/pay/:id", apiLimiter, authService.markClaimPaid);
 app.get("/api/claims/:id/receipt", apiLimiter, authService.getReceiptViewUrl);
 
 // Receipt OCR upload — same size/type limits as the Base Service so bad

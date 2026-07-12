@@ -123,8 +123,14 @@ const makeInternalRequest = (method, path, data = null, token = null) => {
 
 module.exports = {
     fetchClaims: (token) => makeInternalRequest('GET', '/claims', null, token),
+    fetchMyClaims: (token) => makeInternalRequest('GET', '/claims/my', null, token),
+    fetchClaimById: (claimId, token) => makeInternalRequest('GET', `/claims/${claimId}`, null, token),
+    fetchClaimActivity: (claimId, token) => makeInternalRequest('GET', `/claims/${claimId}/activity`, null, token),
     createClaim: (claimData, token) => makeInternalRequest('POST', '/claims', claimData, token),
+    updateClaimFields: (claimId, fields, token) => makeInternalRequest('PATCH', `/claims/${claimId}`, fields, token),
+    addClaimComment: (claimId, commentData, token) => makeInternalRequest('POST', `/claims/${claimId}/comment`, commentData, token),
     updateClaimStatus: (claimId, statusData, token) => makeInternalRequest('PATCH', `/workflow/review/${claimId}`, statusData, token),
+    markClaimPaid: (claimId, data, token) => makeInternalRequest('PATCH', `/workflow/pay/${claimId}`, data, token),
     getReceiptViewUrl: (claimId, token) => makeInternalRequest('GET', `/claims/${claimId}/receipt`, null, token),
     parseReceipt: (file, token) => {
         const { body, contentType } = buildMultipartBody('receipt', file);
@@ -132,5 +138,7 @@ module.exports = {
     },
     verifyUser: (credentials) => makeInternalRequest('POST', '/users/verify', credentials),
     registerUser: (userData) => makeInternalRequest('POST', '/users/register', userData),
-    updatePassword: (updateData, token) => makeInternalRequest('PATCH', '/users/update-password', updateData, token)
+    updatePassword: (updateData, token) => makeInternalRequest('PATCH', '/users/update-password', updateData, token),
+    forgotPassword: (email) => makeInternalRequest('POST', '/auth/forgot-password', { email }),
+    fetchProfile: (token) => makeInternalRequest('GET', '/auth/me', null, token)
 };

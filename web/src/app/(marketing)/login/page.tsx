@@ -24,6 +24,10 @@ import { ParticleField } from "@/features/marketing/particle-field";
 import { ClaimFlowLogo } from "@/features/marketing/logo";
 import { cn } from "@/lib/cn";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
+import { useSession } from "@/lib/session-context";
+
+const DEMO_PASSWORD = "claimflow-demo";
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
 const DEMO_ACCOUNTS = [
   {
@@ -55,6 +59,7 @@ const DEMO_ACCOUNTS = [
 export default function LoginPage() {
   const router = useRouter();
   const reduce = useReducedMotion();
+  const { login } = useSession();
   
   // Sign In States
   const [email, setEmail] = useState("");
@@ -93,6 +98,15 @@ export default function LoginPage() {
     document.body.style.overflow = "auto";
   }, []);
 
+  const doLogin = async (loginEmail: string, skipPasswordCheck = false) => {
+    if (!skipPasswordCheck && password !== DEMO_PASSWORD) {
+      setError("Invalid email or password.");
+      return;
+    }
+    await login(loginEmail);
+    router.push("/dashboard");
+  };
+
   const handleCredentialsLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
@@ -103,102 +117,21 @@ export default function LoginPage() {
       setError("Please enter your password.");
       return;
     }
-
     setLoading(true);
     setError("");
-
-    const lowerEmail = email.toLowerCase().trim();
-    let userRole: "Employee" | "Approving Officer" | "Finance Admin" = "Employee";
-    let userName = "Sarah Tan";
-    let userDept = "Sales";
-    let avatar = "/animoji_employee.jpg";
-
-    if (lowerEmail === "demo.employee@claimflow.com" || lowerEmail.includes("employee")) {
-      userRole = "Employee";
-      userName = "Sarah Tan";
-      userDept = "Sales";
-      avatar = "/animoji_employee.jpg";
-    } else if (lowerEmail === "demo.manager@claimflow.com" || lowerEmail.includes("manager") || lowerEmail.includes("officer")) {
-      userRole = "Approving Officer";
-      userName = "Marcus Lim";
-      userDept = "Operations";
-      avatar = "/animoji_approver.jpg";
-    } else if (lowerEmail === "demo.finance@claimflow.com" || lowerEmail.includes("finance") || lowerEmail.includes("admin")) {
-      userRole = "Finance Admin";
-      userName = "Dan Yeo";
-      userDept = "Finance";
-      avatar = "/animoji_finance.jpg";
-    } else {
-      userName = email.split("@")[0].split(".").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" ");
-      userRole = "Employee";
-      userDept = "Sales";
-      avatar = "/animoji_employee.jpg";
-    }
-
-    const sessionObj = {
-      email: lowerEmail,
-      name: userName,
-      role: userRole,
-      department: userDept,
-      avatarUrl: avatar
-    };
-
-    localStorage.setItem("claimflow_user", JSON.stringify(sessionObj));
-
-    setTimeout(() => {
-      window.location.href = "/dashboard";
-    }, 850);
+    doLogin(email.toLowerCase().trim()).finally(() => setLoading(false));
   };
 
   const handleDemoLogin = (demoEmail: string, roleName: string) => {
     setActiveRole(roleName);
     setEmail(demoEmail);
-    setPassword("••••••••");
+    setPassword(DEMO_PASSWORD);
     setLoading(true);
     setError("");
-
-    let matchedUser = {
-      email: demoEmail,
-      name: "Sarah Tan",
-      role: "Employee" as "Employee" | "Approving Officer" | "Finance Admin",
-      department: "Sales",
-      avatarUrl: "/animoji_employee.jpg"
-    };
-
-    if (demoEmail === "demo.employee@claimflow.com") {
-      matchedUser = {
-        email: demoEmail,
-        name: "Sarah Tan",
-        role: "Employee",
-        department: "Sales",
-        avatarUrl: "/animoji_employee.jpg"
-      };
-    } else if (demoEmail === "demo.manager@claimflow.com") {
-      matchedUser = {
-        email: demoEmail,
-        name: "Marcus Lim",
-        role: "Approving Officer",
-        department: "Operations",
-        avatarUrl: "/animoji_approver.jpg"
-      };
-    } else if (demoEmail === "demo.finance@claimflow.com") {
-      matchedUser = {
-        email: demoEmail,
-        name: "Dan Yeo",
-        role: "Finance Admin",
-        department: "Finance",
-        avatarUrl: "/animoji_finance.jpg"
-      };
-    }
-
-    localStorage.setItem("claimflow_user", JSON.stringify(matchedUser));
-
-    setTimeout(() => {
-      window.location.href = "/dashboard";
-    }, 850);
+    doLogin(demoEmail, true).finally(() => setLoading(false));
   };
 
-  const handleForgotPasswordSubmit = (e: React.FormEvent) => {
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetEmail) {
       setError("Please enter your email address.");
@@ -206,10 +139,19 @@ export default function LoginPage() {
     }
     setResetLoading(true);
     setError("");
-    setTimeout(() => {
-      setResetLoading(false);
-      setResetSuccess(true);
-    }, 1000);
+    try {
+      if (API_URL) {
+        await fetch(`${API_URL}/api/auth/forgot-password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: resetEmail.trim().toLowerCase() }),
+        });
+      }
+    } catch {
+      // Non-critical — the demo fallback still works below.
+    }
+    setResetLoading(false);
+    setResetSuccess(true);
   };
 
   return (

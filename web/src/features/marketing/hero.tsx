@@ -614,7 +614,7 @@ export function SignInCard() {
     }
 
     setTimeout(() => {
-      window.location.href = "/dashboard";
+      router.push("/dashboard");
     }, 850);
   };
 
@@ -673,7 +673,7 @@ export function SignInCard() {
     }
 
     setTimeout(() => {
-      window.location.href = "/dashboard";
+      router.push("/dashboard");
     }, 850);
   };
 

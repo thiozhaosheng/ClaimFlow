@@ -198,13 +198,13 @@ Manager or Finance Admin. Endorse or reject a Pending claim.
 
 Body:
 ```json
-{ "status": "Endorsed", "remarks": "Receipt verified." }
+{ "action": "approve", "remarks": "Receipt verified." }
 ```
 
-Valid `status` transitions:
-- `Pending` → `Endorsed` (manager endorses)
-- `Pending` → `Rejected` (manager rejects)
-- `Endorsed` → `Rejected` (finance kicks back to employee)
+`action` must be `"approve"` or `"reject"`. Valid transitions:
+- `Pending` → `Endorsed` (approve)
+- `Pending` → `Rejected` (reject)
+- `Endorsed` → `Rejected` (reject)
 
 ### `PATCH /api/workflow/pay/:id`
 Finance Admin only. Marks an `Endorsed` claim as `Paid` once disbursement is

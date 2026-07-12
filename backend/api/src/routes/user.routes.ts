@@ -5,7 +5,7 @@ import { protect } from '../middleware/auth.middleware';
 const router = Router();
 
 router.get('/profile', protect, userController.getProfile);
-router.get('/', userController.getAllUsers);
+router.get('/', protect, userController.getAllUsers);
 router.post('/verify', userController.verifyUser);
 router.post('/register', userController.registerUser);
 router.patch('/update-password', userController.updatePassword);
