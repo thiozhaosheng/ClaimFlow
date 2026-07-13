@@ -860,7 +860,7 @@ header {
 
 .workspace-card.p-4 { padding: 1.1rem !important; }
 .workspace-card.p-5 { padding: 1.15rem !important; }
-.workspace-card.p-6 { padding: 1.25rem !important; }
+.workspace-card.p-6 { padding: 1.5rem !important; }
 
 .workspace-card-title {
   font-size: 1.05rem;
@@ -1086,11 +1086,11 @@ header {
 
 .sidebar-layout-container {
   display: flex;
-  gap: 1.5rem;
+  gap: 1.75rem;
 }
 
 .sidebar-panel {
-  width: 240px;
+  width: 268px;
   flex-shrink: 0;
 }
 

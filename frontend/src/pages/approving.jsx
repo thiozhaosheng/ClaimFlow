@@ -146,40 +146,43 @@ export default function Approving() {
 
       <div className="sidebar-layout-container">
         <aside className="sidebar-panel">
-          {/* compact at-a-glance stats */}
-          <div className="grid grid-cols-3 gap-2 pb-3 mb-3 border-b border-border-subtle">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
-                Pending
-              </span>
-              <span className="text-lg font-bold tabular-nums leading-tight">
-                {stats.pendingCount}
-              </span>
-              <span className="text-[10px] text-text-secondary">
-                claims
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
-                Queue
-              </span>
-              <span className="text-lg font-bold tabular-nums leading-tight">
-                {formatSGD(stats.pendingTotal).replace("S$", "")}
-              </span>
-              <span className="text-[10px] text-text-secondary">SGD</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
-                Oldest
-              </span>
-              <span className="text-lg font-bold tabular-nums leading-tight">
-                {stats.oldestPendingDays}
-              </span>
-              <span className="text-[10px] text-text-secondary">days</span>
-            </div>
+          {/* at-a-glance stats */}
+          <div className="flex flex-col gap-2.5 mb-6">
+            {[
+              {
+                label: "Pending",
+                value: stats.pendingCount,
+                unit: stats.pendingCount === 1 ? "claim" : "claims",
+              },
+              {
+                label: "Queue value",
+                value: formatSGD(stats.pendingTotal).replace("S$", ""),
+                unit: "SGD",
+              },
+              {
+                label: "Oldest",
+                value: stats.oldestPendingDays,
+                unit: stats.oldestPendingDays === 1 ? "day" : "days",
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="rounded-ds-md border border-border-subtle bg-subtle/30 px-4 py-3.5"
+              >
+                <span className="block text-[10.5px] font-semibold uppercase tracking-wider text-text-tertiary mb-1.5">
+                  {s.label}
+                </span>
+                <span className="text-2xl font-bold tabular-nums leading-none text-text-primary">
+                  {s.value}
+                </span>
+                <span className="ml-1.5 text-[11px] text-text-secondary">
+                  {s.unit}
+                </span>
+              </div>
+            ))}
           </div>
 
-          <div className="mb-4">
+          <div className="mb-6">
             <p className="sidebar-meta-label flex items-center gap-1.5">
               <Filter className="h-3 w-3" /> Filters
             </p>
@@ -228,9 +231,9 @@ export default function Approving() {
 
         <div className="flex-1">
           <div className="workspace-card p-6">
-            <div className="flex items-baseline justify-between gap-3 mb-4">
+            <div className="flex items-baseline justify-between gap-3 mb-5">
               <div>
-                <h2 className="workspace-card-title mb-0.5">
+                <h2 className="workspace-card-title mb-1">
                   Pending claims
                 </h2>
                 <p className="text-text-tertiary text-[12px]">
@@ -239,7 +242,7 @@ export default function Approving() {
               </div>
             </div>
 
-            <div className="search-input-wrapper mb-4">
+            <div className="search-input-wrapper mb-5">
               <Search className="h-3.5 w-3.5 search-leading-icon" />
               <input
                 type="text"
@@ -291,7 +294,9 @@ export default function Approving() {
                             </span>
                           </div>
                         </td>
-                        <td data-label="Date">{item.date}</td>
+                        <td data-label="Date" className="whitespace-nowrap">
+                          {item.date}
+                        </td>
                         <td data-label="Category">
                           <span className="badge-custom badge-role">
                             {escapeHtml(item.type)}

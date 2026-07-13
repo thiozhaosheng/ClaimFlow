@@ -151,7 +151,7 @@ export default function Finance() {
         subtitle="See spend at a glance, disburse endorsed claims, and review the audit trail. GST 9% is captured per claim where applicable for IRAS reporting."
       />
 
-      <div className="border-b border-border-subtle mb-6 -mt-3">
+      <div className="border-b border-border-subtle pt-4 mb-6">
         <div className="flex items-center gap-1" role="tablist">
           {[
             { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
