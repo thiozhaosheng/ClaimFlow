@@ -6,6 +6,18 @@ import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/constants';
 
 const GENERIC_AUTH_ERROR = { message: 'Invalid email or password' };
 
+// The canonical demo accounts (see prisma/seed.ts) must stay usable with the
+// standing demo password so the one-click sign-in cards keep working. A real
+// reset flow rotates the credential, but persisting a random password for
+// these shared accounts permanently breaks the demo, so forgotPassword returns
+// the standing password for them without mutating the stored hash.
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'claimflow-demo';
+const PROTECTED_DEMO_EMAILS = new Set([
+  'demo.employee@claimflow.com',
+  'demo.manager@claimflow.com',
+  'demo.finance@claimflow.com',
+]);
+
 // ---------------------------------------------------------------------------
 // Demo-only helpers
 // ---------------------------------------------------------------------------
@@ -126,6 +138,20 @@ export const forgotPassword = async (req: Request, res: Response) => {
           newPassword: null,
           message:
             "If that email exists in the demo workspace, a temporary password has been issued. Try the named demo accounts (e.g. demo.employee@claimflow.com).",
+        },
+      });
+    }
+
+    // Never rotate the shared demo accounts — hand back the standing password
+    // so the account keeps working with the one-click sign-in cards.
+    if (PROTECTED_DEMO_EMAILS.has(emailNormalised)) {
+      return res.status(200).json({
+        status: 'success',
+        data: {
+          email: user.email,
+          newPassword: DEMO_PASSWORD,
+          message:
+            'This is a shared demo account — its standing password is filled in above. Sign in with it directly.',
         },
       });
     }
