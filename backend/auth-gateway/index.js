@@ -115,8 +115,13 @@ app.post(
   authService.parseReceipt,
 );
 
-app.use((req, res) => {
-  res.status(404).json({ status: "error", message: "Endpoint not found" });
+// SPA fallback — serve index.html for non-API routes so React Router
+// handles client-side navigation. API 404s still return JSON.
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({ status: "error", message: "Endpoint not found" });
+  }
+  res.sendFile(path.join(__dirname, config.staticFolder, "index.html"));
 });
 
 app.use((err, _req, res, _next) => {

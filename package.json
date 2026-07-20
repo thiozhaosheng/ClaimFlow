@@ -2,9 +2,9 @@
   "name": "claimflow-root",
   "private": true,
   "scripts": {
-    "dev": "npm run dev --prefix web",
-    "build": "npm run build --prefix web",
-    "lint": "npm run lint --prefix web",
-    "test": "npm run test --prefix web"
+    "dev": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "lint": "npm run lint --prefix frontend",
+    "test": "npm run test --prefix frontend"
   }
 }

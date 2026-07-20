@@ -29,5 +29,5 @@ module.exports = {
     .map((s) => s.trim())
     .filter(Boolean),
 
-  staticFolder: process.env.STATIC_FOLDER || "test",
+  staticFolder: process.env.STATIC_FOLDER || "../../frontend/dist",
 };
