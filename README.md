@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🚀 ClaimFlow</h1>
+  <h1>ClaimFlow</h1>
   <p><b>Role-based expense claim portal for Singapore SMEs</b></p>
 
   <p>
@@ -17,15 +17,15 @@
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 graph TD
-    UI[🖥️ Frontend UI<br/>React + Vite]
-    Gateway[🛡️ Auth Gateway<br/>Rate Limiting]
-    API[⚙️ Backend API<br/>Core Logic & Policy]
-    DB[(🗄️ PostgreSQL)]
-    Azure[☁️ Azure AI<br/>Receipt OCR]
+    UI[Frontend UI<br/>React + Vite]
+    Gateway[Auth Gateway<br/>Rate Limiting]
+    API[Backend API<br/>Core Logic & Policy]
+    DB[(PostgreSQL)]
+    Azure[Azure AI<br/>Receipt OCR]
 
     UI -- HTTP Requests --> Gateway
     Gateway -- Proxied Requests --> API
@@ -40,14 +40,14 @@ graph TD
 
 ---
 
-## 🚦 User Journey
+## User Journey
 
 ```mermaid
 sequenceDiagram
-    participant E as 🧑‍💼 Employee
-    participant S as 🤖 Policy Engine
-    participant M as 👔 Manager
-    participant F as 🏦 Finance
+    participant E as Employee
+    participant S as Policy Engine
+    participant M as Manager
+    participant F as Finance
 
     E->>S: Upload Receipt & Submit
     S-->>S: Azure OCR & IRAS Policy Check
@@ -66,7 +66,7 @@ sequenceDiagram
 3. **Review (Marcus Lim):** The Approvals Queue highlights pending claims from the manager's department.
 4. **Payout (Dan Yeo):** Finance models treasury runways and clears endorsed claims for payout.
 
-### 🎭 Demo Personas
+### Demo Personas
 
 | Persona | Role | Email | Password |
 |---|---|---|---|
@@ -76,7 +76,7 @@ sequenceDiagram
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### Frontend Only (Mock Mode)
 No backend required. Falls back to a simulated localStorage environment.
@@ -111,7 +111,7 @@ cd frontend && npm install && npm run dev         # http://localhost:5173
 
 ---
 
-## 🧪 Testing Strategy
+## Testing Strategy
 
 ClaimFlow implements a "Vertical Slice" testing strategy to guarantee zero regressions.
 
@@ -123,8 +123,8 @@ pie title Testing Pyramid
     "Unit (Jest)" : 45
 ```
 
-- 🧩 **Unit Testing:** `jest` coverage for the Policy Engine and OCR Azure stubs.
-- 🔗 **Integration:** `supertest` for validating API route responses.
-- 👁️ **E2E:** `Playwright` drives headless Chromium to automate Employee Submissions.
-- 🏎️ **Performance:** `k6` load scripts simulate 20 VUs ensuring < 500ms latency.
-- 🔄 **CI/CD:** GitHub Actions block any broken code on push/PR to `main`.
+- **Unit Testing:** `jest` coverage for the Policy Engine and OCR Azure stubs.
+- **Integration:** `supertest` for validating API route responses.
+- **E2E:** `Playwright` drives headless Chromium to automate Employee Submissions.
+- **Performance:** `k6` load scripts simulate 20 VUs ensuring < 500ms latency.
+- **CI/CD:** GitHub Actions block any broken code on push/PR to `main`.
