@@ -8,6 +8,7 @@ const rateLimit = require("express-rate-limit");
 const authService = require("./src/authService");
 const logUtil = require("./src/logUtil");
 const config = require("./src/config/config");
+const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const app = express();
 const PORT = config.gatewayPort;
@@ -67,6 +68,10 @@ app.post("/api/users/login", authLimiter, authService.login);
 app.post("/api/users/register", authLimiter, authService.register);
 app.patch("/api/users/update-password", authLimiter, authService.updatePassword);
 
+app.post("/api/auth/login", authLimiter, authService.authLogin);
+app.get("/api/auth/me", apiLimiter, authService.authMe);
+app.post("/api/auth/forgot-password", authLimiter, authService.authForgotPassword);
+
 // General API endpoints — loose throttle
 app.get("/api/claims", apiLimiter, authService.getAllClaims);
 app.post("/api/claims", apiLimiter, authService.createClaim);
@@ -115,12 +120,24 @@ app.post(
   authService.parseReceipt,
 );
 
+// Catch-all proxy for any unhandled /api/ endpoints (e.g. /api/claims/my, /api/claims/:id)
+// It forwards everything to the backend API transparently, preserving methods, bodies, and tokens.
+app.use(
+  "/api",
+  apiLimiter
+);
+
+app.use(
+  createProxyMiddleware({
+    pathFilter: "/api",
+    target: `http://${config.baseServiceHost}:${config.baseServicePort}`,
+    changeOrigin: true,
+  })
+);
+
 // SPA fallback — serve index.html for non-API routes so React Router
 // handles client-side navigation. API 404s still return JSON.
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api/")) {
-    return res.status(404).json({ status: "error", message: "Endpoint not found" });
-  }
   res.sendFile(path.join(__dirname, config.staticFolder, "index.html"));
 });
 

@@ -5,7 +5,7 @@ import { randomInt } from 'crypto';
 import * as userModel from '../models/user.model';
 import { JWT_SECRET, JWT_EXPIRES_IN, NODE_ENV } from '../config/constants';
 
-const GENERIC_AUTH_ERROR = { message: 'Invalid email or password' };
+const GENERIC_AUTH_ERROR = { error: true, code: 'AUTH_FAILED', message: 'Invalid email or password' };
 
 // ---------------------------------------------------------------------------
 // Demo-only helpers
@@ -54,19 +54,19 @@ export const login = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[auth.login] unexpected error:', error?.message ?? error);
-    return res.status(500).json({ status: 'error', message: 'Login failed' });
+    return res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: 'Login failed' });
   }
 };
 
 export const me = async (req: Request, res: Response) => {
   if (!req.user) {
-    return res.status(401).json({ message: 'Not authenticated' });
+    return res.status(401).json({ error: true, code: 'UNAUTHORIZED', message: 'Not authenticated' });
   }
 
   try {
     const user = await userModel.findById(req.user.id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found' });
     }
     return res.status(200).json({
       id: user.id,
@@ -78,7 +78,7 @@ export const me = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[auth.me] unexpected error:', error?.message ?? error);
-    return res.status(500).json({ status: 'error', message: 'Lookup failed' });
+    return res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: 'Lookup failed' });
   }
 };
 
@@ -109,46 +109,27 @@ export const me = async (req: Request, res: Response) => {
  */
 export const forgotPassword = async (req: Request, res: Response) => {
   if (NODE_ENV === 'production') {
-    return res.status(404).json({ message: 'Not found' });
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Not found' });
   }
 
   const { email } = req.body ?? {};
   const emailNormalised = typeof email === 'string' ? email.trim().toLowerCase() : '';
   if (!emailNormalised) {
-    return res.status(400).json({ message: 'Email is required' });
+    return res.status(400).json({ error: true, code: 'BAD_REQUEST', message: 'Email is required' });
   }
 
   try {
     const user = await userModel.findByEmail(emailNormalised);
-    // For unknown emails we still return success-shaped output so the demo
-    // surface is not turned into an account-enumeration oracle.
-    if (!user) {
-      return res.status(200).json({
-        status: 'success',
-        data: {
-          email: emailNormalised,
-          newPassword: null,
-          message:
-            "If that email exists in the demo workspace, a temporary password has been issued. Try the named demo accounts (e.g. demo.employee@claimflow.com).",
-        },
-      });
-    }
-
-    const newPassword = generateDemoPassword();
-    const passwordHash = await bcrypt.hash(newPassword, 10);
-    await userModel.update(user.id, { passwordHash });
-
     return res.status(200).json({
       status: 'success',
       data: {
-        email: user.email,
-        newPassword,
-        message:
-          'Temporary password issued — use it in the form above to sign in. In production, this would arrive via email instead.',
+        email: emailNormalised,
+        newPassword: null,
+        message: 'A password reset link has been sent to your email. (Simulated)',
       },
     });
   } catch (error: any) {
     console.error('[auth.forgotPassword] unexpected error:', error?.message ?? error);
-    return res.status(500).json({ status: 'error', message: 'Reset failed' });
+    return res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: 'Reset failed' });
   }
 };

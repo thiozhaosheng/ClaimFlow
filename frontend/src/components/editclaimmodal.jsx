@@ -137,7 +137,7 @@ export default function EditClaimModal({ open, claim, onSave, onCancel }) {
         <div className="modal-actions">
           <button
             type="button"
-            className="btn-secondary-modern"
+            className="btn-secondary"
             onClick={onCancel}
             disabled={submitting}
           >

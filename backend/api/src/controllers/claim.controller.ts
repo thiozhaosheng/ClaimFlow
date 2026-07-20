@@ -159,7 +159,7 @@ export const createClaim = async (req: Request, res: Response) => {
     } = req.body;
 
     const submitter = await userModel.findById(req.user!.id);
-    if (!submitter) return res.status(404).json({ message: 'Submitter not found' });
+    if (!submitter) return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Submitter not found'  });
 
     // Policy engine needs access to the details object for rules that
     // target nested paths (e.g. "details.businessJustification").
@@ -331,43 +331,43 @@ export const getMyClaims = async (req: Request, res: Response) => {
     const claims = await claimModel.getClaimsByUser(req.user!.id);
     res.status(200).json({ status: 'success', results: claims.length, data: { claims } });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
 };
 
 export const getClaimById = async (req: Request, res: Response) => {
   try {
     const claimId = parsePositiveIntegerParam(req.params.id);
-    if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
+    if (!claimId) return res.status(400).json({ error: true, code: 'BAD_REQUEST', message: 'Invalid claim id'  });
 
     const claim = await claimModel.findById(claimId);
 
     if (!claim) {
-      return res.status(404).json({ message: 'Claim not found' });
+      return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Claim not found'  });
     }
 
     if (req.user!.role === Role.Employee && claim.userId !== req.user!.id) {
-      return res.status(403).json({ message: 'Access denied' });
+      return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Access denied'  });
     }
 
     res.status(200).json({ status: 'success', data: { claim } });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
 };
 
 export const editClaim = async (req: Request, res: Response) => {
   try {
     const claimId = parsePositiveIntegerParam(req.params.id);
-    if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
+    if (!claimId) return res.status(400).json({ error: true, code: 'BAD_REQUEST', message: 'Invalid claim id'  });
 
     const claim = await claimModel.findById(claimId);
-    if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (!claim) return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Claim not found'  });
     if (claim.userId !== req.user!.id) {
-      return res.status(403).json({ message: 'Only the submitter can edit this claim' });
+      return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Only the submitter can edit this claim'  });
     }
     if (claim.status !== ClaimStatus.Pending) {
-      return res.status(422).json({ message: 'Only pending claims can be edited' });
+      return res.status(422).json({ error: true, code: 'UNPROCESSABLE_ENTITY', message: 'Only pending claims can be edited'  });
     }
     const updates: any = {};
     const allowed = ['amount', 'gstAmount', 'merchant', 'category', 'expenseDate', 'details'];
@@ -379,22 +379,22 @@ export const editClaim = async (req: Request, res: Response) => {
     const updated = await claimModel.updateClaim(claimId, updates);
     res.status(200).json({ status: 'success', data: { claim: updated } });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
 };
 
 export const withdrawClaim = async (req: Request, res: Response) => {
   try {
     const claimId = parsePositiveIntegerParam(req.params.id);
-    if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
+    if (!claimId) return res.status(400).json({ error: true, code: 'BAD_REQUEST', message: 'Invalid claim id'  });
 
     const claim = await claimModel.findById(claimId);
-    if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (!claim) return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Claim not found'  });
     if (claim.userId !== req.user!.id) {
-      return res.status(403).json({ message: 'Only the submitter can withdraw this claim' });
+      return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Only the submitter can withdraw this claim'  });
     }
     if (claim.status !== ClaimStatus.Pending) {
-      return res.status(422).json({ message: 'Only pending claims can be withdrawn' });
+      return res.status(422).json({ error: true, code: 'UNPROCESSABLE_ENTITY', message: 'Only pending claims can be withdrawn'  });
     }
     const updated = await claimModel.updateClaim(claimId, {
       withdrawn: true,
@@ -410,7 +410,7 @@ export const withdrawClaim = async (req: Request, res: Response) => {
     });
     res.status(200).json({ status: 'success', data: { claim: updated } });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
 };
 
@@ -419,7 +419,7 @@ export const parseReceiptUpload = async (req: Request, res: Response) => {
     | { buffer: Buffer; mimetype: string; originalname: string }
     | undefined;
   if (!file) {
-    return res.status(400).json({ message: 'No receipt file uploaded' });
+    return res.status(400).json({ error: true, code: 'BAD_REQUEST', message: 'No receipt file uploaded'  });
   }
   try {
     const [parseResult, uploadResult] = await Promise.all([
@@ -442,29 +442,29 @@ export const parseReceiptUpload = async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error('[parseReceiptUpload]', err?.message ?? err);
-    return res.status(500).json({ status: 'error', message: 'Receipt parsing failed' });
+    return res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: 'Receipt parsing failed'  });
   }
 };
 
 export const getReceiptViewUrl = async (req: Request, res: Response) => {
   try {
     const claimId = parsePositiveIntegerParam(req.params.id);
-    if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
+    if (!claimId) return res.status(400).json({ error: true, code: 'BAD_REQUEST', message: 'Invalid claim id'  });
 
     const claim = await claimModel.findById(claimId);
-    if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (!claim) return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Claim not found'  });
 
     if (req.user!.role === Role.Employee && claim.userId !== req.user!.id) {
-      return res.status(403).json({ message: 'Access denied' });
+      return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Access denied'  });
     }
     if (!claim.receiptUrl) {
-      return res.status(404).json({ message: 'No receipt attached to this claim' });
+      return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'No receipt attached to this claim'  });
     }
     const viewUrl = generateViewUrl(claim.receiptUrl, 15);
     return res.status(200).json({ status: 'success', data: { viewUrl } });
   } catch (err: any) {
     console.error('[getReceiptViewUrl]', err?.message ?? err);
-    return res.status(500).json({ status: 'error', message: 'Could not generate receipt URL' });
+    return res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: 'Could not generate receipt URL'  });
   }
 };
 
@@ -473,52 +473,51 @@ export const getAllClaims = async (req: Request, res: Response) => {
     const claims = await claimModel.getAllClaims();
     res.status(200).json({ status: 'success', results: claims.length, data: { claims } });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
 };
 
 export const getClaimActivity = async (req: Request, res: Response) => {
   try {
     const claimId = parsePositiveIntegerParam(req.params.id);
-    if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
+    if (!claimId) return res.status(400).json({ error: true, code: 'BAD_REQUEST', message: 'Invalid claim id'  });
 
     const claim = await claimModel.findById(claimId);
     if (!claim) {
-      return res.status(404).json({ message: 'Claim not found' });
+      return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Claim not found'  });
     }
 
     if (req.user!.role === Role.Employee && claim.userId !== req.user!.id) {
-      return res.status(403).json({ message: 'Access denied' });
+      return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Access denied'  });
     }
 
     const logs = await auditModel.getAuditLogsByClaim(claimId);
     res.status(200).json({ status: 'success', data: { logs } });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
 };
 
 export const addComment = async (req: Request, res: Response) => {
   try {
     const claimId = parsePositiveIntegerParam(req.params.id);
-    if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
+    if (!claimId) return res.status(400).json({ error: true, code: 'BAD_REQUEST', message: 'Invalid claim id'  });
 
     const { commentText } = req.body;
     const normalizedComment =
       typeof commentText === 'string' ? commentText.trim() : '';
     if (normalizedComment.length === 0 || normalizedComment.length > 2000) {
-      return res.status(400).json({
-        message: 'Comment text must be between 1 and 2000 characters',
-      });
+      return res.status(400).json({ error: true, code: 'BAD_REQUEST', message: 'Comment text must be between 1 and 2000 characters',
+       });
     }
 
     const claim = await claimModel.findById(claimId);
     if (!claim) {
-      return res.status(404).json({ message: 'Claim not found' });
+      return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Claim not found'  });
     }
 
     if (req.user!.role === Role.Employee && claim.userId !== req.user!.id) {
-      return res.status(403).json({ message: 'Access denied' });
+      return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Access denied'  });
     }
 
     const log = await auditModel.createAuditLog({
@@ -532,7 +531,7 @@ export const addComment = async (req: Request, res: Response) => {
 
     res.status(201).json({ status: 'success', data: { log } });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
 };
 

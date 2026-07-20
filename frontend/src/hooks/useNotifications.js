@@ -31,11 +31,26 @@ export function useNotifications() {
   useEffect(() => {
     mountedRef.current = true;
     refresh();
+    
     if (!session) return () => undefined;
-    const id = setInterval(refresh, POLL_INTERVAL_MS);
+    
+    // Connect to SSE for live notifications
+    const eventSource = new EventSource(`/api/notifications/live?token=${session.token}`);
+    
+    eventSource.onmessage = (event) => {
+      // Refresh the notification list when we get a push
+      refresh();
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("SSE connection error", error);
+      eventSource.close();
+      // We could implement retry logic here, but for simplicity let refresh() handle manual syncs
+    };
+
     return () => {
       mountedRef.current = false;
-      clearInterval(id);
+      eventSource.close();
     };
   }, [refresh, session]);
 

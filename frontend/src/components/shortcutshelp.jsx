@@ -14,9 +14,6 @@ const GROUPS = [
   {
     title: "Jump to (press G, then…)",
     items: [
-      { keys: ["G", "E"], label: "Submit & track (employee)" },
-      { keys: ["G", "A"], label: "Approval queue" },
-      { keys: ["G", "F"], label: "Finance workspace" },
       { keys: ["G", "C"], label: "Compliance" },
       { keys: ["G", "R"], label: "Approval rules" },
       { keys: ["G", "P"], label: "Privacy notice" },
@@ -72,6 +69,32 @@ export default function ShortcutsHelp({ open, onClose }) {
               </ul>
             </div>
           ))}
+          <div className="shortcuts-group">
+            <h4 className="shortcuts-group-title">Actions</h4>
+            <ul className="shortcuts-list">
+              <li className="shortcuts-row">
+                <span className="shortcuts-label">New claim</span>
+                <span className="shortcuts-keys">
+                  <kbd className="shortcuts-kbd">⌥</kbd>
+                  <kbd className="shortcuts-kbd">N</kbd>
+                </span>
+              </li>
+              <li className="shortcuts-row">
+                <span className="shortcuts-label">Submit form</span>
+                <span className="shortcuts-keys">
+                  <kbd className="shortcuts-kbd">⌥</kbd>
+                  <kbd className="shortcuts-kbd">S</kbd>
+                </span>
+              </li>
+              <li className="shortcuts-row">
+                <span className="shortcuts-label">Quick Search</span>
+                <span className="shortcuts-keys">
+                  <kbd className="shortcuts-kbd">⌥</kbd>
+                  <kbd className="shortcuts-kbd">/</kbd>
+                </span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

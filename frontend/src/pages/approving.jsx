@@ -14,10 +14,11 @@ import { useToast } from "../context/toastcontext.jsx";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
 import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
-import RejectionModal from "../components/rejectionmodal.jsx";
+import ReviewModal from "../components/reviewmodal.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import PolicyFlag from "../components/policyflag.jsx";
 import CategoryIcon from "../components/categoryicon.jsx";
+import { useShortcuts } from "../hooks/useShortcuts.js";
 
 export default function Approving() {
   const navigate = useNavigate();
@@ -27,44 +28,44 @@ export default function Approving() {
   const [filterStatus, setFilterStatus] = useState("Pending");
   const [filterDept, setFilterDept] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [rejectingClaim, setRejectingClaim] = useState(null);
+  const [reviewClaim, setReviewClaim] = useState(null);
+  const [reviewAction, setReviewAction] = useState(null);
 
-  const handleRejectConfirm = async (reason) => {
-    if (!rejectingClaim) return;
+  const handleReviewConfirm = async (actionType, reason) => {
+    if (!reviewClaim) return;
     try {
-      await updateClaimStatus(rejectingClaim.id, "Rejected", "Lisa Wang", reason);
-      addToast({
-        variant: "error",
-        title: "Claim rejected",
-        message: `${rejectingClaim.id} returned to ${rejectingClaim.employee}.`,
-      });
+      if (actionType === "reject") {
+        await updateClaimStatus(reviewClaim.id, "Rejected", "Lisa Wang", reason);
+        addToast({
+          variant: "error",
+          title: "Claim rejected",
+          message: `${reviewClaim.id} returned to ${reviewClaim.employee}.`,
+        });
+      } else if (actionType === "endorse") {
+        await updateClaimStatus(reviewClaim.id, "Endorsed", "Lisa Wang", reason);
+        addToast({
+          variant: "success",
+          title: "Claim endorsed",
+          message: `${reviewClaim.id} forwarded to Finance for disbursement.`,
+        });
+      }
     } catch (err) {
       addToast({
         variant: "error",
-        title: "Reject failed",
-        message: err?.message || "Could not reject this claim.",
+        title: `${actionType === "reject" ? "Reject" : "Endorse"} failed`,
+        message: err?.message || `Could not ${actionType} this claim.`,
       });
     } finally {
-      setRejectingClaim(null);
+      setReviewClaim(null);
+      setReviewAction(null);
     }
   };
 
-  const handleEndorse = async (claim) => {
-    try {
-      await updateClaimStatus(claim.id, "Endorsed");
-      addToast({
-        variant: "success",
-        title: "Claim endorsed",
-        message: `${claim.id} forwarded to Finance for disbursement.`,
-      });
-    } catch (err) {
-      addToast({
-        variant: "error",
-        title: "Endorse failed",
-        message: err?.message || "Could not endorse this claim.",
-      });
+  useShortcuts({
+    onSearch: () => {
+      document.getElementById("manager-search-input")?.focus();
     }
-  };
+  });
 
   const matchingClaims = Object.values(latestMap).filter((item) => {
     if (item.department !== "Sales") return false;
@@ -113,7 +114,7 @@ export default function Approving() {
         subtitle="Endorse claims from your department or send them back with a reason. Auto-extracted fields, policy hints, and full receipt context are surfaced inline so reviews stay under a minute."
         actions={
           <div
-            className="flex items-center gap-4 px-3 h-9 rounded-ds-sm border border-border-subtle bg-card text-[12px] text-text-secondary tabular-nums"
+            className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-3 py-1.5 min-h-[36px] rounded-ds-sm border border-border-subtle bg-card text-[12px] text-text-secondary tabular-nums"
             aria-label="Sales department pipeline"
           >
             <span>
@@ -149,111 +150,69 @@ export default function Approving() {
         </div>
       )}
 
-      <div className="sidebar-layout-container">
-        <aside className="sidebar-panel">
-          {/* compact at-a-glance stats */}
-          <div className="grid grid-cols-3 gap-2 pb-3 mb-3 border-b border-border-subtle">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
-                Pending
-              </span>
-              <span className="text-lg font-bold tabular-nums leading-tight">
-                {stats.pendingCount}
-              </span>
-              <span className="text-[10px] text-text-secondary">
-                claims
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
-                Queue
-              </span>
-              <span className="text-lg font-bold tabular-nums leading-tight">
-                {formatSGD(stats.pendingTotal).replace("S$", "")}
-              </span>
-              <span className="text-[10px] text-text-secondary">SGD</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
-                Oldest
-              </span>
-              <span className="text-lg font-bold tabular-nums leading-tight">
-                {stats.oldestPendingDays}
-              </span>
-              <span className="text-[10px] text-text-secondary">days</span>
-            </div>
+      <div className="mt-6 mb-4">
+        <div className="metric-strip">
+          <div className="metric-card">
+            <span className="metric-label">Pending</span>
+            <span className="metric-value">{stats.pendingCount}</span>
+            <span className="metric-sub">claims</span>
           </div>
-
-          <div className="mb-4">
-            <p className="sidebar-meta-label flex items-center gap-1.5">
-              <Filter className="h-3 w-3" /> Filters
-            </p>
-            <div className="mb-3">
-              <label className="form-label text-xs text-text-secondary">Status</label>
-              <select
-                className="form-select form-select-sm"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="All Status">All Status</option>
-                <option value="Pending">Pending</option>
-                <option value="Endorsed">Endorsed</option>
-                <option value="Rejected">Rejected</option>
-                <option value="Paid">Paid</option>
-              </select>
-            </div>
-            <div className="mb-3">
-              <label className="form-label text-xs text-text-secondary">
-                Department
-              </label>
-              <select
-                className="form-select form-select-sm"
-                value={filterDept}
-                onChange={(e) => setFilterDept(e.target.value)}
-              >
-                <option value="All">All</option>
-                <option value="Sales">Sales</option>
-              </select>
-            </div>
+          <div className="metric-card">
+            <span className="metric-label">Queue</span>
+            <span className="metric-value">{formatSGD(stats.pendingTotal).replace("S$", "")}</span>
+            <span className="metric-sub">SGD</span>
           </div>
-
-          <div className="rounded-ds-md border border-border-subtle bg-subtle/50 p-3">
-            <p className="text-[10px] uppercase tracking-[0.08em] font-semibold text-text-tertiary mb-1.5">
-              Scope
-            </p>
-            <p className="text-[13px] text-text-secondary leading-snug">
-              You can review and endorse claims from{" "}
-              <strong className="text-text-primary font-medium">
-                Sales
-              </strong>{" "}
-              only. Endorsed claims are forwarded to Finance for disbursement.
-            </p>
+          <div className="metric-card">
+            <span className="metric-label">Oldest</span>
+            <span className="metric-value">{stats.oldestPendingDays}</span>
+            <span className="metric-sub">days</span>
           </div>
-        </aside>
+          <div className="metric-card" style={{ backgroundColor: 'var(--info-bg)', borderColor: 'var(--info)' }}>
+            <span className="metric-label" style={{ color: 'var(--info-text)' }}>Scope</span>
+            <span className="text-sm font-medium mt-1">Sales Department</span>
+            <span className="metric-sub" style={{ color: 'var(--info-text)' }}>Review and endorse claims from Sales only.</span>
+          </div>
+        </div>
+      </div>
 
-        <div className="flex-1">
-          <div className="workspace-card p-6">
-            <div className="flex items-baseline justify-between gap-3 mb-4">
-              <div>
-                <h2 className="workspace-card-title mb-0.5">
-                  Pending claims
-                </h2>
-                <p className="text-text-tertiary text-[12px]">
-                  Sales department only — your scope of approval.
-                </p>
-              </div>
-            </div>
+      <div className="data-toolbar">
+         <div className="data-toolbar-filters">
+            <select
+              className="form-select form-select-sm"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              style={{ width: '130px' }}
+            >
+              <option value="All Status">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Endorsed">Endorsed</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Paid">Paid</option>
+            </select>
+            <select
+              className="form-select form-select-sm"
+              value={filterDept}
+              onChange={(e) => setFilterDept(e.target.value)}
+              style={{ width: '120px' }}
+            >
+              <option value="All">All Depts</option>
+              <option value="Sales">Sales</option>
+            </select>
+         </div>
+         <div className="search-input-wrapper m-0 w-full sm:w-auto" style={{ maxWidth: "280px" }}>
+           <Search className="h-3.5 w-3.5 search-leading-icon" />
+           <input
+             id="manager-search-input"
+             type="text"
+             className="form-control"
+             placeholder="Search by ID or employee name"
+             value={searchQuery}
+             onChange={(e) => setSearchQuery(e.target.value)}
+           />
+         </div>
+      </div>
 
-            <div className="search-input-wrapper mb-4">
-              <Search className="h-3.5 w-3.5 search-leading-icon" />
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search by employee name or claim type…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+      <div className="workspace-card p-6 rounded-t-none border-t-0">
 
             {matchingClaims.length === 0 ? (
               <EmptyState
@@ -315,7 +274,7 @@ export default function Approving() {
                         <>
                           <button
                             className="row-btn row-btn-approve"
-                            onClick={() => handleEndorse(item)}
+                            onClick={() => { setReviewClaim(item); setReviewAction("endorse"); }}
                             title="Endorse"
                           >
                             <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
@@ -323,7 +282,7 @@ export default function Approving() {
                           </button>
                           <button
                             className="row-btn row-btn-reject"
-                            onClick={() => setRejectingClaim(item)}
+                            onClick={() => { setReviewClaim(item); setReviewAction("reject"); }}
                             aria-label="Reject claim"
                             title="Reject"
                           >
@@ -344,14 +303,13 @@ export default function Approving() {
               </div>
             )}
           </div>
-        </div>
-      </div>
 
-      <RejectionModal
-        open={!!rejectingClaim}
-        claim={rejectingClaim}
-        onConfirm={handleRejectConfirm}
-        onCancel={() => setRejectingClaim(null)}
+    <ReviewModal
+        open={!!reviewClaim}
+        claim={reviewClaim}
+        actionType={reviewAction}
+        onConfirm={handleReviewConfirm}
+        onCancel={() => { setReviewClaim(null); setReviewAction(null); }}
       />
 
       <ClaimDetailModal

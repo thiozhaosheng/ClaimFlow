@@ -58,15 +58,15 @@ export const getProfile = async (req: Request, res: Response) => {
     const userId = req.user?.id;
 
     if (!userId) {
-      return res.status(401).json({ status: 'error', message: 'No user ID provided' });
+      return res.status(401).json({ error: true, code: 'UNAUTHORIZED', message: 'No user ID provided'  });
     }
 
     const user = await userModel.findById(userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found'  });
 
     res.status(200).json({ status: 'success', data: { user } });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
 };
 
@@ -92,7 +92,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
     const users = await userModel.findAll();
     res.status(200).json({ status: 'success', results: users.length, data: { users } });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
 };
 
@@ -102,12 +102,12 @@ export const verifyUser = async (req: Request, res: Response) => {
     const user = await userModel.findByEmail(email);
 
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-      return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+      return res.status(401).json({ error: true, code: 'UNAUTHORIZED', message: 'Invalid credentials'  });
     }
 
     res.status(200).json({ status: 'success', data: { user } });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
 };
 
@@ -129,7 +129,7 @@ export const registerUser = async (req: Request, res: Response) => {
 
     res.status(201).json({ status: 'success', data: { user } });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
 };
 
@@ -152,6 +152,6 @@ export const updatePassword = async (req: Request, res: Response) => {
     res.status(200).json({ status: 'success', message: 'Password updated' });
   } catch (error: any) {
     logUtil.error('Database error during password update:', error);
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
 };

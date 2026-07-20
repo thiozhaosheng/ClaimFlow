@@ -124,7 +124,7 @@ export default function ClaimDetail() {
           <p className="text-sm text-text-secondary mb-4">
             We couldn't find claim <code>{id}</code> in your view.
           </p>
-          <button className="btn-secondary-modern" onClick={() => navigate(-1)}>
+          <button className="btn-secondary" onClick={() => navigate(-1)}>
             Back
           </button>
         </div>
@@ -162,7 +162,7 @@ export default function ClaimDetail() {
           <span className={`badge-custom badge-${statusKey}`}>{claim.status}</span>
         </div>
         <div className="claim-detail-actions">
-          <button className="btn-secondary-modern" onClick={() => setDrawerOpen(true)}>
+          <button className="btn-secondary" onClick={() => setDrawerOpen(true)}>
             <UploadCloud className="h-4 w-4" />
             <span>Upload documents</span>
           </button>

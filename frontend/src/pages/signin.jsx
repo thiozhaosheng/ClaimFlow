@@ -84,9 +84,6 @@ export default function SignIn() {
       const result = await api.post("/api/auth/forgot-password", { email: target });
       const data = result?.data ?? {};
       setEmail(target);
-      if (data.newPassword) {
-        setPassword(data.newPassword);
-      }
       setResetState({
         status: "done",
         newPassword: data.newPassword || null,
@@ -98,14 +95,6 @@ export default function SignIn() {
     }
   };
 
-  const copyResetPassword = async () => {
-    if (resetState.status !== "done" || !resetState.newPassword) return;
-    try {
-      await navigator.clipboard.writeText(resetState.newPassword);
-    } catch {
-      /* clipboard blocked — user can still read it on screen */
-    }
-  };
 
   return (
     <section id="view-signin" className="auth-shell">
@@ -274,7 +263,7 @@ export default function SignIn() {
               </div>
               <button
                 type="submit"
-                className="btn-primary-modern"
+                className="btn-primary w-full h-[44px] mt-2"
                 disabled={submitting}
               >
                 {submitting ? "Signing in…" : "Sign in"}
@@ -285,37 +274,13 @@ export default function SignIn() {
                 <div
                   role="status"
                   aria-live="polite"
-                  className="mt-2 text-[12px] text-text-secondary leading-snug"
+                  className="mt-2 text-[12px] text-success-text leading-snug p-3 bg-success-bg border border-success-border rounded"
                 >
-                  {resetState.newPassword ? (
-                    <>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <KeyRound className="h-3 w-3 text-accent" />
-                        <span className="text-text-primary font-medium">
-                          Temporary password for{" "}
-                          <code className="text-[11px]">{resetState.email}</code>
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <code className="text-[12px] px-2 py-0.5 bg-subtle border border-border-subtle rounded text-text-primary tabular-nums">
-                          {resetState.newPassword}
-                        </code>
-                        <button
-                          type="button"
-                          onClick={copyResetPassword}
-                          className="inline-flex items-center gap-1 text-[11px] text-text-secondary hover:text-text-primary bg-transparent border-0 p-0 cursor-pointer"
-                          aria-label="Copy temporary password"
-                        >
-                          <Copy className="h-3 w-3" /> copy
-                        </button>
-                      </div>
-                      <p className="mt-1 text-text-tertiary">
-                        Pre-filled in the form above — just press Sign in.
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-text-tertiary">{resetState.message}</p>
-                  )}
+                  <p className="font-medium flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    Reset link sent
+                  </p>
+                  <p className="mt-1 text-text-secondary">{resetState.message}</p>
                 </div>
               )}
               {resetState.status === "error" && (

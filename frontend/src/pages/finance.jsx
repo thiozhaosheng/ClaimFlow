@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
 import { useClaims } from "../hooks/useclaims.js";
+import { useShortcuts } from "../hooks/useShortcuts.js";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
 import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
@@ -37,13 +38,15 @@ export default function Finance() {
   const [activeClaim, setActiveClaim] = useState(null);
   const [paying, setPaying] = useState(false);
 
+  useShortcuts({
+    onSearch: () => {
+      document.getElementById("finance-search-input")?.focus();
+    }
+  });
+
   const switchTab = (tabKey) => {
     setActiveTab(tabKey);
     setFinanceTab(tabKey);
-    if (tabKey === "payment") {
-      setSelectedClaims(new Set());
-      setSelectAll(false);
-    }
   };
 
   const endorsedClaims = Object.values(latestMap).filter((i) => {
@@ -154,19 +157,13 @@ export default function Finance() {
         subtitle="See spend at a glance, disburse endorsed claims, and review the audit trail. GST 9% is captured per claim where applicable for IRAS reporting."
       />
 
-      {/* No negative top margin — it tucked the tab row under the sticky,
-          opaque PageHeader (z-20) and clipped the tab tops. */}
       <div className="border-b border-border-subtle mb-6">
-        {/* Scroll only kicks in below lg; making it an overflow container at all
-            widths forces overflow-y to clip too, which cut off the tab labels /
-            underline. On desktop the row fits, so keep overflow visible. */}
         <div
           className="flex items-center gap-1 max-lg:overflow-x-auto max-lg:pb-px no-scrollbar"
           role="tablist"
         >
           {[
             { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-            { key: "payment", label: "Payment queue", icon: Wallet },
             { key: "audit", label: "Audit trail", icon: ShieldCheck },
           ].map(({ key, label, icon: Icon }) => (
             <button
@@ -205,137 +202,16 @@ export default function Finance() {
         />
       )}
 
-      <div
-        className={`workspace-card p-6 ${activeTab !== "payment" ? "hidden" : ""}`}
-      >
-        <h2 className="workspace-card-title mb-0.5">
-          Endorsed claims queue
-        </h2>
-        <p className="text-text-tertiary text-[12px] mb-4">
-          Process endorsed claims for disbursement.
-        </p>
-
-        <div className="action-bar-strip flex flex-wrap justify-between items-center gap-3 p-3 border border-border-subtle rounded-ds-md mb-4">
-          <div className="flex items-center gap-2">
-            <div
-              className="search-input-wrapper m-0"
-              style={{ maxWidth: "280px" }}
-            >
-              <Search className="h-3.5 w-3.5 search-leading-icon" />
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search by ID or employee name"
-                value={searchQueue}
-                onChange={(e) => setSearchQueue(e.target.value)}
-              />
-            </div>
-            <button className="btn h-9 border border-border-subtle bg-card text-text-secondary hover:bg-subtle">
-              <Filter className="h-3.5 w-3.5" />
-              <span>Filter</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="text-right leading-tight">
-              <span className="text-text-tertiary text-[11px] block uppercase tracking-[0.05em]">
-                Selected total
-              </span>
-              <span className="font-semibold text-[1.05rem] text-text-primary tabular-nums">
-                {formatSGD(selectedTotal)}
-              </span>
-            </div>
-            <button
-              className="btn-mark-paid"
-              disabled={selectedClaims.size === 0 || paying}
-              onClick={handleMarkAsPaid}
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              <span>
-                Mark as paid ({selectedClaims.size})
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {endorsedClaims.length === 0 ? (
-          <EmptyState
-            variant="queue"
-            title="Nothing pending payout"
-            message="Endorsed claims from approvers will queue up here for disbursement."
-          />
-        ) : (
-          <>
-            <label className="flex items-center gap-2 px-1 mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-tertiary cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="form-check-input"
-                checked={selectAll}
-                onChange={(e) => handleSelectAll(e.target.checked)}
-                aria-label="Select all endorsed claims"
-              />
-              Select all
-            </label>
-            <div className="claim-rows">
-              {endorsedClaims.map((item) => (
-                <div
-                  key={item.id}
-                  className={`claim-row stagger-item ${
-                    selectedClaims.has(item.id) ? "claim-row-selected" : ""
-                  }`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => navigate(`/claim/${item.id}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ")
-                      navigate(`/claim/${item.id}`);
-                  }}
-                >
-                  <span onClick={(e) => e.stopPropagation()} className="flex">
-                    <input
-                      type="checkbox"
-                      className="form-check-input"
-                      checked={selectedClaims.has(item.id)}
-                      onChange={(e) => handleRowSelect(item.id, e.target.checked)}
-                      aria-label={`Select claim ${item.id}`}
-                    />
-                  </span>
-                  <div className="claim-row-id">
-                    <div className="avatar-dot">{item.employee.charAt(0)}</div>
-                    <div className="min-w-0">
-                      <div className="claim-row-name">
-                        {escapeHtml(item.employee)}
-                        <PolicyFlag claim={item} variant="dot" />
-                      </div>
-                      <div className="claim-row-sub">
-                        {item.id} · {item.date} · {item.department}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="claim-row-tags">
-                    <span className="claim-chip claim-chip-file">
-                      <Building2 className="h-3 w-3" />
-                      {item.bank}
-                    </span>
-                  </div>
-                  <div className="claim-row-amount">{formatSGD(item.amount)}</div>
-                  <ChevronRight className="h-4 w-4 claim-row-chevron" />
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
 
       <div
-        className={`workspace-card p-6 ${activeTab !== "audit" ? "hidden" : ""}`}
+        className={`w-full ${activeTab !== "audit" ? "hidden" : ""}`}
       >
-        <div className="flex justify-between items-start flex-wrap gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-3 mb-6">
           <div>
-            <h2 className="workspace-card-title mb-0.5">
+            <h2 className="text-xl font-semibold tracking-tight text-text-primary mb-1">
               Audit trail & export
             </h2>
-            <p className="text-text-tertiary text-[12px]">
+            <p className="text-text-tertiary text-[13px]">
               Read-only log of all claim status changes and actions.
             </p>
           </div>
@@ -348,13 +224,27 @@ export default function Finance() {
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="data-toolbar">
+          <div className="data-toolbar-filters">
+            <div className="segmented-control" role="group">
+              {["All", "Submitted", "Endorsed", "Paid"].map((status) => (
+                <button
+                  key={status}
+                  className={`segment-btn ${auditFilter === status ? "active" : ""}`}
+                  onClick={() => setAuditFilter(status)}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          </div>
           <div
-            className="search-input-wrapper m-0 flex-1"
-            style={{ maxWidth: "500px" }}
+            className="search-input-wrapper m-0 w-full sm:w-auto"
+            style={{ maxWidth: "400px" }}
           >
             <Search className="h-3.5 w-3.5 search-leading-icon" />
             <input
+              id="finance-search-input"
               type="text"
               className="form-control"
               placeholder="Search by claim ID, employee, or actor…"
@@ -362,21 +252,9 @@ export default function Finance() {
               onChange={(e) => setSearchAudit(e.target.value)}
             />
           </div>
-
-          <div className="segmented-control" role="group">
-            {["All", "Submitted", "Endorsed", "Paid"].map((status) => (
-              <button
-                key={status}
-                className={`segment-btn ${auditFilter === status ? "active" : ""}`}
-                onClick={() => setAuditFilter(status)}
-              >
-                {status}
-              </button>
-            ))}
-          </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="workspace-card p-0 rounded-t-none border-t-0 overflow-x-auto">
           <table className="data-table align-middle">
             <thead>
               <tr>

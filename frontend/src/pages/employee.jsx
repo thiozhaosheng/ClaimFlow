@@ -484,36 +484,6 @@ export default function Employee() {
         eyebrow="Employee"
         title="Submit & track your claims"
         subtitle="Snap a receipt — we extract the merchant, amount, GST and date so you only confirm. Claims under S$50 in standard categories auto-approve; anything larger routes to a manager."
-        actions={
-          <div
-            className="flex items-center gap-4 px-3 h-9 rounded-ds-sm border border-border-subtle bg-card text-[12px] text-text-secondary tabular-nums"
-            aria-label="Your claims pipeline"
-          >
-            <span>
-              <b className="font-semibold text-text-primary">
-                {stats.submittedThisMonth}
-              </b>{" "}
-              submitted
-            </span>
-            <span className="h-3 w-px bg-border-subtle" aria-hidden="true" />
-            <span>
-              <b className="font-semibold text-warning-text">{stats.pending}</b>{" "}
-              pending
-            </span>
-            <span className="h-3 w-px bg-border-subtle" aria-hidden="true" />
-            <span>
-              <b className="font-semibold text-accent">{stats.endorsed}</b>{" "}
-              endorsed
-            </span>
-            <span className="h-3 w-px bg-border-subtle" aria-hidden="true" />
-            <span>
-              <b className="font-semibold text-success-text">
-                {stats.paidThisMonthCount}
-              </b>{" "}
-              paid
-            </span>
-          </div>
-        }
       />
 
       {error && (
@@ -526,7 +496,29 @@ export default function Employee() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+      <div className="mt-6 mb-6">
+        <div className="metric-strip">
+          <div className="metric-card">
+            <span className="metric-label">Submitted</span>
+            <span className="metric-value">{countSubmitted}</span>
+            <span className="metric-sub">claims this month</span>
+          </div>
+          <div className="metric-card">
+            <span className="metric-label">In flight</span>
+            <span className="metric-value">{countInFlight}</span>
+            <span className="metric-sub">
+              {stats.pending} pending · {stats.endorsed} endorsed
+            </span>
+          </div>
+          <div className="metric-card">
+            <span className="metric-label">Paid</span>
+            <span className="metric-value text-success-text">{formatSGD(countPaid).replace("S$", "")}</span>
+            <span className="metric-sub">SGD this month</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <div className="lg:col-span-8">
           <div className="workspace-card p-5">
             <h2 className="workspace-card-title mb-3 flex items-center gap-2">
@@ -841,42 +833,6 @@ export default function Employee() {
 
         <div className="lg:col-span-4">
           <div className="workspace-card p-5 h-full">
-            {/* compact at-a-glance stats */}
-            <div className="grid grid-cols-3 gap-2 pb-3 mb-3 border-b border-border-subtle">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
-                  Submitted
-                </span>
-                <span className="text-lg font-bold tabular-nums leading-tight">
-                  {countSubmitted}
-                </span>
-                <span className="text-[10px] text-text-secondary">
-                  this month
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
-                  In flight
-                </span>
-                <span className="text-lg font-bold tabular-nums leading-tight">
-                  {countInFlight}
-                </span>
-                <span className="text-[10px] text-text-secondary">
-                  {stats.pending}P · {stats.endorsed}E
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
-                  Paid
-                </span>
-                <span className="text-lg font-bold tabular-nums text-success-text leading-tight">
-                  {formatSGD(countPaid).replace("S$", "")}
-                </span>
-                <span className="text-[10px] text-text-secondary">
-                  this month
-                </span>
-              </div>
-            </div>
 
             <details className="mb-3 group">
               <summary className="cursor-pointer text-[11px] font-medium text-text-tertiary hover:text-text-primary inline-flex items-center gap-1.5 select-none">

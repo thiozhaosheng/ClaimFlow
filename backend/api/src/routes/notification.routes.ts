@@ -7,6 +7,7 @@ const router = Router();
 router.use(protect);
 
 router.get('/my', ctrl.listMy);
+router.get('/live', ctrl.liveNotifications);
 router.patch('/read-all', ctrl.markAllRead);
 router.patch('/:id/read', ctrl.markOneRead);
 

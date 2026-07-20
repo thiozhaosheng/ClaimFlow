@@ -18,19 +18,21 @@ export function isTypingTarget(el) {
  *
  * - ⌘K / Ctrl+K   → open command palette
  * - ?             → open shortcuts help
- * - g then e/a/f  → jump to the role workspace (Gmail-style chord)
  * - g then c/r/p  → jump to Compliance / Approval rules / Privacy
- *
- * Single-key shortcuts are suppressed while typing in a field or when a
- * modifier (other than the chord) is held.
+ * - Alt + N       → trigger new claim
+ * - Alt + /       → trigger search
+ * - Alt + S       → trigger submit
  *
  * @param {object} handlers
  * @param {() => void} handlers.openPalette
  * @param {() => void} handlers.openHelp
+ * @param {() => void} [handlers.onNewClaim]
+ * @param {() => void} [handlers.onSearch]
+ * @param {() => void} [handlers.onSubmit]
  * @param {(path: string) => void} handlers.navigate
  * @param {boolean} [enabled=true]
  */
-export function useShortcuts({ openPalette, openHelp, navigate, enabled = true }) {
+export function useShortcuts({ openPalette, openHelp, onNewClaim, onSearch, onSubmit, navigate, enabled = true }) {
   useEffect(() => {
     if (!enabled) return undefined;
 
@@ -46,9 +48,6 @@ export function useShortcuts({ openPalette, openHelp, navigate, enabled = true }
     };
 
     const GOTO = {
-      e: "/employee",
-      a: "/approving",
-      f: "/finance",
       c: "/compliance",
       r: "/policies",
       p: "/privacy",
@@ -56,6 +55,26 @@ export function useShortcuts({ openPalette, openHelp, navigate, enabled = true }
 
     const onKeyDown = (e) => {
       const cmd = e.metaKey || e.ctrlKey;
+      const alt = e.altKey;
+
+      if (alt) {
+        if (e.key === "n" || e.key === "N") {
+          e.preventDefault();
+          onNewClaim?.();
+          return;
+        }
+        if (e.key === "/") {
+          e.preventDefault();
+          onSearch?.();
+          return;
+        }
+        if (e.key === "s" || e.key === "S") {
+          // Alt+S usually works even if input is focused.
+          e.preventDefault();
+          onSubmit?.();
+          return;
+        }
+      }
 
       // ⌘K / Ctrl+K — command palette
       if (cmd && (e.key === "k" || e.key === "K")) {
@@ -79,7 +98,7 @@ export function useShortcuts({ openPalette, openHelp, navigate, enabled = true }
       }
 
       // Ignore other modified keys for single-key shortcuts.
-      if (cmd || e.altKey) return;
+      if (cmd || alt) return;
 
       if (e.key === "?") {
         e.preventDefault();

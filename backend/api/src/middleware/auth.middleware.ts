@@ -15,13 +15,18 @@ declare global {
 }
 
 export const protect = (req: Request, res: Response, next: NextFunction): void | Response => {
-  const authHeader = req.headers.authorization;
+  let token = '';
 
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Not authorized, invalid token format' });
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (req.query.token && typeof req.query.token === 'string') {
+    token = req.query.token;
   }
 
-  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ message: 'Not authorized, invalid or missing token' });
+  }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { id: number; role: Role };

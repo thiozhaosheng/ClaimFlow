@@ -1,10 +1,15 @@
 import { db } from '../config/database';
 import { Notification, Prisma } from '@prisma/client';
+import { EventEmitter } from 'events';
+
+export const notificationEmitter = new EventEmitter();
 
 export async function createNotification(
   data: Prisma.NotificationUncheckedCreateInput,
 ): Promise<Notification> {
-  return db.notification.create({ data });
+  const notif = await db.notification.create({ data });
+  notificationEmitter.emit('new', notif);
+  return notif;
 }
 
 export async function listForRecipient(recipientId: number, limit = 30) {

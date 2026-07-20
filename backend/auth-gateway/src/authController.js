@@ -113,3 +113,31 @@ exports.getReceiptViewUrl = async (req, res) => {
         res.status(400).json({ status: 'error', message: 'Failed to fetch receipt URL' });
     }
 };
+
+exports.authLogin = async (req, res) => {
+    try {
+        const result = await baseServiceConnector.authLogin(req.body);
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(401).json(err);
+    }
+};
+
+exports.authMe = async (req, res) => {
+    try {
+        const token = req.headers.authorization;
+        const result = await baseServiceConnector.authMe(token);
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(401).json(err);
+    }
+};
+
+exports.authForgotPassword = async (req, res) => {
+    try {
+        const result = await baseServiceConnector.authForgotPassword(req.body);
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(400).json(err);
+    }
+};

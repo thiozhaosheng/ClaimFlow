@@ -132,5 +132,8 @@ module.exports = {
     },
     verifyUser: (credentials) => makeInternalRequest('POST', '/users/verify', credentials),
     registerUser: (userData) => makeInternalRequest('POST', '/users/register', userData),
-    updatePassword: (updateData, token) => makeInternalRequest('PATCH', '/users/update-password', updateData, token)
+    updatePassword: (updateData, token) => makeInternalRequest('PATCH', '/users/update-password', updateData, token),
+    authLogin: (credentials) => makeInternalRequest('POST', '/auth/login', credentials),
+    authMe: (token) => makeInternalRequest('GET', '/auth/me', null, token),
+    authForgotPassword: (data) => makeInternalRequest('POST', '/auth/forgot-password', data)
 };
