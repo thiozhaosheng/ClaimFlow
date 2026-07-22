@@ -5,6 +5,7 @@ import { protect } from '../middleware/auth.middleware';
 const router = Router();
 
 router.get('/profile', protect, userController.getProfile);
+router.get('/me/export', protect, userController.exportUserData);
 router.get('/', userController.getAllUsers);
 router.post('/verify', userController.verifyUser);
 router.post('/register', userController.registerUser);

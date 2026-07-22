@@ -89,14 +89,14 @@ PDPA (Amendment) Act 2020 requires notifying PDPC within 3 calendar days of asse
 
 ## Gap summary
 
-| # | Gap | Severity | Owner |
-|---|---|---|---|
-| 1 | No consent capture on registration | High | Backend Lead |
-| 2 | No DSAR export endpoint | Medium | Backend Lead |
-| 3 | No automated retention purge | Medium | Backend Lead + Infrastructure Lead |
-| 4 | Privacy notice + DPO contact not published | High | Tech Writer (this role) |
-| 5 | Azure region for OCR not documented | Medium | Infrastructure Lead |
-| 6 | Breach runbook missing | Medium | Tech Writer (this role) |
-| 7 | AuditLog.remarks accepts unvalidated free text | Low | Frontend Lead |
+| # | Gap | Severity | Owner | Status |
+|---|---|---|---|---|
+| 1 | No consent capture on registration | High | Backend Lead | Open |
+| 2 | DSAR export endpoint (`GET /api/users/me/export`) | Medium | Backend Lead | **Resolved** |
+| 3 | No automated retention purge | Medium | Backend Lead + Infrastructure Lead | Open |
+| 4 | Privacy notice + DPO contact not published | High | Tech Writer (this role) | Open |
+| 5 | Azure region for OCR not documented | Medium | Infrastructure Lead | Open |
+| 6 | Breach runbook missing | Medium | Tech Writer (this role) | Open |
+| 7 | AuditLog.remarks accepts unvalidated free text | Low | Frontend Lead | Open |
 
 Gaps 4 and 6 are within this role's scope and will follow in subsequent commits. Gaps 1–3, 5, 7 need cross-team coordination.

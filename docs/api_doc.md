@@ -12,7 +12,7 @@ the frontend never calls it directly, only through `backend/auth-gateway`
 - **Interactive docs (Swagger UI):** `http://localhost:<PORT>/api/docs` while the API is running
 
 All requests and responses are JSON unless noted. Errors follow the shape
-`{ "status": "error", "message": "..." }` with the appropriate HTTP status.
+`{ "status": "error", "message": "..." }` or `{ "error": true, "code": "<CODE>", "message": "..." }` with the appropriate HTTP status.
 
 ---
 
@@ -32,14 +32,11 @@ Response `200 OK`:
 {
   "status": "success",
   "token": "<jwt>",
-  "data": {
-    "user": {
-      "id": 1,
-      "name": "Demo Employee",
-      "email": "demo.employee@claimflow.com",
-      "role": "Employee",
-      "department": "Engineering"
-    }
+  "user": {
+    "id": 1,
+    "email": "demo.employee@claimflow.com",
+    "role": "Employee",
+    "name": "Demo Employee"
   }
 }
 ```
@@ -59,6 +56,9 @@ source before relying on exact request/response shape).
 ### `GET /api/users/profile`
 Authenticated. Same payload as `/auth/me`, kept for backwards compatibility with
 the original frontend SDK.
+
+### `GET /api/users/me/export`
+Authenticated. DSAR (Data Subject Access Request) export returning the signed-in user's profile, claims, and sanitized audit logs as structured JSON.
 
 ### `GET /api/users/`
 Authenticated. Returns the user directory (id, name, email, role, department).

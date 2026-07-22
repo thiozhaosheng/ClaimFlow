@@ -22,7 +22,7 @@ Each rule is `{ id, label, when, then, message }`. `when` is a list of condition
 
 ```json
 {
-  "version": "2026-05-27",
+  "version": "2026-05-27.b",
   "currency": "SGD",
   "rules": [
     {
@@ -63,6 +63,47 @@ Each rule is `{ id, label, when, then, message }`. `when` is a list of condition
       "message": "A receipt image is required for claims above S$50."
     },
     {
+      "id": "block-entertainment-missing-context",
+      "label": "Client Entertainment without justification",
+      "when": [
+        { "field": "category", "op": "==", "value": "Client Entertainment" },
+        { "field": "details.businessJustification", "op": "missing" }
+      ],
+      "then": "block",
+      "message": "Client entertainment claims must include a business justification — IRAS requires this on the record."
+    },
+    {
+      "id": "block-entertainment-missing-client",
+      "label": "Client Entertainment without named client",
+      "when": [
+        { "field": "category", "op": "==", "value": "Client Entertainment" },
+        { "field": "details.clientCompany", "op": "missing" }
+      ],
+      "then": "block",
+      "message": "Client entertainment claims must name the client company and contacts present."
+    },
+    {
+      "id": "block-training-missing-justification",
+      "label": "Training without justification",
+      "when": [
+        { "field": "category", "op": "==", "value": "Training" },
+        { "field": "details.businessJustification", "op": "missing" }
+      ],
+      "then": "block",
+      "message": "Training claims must describe how the course supports your role — required for IRAS deductibility."
+    },
+    {
+      "id": "route-late-night-transport",
+      "label": "Late-night transport",
+      "when": [
+        { "field": "category", "op": "==", "value": "Transport" },
+        { "field": "details.travelWindow", "op": "==", "value": "Late night (22-06)" },
+        { "field": "amount", "op": ">", "value": 25 }
+      ],
+      "then": "route-to-human",
+      "message": "Late-night transport over S$25 needs a quick manager check (verifies it's a genuine OT return)."
+    },
+    {
       "id": "auto-approve-small-meal",
       "label": "Small meal — within allowance",
       "when": [
@@ -85,6 +126,17 @@ Each rule is `{ id, label, when, then, message }`. `when` is a list of condition
       "message": "Within the local transport allowance — no manager review needed."
     },
     {
+      "id": "route-meal-missing-attendees-context",
+      "label": "Large meal without attendee context",
+      "when": [
+        { "field": "category", "op": "==", "value": "Meal" },
+        { "field": "amount", "op": ">", "value": 50 },
+        { "field": "details.attendeeNotes", "op": "missing" }
+      ],
+      "then": "route-to-human",
+      "message": "Meals over S$50 need a short note on who attended so the approver can confirm it's a working meal."
+    },
+    {
       "id": "route-large-amount",
       "label": "Above auto-approve ceiling",
       "when": [
@@ -99,13 +151,18 @@ Each rule is `{ id, label, when, then, message }`. `when` is a list of condition
 
 ### Rule rationale
 
-| Rule | Why it's in the starter set |
+| Rule | Why it's in the active set |
 |---|---|
 | `block-disallowed-category` | IRAS Regulations 26/27 already say these categories aren't claimable. Catching them at submission saves finance from having to reject them later, and educates the claimant on why. |
 | `block-future-date` | Trivial sanity check; an honest mistake but worth catching before it pollutes the data. |
 | `block-missing-receipt-over-threshold` | IRAS requires substantiation for tax-deductible expenses. S$50 is the standard SME informal threshold for "no need to chase the paper receipt". |
+| `block-entertainment-missing-context` | Client Entertainment requires recorded business justification per IRAS regulations. |
+| `block-entertainment-missing-client` | Client Entertainment requires naming the client company/contact present. |
+| `block-training-missing-justification` | Training expenses must describe role relevance for tax deductibility. |
+| `route-late-night-transport` | Late-night transport over S$25 requires manager confirmation for OT legitimacy. |
 | `auto-approve-small-meal` | Highest-frequency claim in most SMEs; auto-approving small meals clears the bulk of the queue without losing oversight. |
 | `auto-approve-transport` | Same idea — Grab/taxi/MRT claims are routine and low-risk. |
+| `route-meal-missing-attendees-context` | Meals > S$50 require attendee notes for manager review. |
 | `route-large-amount` | The single most useful "needs eyes" signal. Anything over S$500 deserves a manager glance even if it's a normal expense. |
 
 ### Field reference

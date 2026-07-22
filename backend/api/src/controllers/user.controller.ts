@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import * as userModel from '../models/user.model';
+import { db } from '../config/database';
 import { logUtil } from '../utils/logUtil';
 
 /**
@@ -153,5 +154,65 @@ export const updatePassword = async (req: Request, res: Response) => {
   } catch (error: any) {
     logUtil.error('Database error during password update:', error);
     res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
+  }
+};
+
+export const exportUserData = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: true, code: 'UNAUTHORIZED', message: 'Not authenticated' });
+    }
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found' });
+    }
+
+    const { passwordHash, ...userExport } = user;
+
+    // Retrieve user's claims and linked audit logs
+    const claims = await db.claim.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const claimIds = claims.map((c) => c.id);
+
+    const auditLogs = claimIds.length > 0 ? await db.auditLog.findMany({
+      where: { claimId: { in: claimIds } },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        executor: { select: { id: true, name: true, role: true } },
+      },
+    }) : [];
+
+    // Redact third-party names to comply with PDPA DSAR QA checklist (B2)
+    const sanitizedAuditLogs = auditLogs.map((log: any) => {
+      const isSelf = log.performedBy === userId;
+      return {
+        id: log.id,
+        claimId: log.claimId,
+        action: log.action,
+        performedBy: isSelf ? log.performedBy : undefined,
+        performerRole: log.executor?.role ?? 'System',
+        oldStatus: log.oldStatus,
+        newStatus: log.newStatus,
+        remarks: log.remarks,
+        createdAt: log.createdAt,
+      };
+    });
+
+    return res.status(200).json({
+      status: 'success',
+      exportedAt: new Date().toISOString(),
+      data: {
+        user: userExport,
+        claims,
+        auditLogs: sanitizedAuditLogs,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message });
   }
 };
