@@ -158,6 +158,10 @@ export const createClaim = async (req: Request, res: Response) => {
       details,
     } = req.body;
 
+    if (!receiptUrl) {
+      return res.status(400).json({ error: true, code: 'MISSING_RECEIPT', message: 'A receipt must be provided to submit a claim.' });
+    }
+
     const submitter = await userModel.findById(req.user!.id);
     if (!submitter) return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Submitter not found'  });
 

@@ -426,27 +426,21 @@ async function main() {
       );
       const merchant = pick(recipe.merchants);
       const expenseDate = daysAgo(ageDays);
-      // 92% of submissions have a receipt
-      const hasReceipt = chance(0.92);
-      const receiptUrl = hasReceipt ? `seed/receipt-${claimCount + 1}.jpg` : null;
+      // All submissions have a real receipt now
+      const realReceipts = ['/test-receipts/real-grab.png', '/test-receipts/real-fairprice.png', '/test-receipts/real-paynow.png'];
+      const receiptUrl = pick(realReceipts);
+      
       // 4% had OCR fail (Azure unavailable / manual entry)
-      const ocrSource = !hasReceipt
-        ? null
-        : chance(0.04)
-        ? 'unavailable'
-        : chance(0.6)
-        ? 'azure'
-        : 'mock';
+      const ocrSource = chance(0.04) ? 'unavailable' : 'azure';
       // 9% GST captured (since GST rate 9% in SG; we record gst amount when known)
-      const gstAmount = hasReceipt && chance(0.65) ? round2(amount * 0.09 / 1.09) : null;
+      const gstAmount = chance(0.65) ? round2(amount * 0.09 / 1.09) : null;
 
       // Decide final status using the same logic as production:
       // - block conditions never make it to the DB (we just skip them)
       // - auto-approve conditions become Endorsed (and sometimes Paid)
       // - everything else is Pending, then evolves into Endorsed/Rejected/Paid based on age
 
-      const blocked =
-        !hasReceipt && amount > 50; // would be blocked by missing-receipt rule
+      const blocked = chance(0.05); // 5% chance of being withdrawn
       if (blocked) {
         // Replace with a withdrawn-by-submitter row so the dataset shows
         // how blocks surface in history without polluting active queues.
@@ -458,7 +452,7 @@ async function main() {
             merchant,
             category: recipe.category,
             expenseDate,
-            receiptUrl: null,
+            receiptUrl,
             ocrSource,
             status: ClaimStatus.Pending,
             withdrawn: true,
@@ -481,14 +475,14 @@ async function main() {
         continue;
       }
 
-      const smallMeal =
-        recipe.category === 'Meal' && amount <= 30 && hasReceipt;
-      const smallTransport =
-        recipe.category === 'Transport' && amount <= 50 && hasReceipt;
+      const autoApproveMeal =
+        recipe.category === 'Meal' && amount <= 30;
+      const autoApproveTransport =
+        recipe.category === 'Transport' && amount <= 50;
       // The OCR-unavailable claims must NOT auto-approve even if they would
       // otherwise qualify — the approving officer must double-check.
       const wouldAutoApprove =
-        (smallMeal || smallTransport) && ocrSource !== 'unavailable';
+        (autoApproveMeal || autoApproveTransport) && ocrSource !== 'unavailable';
       const largeAmount = amount > 500;
 
       let status: ClaimStatus = ClaimStatus.Pending;
@@ -549,7 +543,7 @@ async function main() {
             performedBy: employee.id,
             oldStatus: ClaimStatus.Pending,
             newStatus: ClaimStatus.Endorsed,
-            remarks: smallMeal ? 'auto-approve-small-meal' : 'auto-approve-transport',
+            remarks: autoApproveMeal ? 'auto-approve-small-meal' : 'auto-approve-transport',
             createdAt: daysAgo(ageDays),
           },
         });
@@ -562,10 +556,10 @@ async function main() {
             claimId: claim.id,
             kind: 'auto-endorsed',
             title: `Auto-endorsed: ${employee.name}`,
-            body: `${recipe.category} · ${merchant} · S$${amount.toFixed(2)} — within ${smallMeal ? 'meal' : 'transport'} allowance.`,
-            hint: smallMeal
-              ? 'Rule: auto-approve-small-meal (Meal ≤ S$30 with receipt)'
-              : 'Rule: auto-approve-transport (Transport ≤ S$50 with receipt)',
+            body: `${recipe.category} · ${merchant} · S$${amount.toFixed(2)} — within ${autoApproveMeal ? 'meal' : 'transport'} allowance.`,
+            hint: autoApproveMeal
+              ? 'Policy: Meals under S$30 with a receipt are auto-endorsed.'
+              : 'Policy: Transport under S$50 with a receipt is auto-endorsed.',
             createdAt: daysAgo(ageDays),
           },
         });
