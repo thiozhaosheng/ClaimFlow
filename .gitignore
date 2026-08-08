@@ -7,6 +7,11 @@ node_modules/
 .env.*.local
 **/.env
 **/.env.local
+# .env.test is NOT covered by the patterns above (**/.env matches the exact
+# name only, and .env.*.local requires the .local suffix). It holds a real
+# local Postgres connection string, so it needs its own rule.
+# The committed template is backend/api/.env.test.example.
+**/.env.test
 
 # Build output
 dist/
@@ -27,3 +32,13 @@ backend/api/prisma/migrations/.lock
 # Logs
 *.log
 npm-debug.log*
+
+# Test artifacts
+# Generated on every run. playwright-report/ and test-results/ were previously
+# committed, so a stale HTML report shipped in the repo and showed up in diffs.
+# Durable evidence for the capstone lives in docs/testing-evidence/ instead.
+frontend/playwright-report/
+frontend/test-results/
+frontend/e2e/.auth/
+coverage/
+reports/
