@@ -2,9 +2,12 @@ name: ClaimFlow CI
 
 on:
   push:
-    branches: [ "main", "master" ]
+    # infra/azure-deployment is the branch Azure deploys from, so it needs the
+    # same gate as main — otherwise the only branch that reaches production is
+    # the one branch CI never checks.
+    branches: [ "main", "master", "infra/azure-deployment" ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "infra/azure-deployment" ]
 
 jobs:
   test:
