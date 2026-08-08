@@ -3,12 +3,17 @@
 //
 // The backend's receiptParser returns `source` as one of:
 //   - "azure"        → live Azure AI Document Intelligence (prebuilt-receipt)
-//   - "mock"         → deterministic backend stub (no Azure key configured)
-//   - "demo"         → the frontend mock API (VITE_MOCK_API=true)
 //   - "unavailable"  → Azure was tried but rejected the file; nothing extracted
 //
-// Treating "mock" and "demo" identically keeps the message honest: in both
-// cases the numbers are sample data, NOT read from the uploaded receipt.
+// Those two are the whole contract — see the OcrResult type in
+// backend/api/src/services/receiptParser.ts. When no Azure key is configured
+// the parser returns "unavailable" with null fields rather than inventing
+// sample values, so the UI never presents fabricated numbers as a real read.
+//
+// Anything else falls through to the neutral "unknown" bucket. The earlier
+// "mock"/"demo" sources were retired along with the frontend mock API; the
+// SOURCES.sample entry below is now unreachable and kept only so the badge
+// keeps rendering if a stale source string ever reaches it.
 
 /**
  * @typedef {Object} OcrSourceInfo
@@ -66,7 +71,6 @@ const SOURCES = {
  */
 export function describeOcrSource(source) {
   if (source === "azure") return SOURCES.azure;
-  if (source === "mock" || source === "demo") return SOURCES.sample;
   if (source === "unavailable") return SOURCES.unavailable;
   return SOURCES.unknown;
 }

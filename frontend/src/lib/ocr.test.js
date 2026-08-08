@@ -13,19 +13,23 @@ describe("describeOcrSource", () => {
     expect(info.tone).toBe("accent");
   });
 
-  it("treats backend mock and frontend demo identically (sample, not live)", () => {
-    for (const src of ["mock", "demo"]) {
-      const info = describeOcrSource(src);
-      expect(info.kind).toBe("sample");
-      expect(info.live).toBe(false);
-      expect(info.tone).toBe("warning");
-    }
-  });
-
   it("flags unavailable as a non-live failure", () => {
     const info = describeOcrSource("unavailable");
     expect(info.kind).toBe("unavailable");
     expect(info.live).toBe(false);
+    expect(info.tone).toBe("warning");
+  });
+
+  // "mock" and "demo" were retired with the frontend mock API. The backend
+  // OcrResult type is now 'azure' | 'unavailable' only, so these strings can
+  // no longer reach the UI and must land in the neutral unknown bucket rather
+  // than claiming to be sample data.
+  it("no longer recognises the retired mock and demo sources", () => {
+    for (const src of ["mock", "demo"]) {
+      const info = describeOcrSource(src);
+      expect(info.kind).toBe("unknown");
+      expect(info.live).toBe(false);
+    }
   });
 
   it("falls back to a neutral unknown bucket for anything else", () => {
@@ -33,6 +37,7 @@ describe("describeOcrSource", () => {
       const info = describeOcrSource(src);
       expect(info.kind).toBe("unknown");
       expect(info.live).toBe(false);
+      expect(info.tone).toBe("neutral");
     }
   });
 });

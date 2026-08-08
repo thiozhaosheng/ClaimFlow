@@ -10,16 +10,22 @@ describe("OcrSourceBadge", () => {
     expect(container.querySelector(".ocr-result-accent")).toBeInTheDocument();
   });
 
-  it("makes demo data unmistakable and shows no live dot", () => {
+  // "demo" was retired with the frontend mock API, so it no longer maps to a
+  // sample badge — it falls through to the neutral unknown bucket. The point
+  // that still matters is that nothing but a live Azure read shows the dot.
+  it("renders a retired source neutrally with no live dot", () => {
     const { container } = render(<OcrSourceBadge source="demo" />);
-    expect(screen.getByText(/demo data/i)).toBeInTheDocument();
+    expect(screen.getByText(/receipt processed/i)).toBeInTheDocument();
     expect(container.querySelector(".ocr-live-dot")).not.toBeInTheDocument();
-    expect(container.querySelector(".ocr-result-warning")).toBeInTheDocument();
+    expect(container.querySelector(".ocr-result-accent")).not.toBeInTheDocument();
+    expect(container.querySelector(".ocr-result-neutral")).toBeInTheDocument();
   });
 
-  it("explains an unavailable parse", () => {
-    render(<OcrSourceBadge source="unavailable" />);
+  it("explains an unavailable parse and warns rather than reassures", () => {
+    const { container } = render(<OcrSourceBadge source="unavailable" />);
     expect(screen.getByText(/couldn't read/i)).toBeInTheDocument();
+    expect(container.querySelector(".ocr-live-dot")).not.toBeInTheDocument();
+    expect(container.querySelector(".ocr-result-warning")).toBeInTheDocument();
   });
 });
 
