@@ -10,6 +10,15 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
+    // Record every run so the user journey can be reviewed (and submitted) as
+    // a video without having to watch the browser live.
+    video: {
+      mode: 'on',
+      size: { width: 1280, height: 720 },
+    },
+    // `RECORD=1 npx playwright test` slows the run down so the captured video
+    // is watchable. CI leaves it unset and runs at full speed.
+    launchOptions: process.env.RECORD ? { slowMo: 250 } : {},
   },
   projects: [
     {
