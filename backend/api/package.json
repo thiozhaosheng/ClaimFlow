@@ -5,6 +5,12 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
+    "test:unit": "jest --selectProjects unit",
+    "test:integration": "jest --selectProjects integration --runInBand",
+    "test:coverage": "jest --coverage",
+    "test:evidence": "jest --json --outputFile=../../reports/jest-backend.json",
+    "test:perf": "k6 run -e API_BASE=http://localhost:3000 performance.js",
+    "test:perf:evidence": "k6 run --summary-export=../../reports/perf-summary.json -e API_BASE=http://localhost:3000 performance.js",
     "build": "tsc",
     "start": "npm run build && node dist/index.js",
     "dev": "nodemon --watch \"src/**/*.ts\" --exec \"ts-node\" src/index.ts",

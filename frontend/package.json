@@ -8,7 +8,11 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:evidence": "jest --json --outputFile=../reports/jest-frontend.json",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:evidence": "playwright test --reporter=json > ../reports/playwright.json"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",

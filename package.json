@@ -4,7 +4,18 @@
   "scripts": {
     "dev": "npm run dev --prefix frontend",
     "build": "npm run build --prefix frontend",
-    "lint": "npm run lint --prefix frontend",
-    "test": "npm run test --prefix frontend"
+    "test": "npm run test --prefix frontend",
+
+    "test:unit": "npm --prefix backend/api run test:unit && npm --prefix frontend run test",
+    "test:integration": "npm --prefix backend/api run test:integration",
+    "test:e2e": "npm --prefix frontend run test:e2e",
+    "test:perf": "npm --prefix backend/api run test:perf",
+
+    "reports:dir": "node -e \"require('fs').mkdirSync('reports',{recursive:true})\"",
+    "evidence:backend": "npm --prefix backend/api run test:evidence",
+    "evidence:frontend": "npm --prefix frontend run test:evidence",
+    "evidence:e2e": "npm --prefix frontend run test:e2e:evidence",
+    "test:pyramid": "node scripts/test-pyramid.mjs",
+    "test:evidence": "npm run reports:dir && npm run evidence:backend && npm run evidence:frontend && npm run test:pyramid"
   }
 }
