@@ -122,7 +122,9 @@ function tallyK6(report, name) {
   if (!report) return;
 
   const walkGroup = (group) => {
-    for (const check of group?.checks ?? []) {
+    // `checks` is an object keyed by check name, same as `groups` — not an
+    // array. Iterating it directly throws "object is not iterable".
+    for (const check of Object.values(group?.checks ?? {})) {
       // A check with zero passes and zero fails never executed.
       const total = (check.passes ?? 0) + (check.fails ?? 0);
       if (total > 0) tiers.performance.ran += 1;
