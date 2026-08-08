@@ -51,6 +51,8 @@ export function useShortcuts({ openPalette, openHelp, onNewClaim, onSearch, onSu
       c: "/compliance",
       r: "/policies",
       p: "/privacy",
+      e: "/employee",
+      f: "/finance",
     };
 
     const onKeyDown = (e) => {
