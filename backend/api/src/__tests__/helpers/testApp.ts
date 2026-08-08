@@ -3,14 +3,18 @@
  *
  * WHY THIS EXISTS, and what it costs:
  *
- * src/index.ts never exports `app`. It builds the app at module scope and ends
- * with `startServer().catch(...)`, which calls connectDatabase() and
- * app.listen() at import time. Importing it from a test would therefore try to
- * bind a port and connect a database as a side effect of `require`.
+ * This helper was written when src/index.ts neither exported `app` nor could
+ * be imported without side effects — it called connectDatabase() and
+ * app.listen() at module scope, so a test that required it would bind a port
+ * and open a database connection.
  *
- * Extracting an app.ts would be the right fix, but that is a production change
- * and out of scope for the testing capstone. So this helper mirrors index.ts's
- * assembly instead.
+ * That is no longer true: index.ts exports `app`, and setting
+ * CLAIMFLOW_NO_LISTEN=1 suppresses the boot. Pointing the integration tier at
+ * the real app would additionally cover helmet, CORS and the rate limiters
+ * listed below. That swap is left as a follow-up because it needs the
+ * integration suites run against a real database to confirm, which the
+ * capstone environment does not have. Until then this helper still mirrors
+ * index.ts's assembly by hand.
  *
  * WHAT IS FAITHFUL: the same express.json body limit, the same apiRoutes tree
  * (so real routers, real auth middleware, real controllers, real Prisma), and

@@ -9,6 +9,7 @@
     "test:integration": "jest --selectProjects integration --runInBand",
     "test:coverage": "jest --coverage",
     "test:evidence": "jest --json --outputFile=../../reports/jest-backend.json",
+    "perf:server": "cross-env CLAIMFLOW_NO_LISTEN=1 ts-node scripts/perf-server.ts",
     "test:perf": "k6 run -e API_BASE=http://localhost:3000 performance.js",
     "test:perf:evidence": "k6 run --summary-export=../../reports/perf-summary.json -e API_BASE=http://localhost:3000 performance.js",
     "build": "tsc",

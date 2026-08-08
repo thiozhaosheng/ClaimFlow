@@ -71,7 +71,18 @@ const startServer = async () => {
   });
 };
 
-startServer().catch((err) => {
-  console.error('Failed to start the ClaimFlow server:', err);
-  process.exit(1);
-});
+// Exported so tests and the k6 load-test harness can mount the real
+// application without opening a database connection or a listening socket.
+export { app, startServer };
+
+// Boot by default, and require a caller to opt out explicitly. The obvious
+// alternative — `if (require.main === module)` — is false whenever a launcher
+// *requires* this file instead of running it (pm2 cluster mode, some Azure
+// App Service Node images), which would deploy a server that never listens.
+// Failing open keeps production booting however it is started.
+if (process.env.CLAIMFLOW_NO_LISTEN !== '1') {
+  startServer().catch((err) => {
+    console.error('Failed to start the ClaimFlow server:', err);
+    process.exit(1);
+  });
+}
