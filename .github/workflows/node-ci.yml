@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies (Backend)
       run: |
         cd backend/api
-        npm ci || npm install
+        npm ci
         
     - name: Run Unit/Integration Tests
       run: |
@@ -31,7 +31,7 @@ jobs:
     - name: Install dependencies (Frontend)
       run: |
         cd frontend
-        npm ci || npm install
+        npm ci
         npx playwright install --with-deps
         
     - name: Run E2E Tests

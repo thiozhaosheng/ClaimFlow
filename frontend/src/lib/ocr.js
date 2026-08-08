@@ -66,7 +66,6 @@ const SOURCES = {
  */
 export function describeOcrSource(source) {
   if (source === "azure") return SOURCES.azure;
-  if (source === "mock" || source === "demo") return SOURCES.sample;
   if (source === "unavailable") return SOURCES.unavailable;
   return SOURCES.unknown;
 }

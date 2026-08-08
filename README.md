@@ -128,3 +128,5 @@ pie title Testing Pyramid
 - **E2E:** `Playwright` drives headless Chromium to automate Employee Submissions.
 - **Performance:** `k6` load scripts simulate 20 VUs ensuring < 500ms latency.
 - **CI/CD:** GitHub Actions block any broken code on push/PR to `main`.
+
+<!-- Refreshed: 2026-07-22T08:27:50Z -->

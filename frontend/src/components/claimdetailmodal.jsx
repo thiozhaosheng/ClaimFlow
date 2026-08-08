@@ -230,8 +230,6 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
                 {claim.receiptUrl
                   ? claim.ocrSource === "azure"
                     ? "Azure OCR · structured fields"
-                    : claim.ocrSource === "mock"
-                    ? "Demo parser"
                     : claim.ocrSource === "unavailable"
                     ? "Stored, OCR unavailable"
                     : "Click to view full image"

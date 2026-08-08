@@ -231,8 +231,8 @@ export default function Employee() {
   }, [amount]);
 
   const categoryDisallowed = DISALLOWED_CATEGORIES.includes(category);
-  const receiptRequired = numericAmount > RECEIPT_REQUIRED_OVER;
-  const receiptMissing = receiptRequired && !hasFile;
+  const receiptRequired = true; // Receipts are now mandatory for ALL claims
+  const receiptMissing = !hasFile;
   const fullTaxInvoiceRequired = numericAmount > FULL_TAX_INVOICE_OVER;
   const missingDetailKeys = useMemo(
     () => missingRequiredCategoryFields(category, details),
@@ -364,7 +364,7 @@ export default function Employee() {
       addToast({
         variant: "error",
         title: "Receipt required",
-        message: `Receipt image required for claims above ${formatSGD(RECEIPT_REQUIRED_OVER)}.`,
+        message: "A receipt image must be provided to submit a claim.",
       });
       return;
     }
@@ -755,8 +755,8 @@ export default function Employee() {
                   <div className="text-danger-text text-xs mt-2 flex items-start gap-1.5">
                     <XCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
                     <span>
-                      A receipt is required for claims above {formatSGD(RECEIPT_REQUIRED_OVER)}.
-                      Rule: <code>block-missing-receipt-over-threshold</code>.
+                      A receipt image is required to submit this claim.
+                      Rule: <code>block-missing-receipt</code>.
                     </span>
                   </div>
                 )}
