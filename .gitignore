@@ -27,3 +27,8 @@ backend/api/prisma/migrations/.lock
 # Logs
 *.log
 npm-debug.log*
+
+# test run artefacts
+reports/
+frontend/test-results/
+frontend/playwright-report/
