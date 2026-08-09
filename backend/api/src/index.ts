@@ -71,7 +71,14 @@ const startServer = async () => {
   });
 };
 
-startServer().catch((err) => {
-  console.error('Failed to start the ClaimFlow server:', err);
-  process.exit(1);
-});
+// Exported so the load-test harness can start the real app without a database.
+export { app, startServer };
+
+// Only start the server when this file is run directly. When it is imported,
+// the caller decides what to do with `app`.
+if (require.main === module) {
+  startServer().catch((err) => {
+    console.error('Failed to start the ClaimFlow server:', err);
+    process.exit(1);
+  });
+}
