@@ -2,7 +2,7 @@ name: ClaimFlow CI
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "capstone/testing-slice" ]
   pull_request:
     branches: [ "main", "master" ]
 
