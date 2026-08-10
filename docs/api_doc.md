@@ -61,8 +61,12 @@ the original frontend SDK.
 Authenticated. DSAR (Data Subject Access Request) export returning the signed-in user's profile, claims, and sanitized audit logs as structured JSON.
 
 ### `GET /api/users/`
-Authenticated. Returns the user directory (id, name, email, role, department).
-Used by manager/finance views to display approver/employee names.
+**Manager or Finance Admin only.** Returns the user directory (id, name, email,
+role, department) for displaying approver and employee names. `passwordHash` is
+stripped from the response.
+
+An Employee receives `403`: the directory is more personal data than submitting
+a claim requires. Employees read their own record via `/api/users/profile`.
 
 ### `POST /api/users/register`
 Public. Self-service registration for new employees.
@@ -83,9 +87,19 @@ Public. Lightweight email-exists check used by the frontend before showing the
 password field on sign-in.
 
 ### `PATCH /api/users/update-password`
-Authenticated.
+Authenticated. Changes the password of the caller identified by the token.
 
-Body: `{ "email": "...", "newPassword": "..." }`
+Body: `{ "currentPassword": "...", "newPassword": "..." }`
+
+An `email` field in the body is ignored — the account comes from the verified
+token, so this endpoint cannot act on anyone else. Returns `401` when no token
+is supplied or the current password is wrong, `400` when either field is
+missing.
+
+> Changed 2026-08-10. This route previously took `{ email, newPassword }`, had
+> no auth guard and never checked the current password, so any caller could
+> reset any account by naming its email address. A client still sending the old
+> body will now get a `400`.
 
 ---
 

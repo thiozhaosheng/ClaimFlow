@@ -15,8 +15,17 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 
 module.exports = {
   nodeEnv: NODE_ENV,
-  gatewayPort: parseInt(process.env.PORT || "3001", 10),
-  baseServiceHost: process.env.BASE_SERVICE_HOST || "claimflow-base.azurewebsites.net",
+  // 4000, matching frontend/.env.example. The previous 3001 default collided
+  // with nothing but matched nothing either: the frontend calls 4000, so a
+  // gateway started without PORT set answered on a port no client used.
+  gatewayPort: parseInt(process.env.PORT || "4000", 10),
+
+  // Defaults to localhost so an unconfigured gateway fails against a service
+  // you can see. The previous default was "claimflow-base.azurewebsites.net",
+  // a hostname that no longer resolves — so a missing BASE_SERVICE_HOST
+  // produced DNS failures against a dead remote rather than an obvious local
+  // misconfiguration. Production sets this explicitly.
+  baseServiceHost: process.env.BASE_SERVICE_HOST || "localhost",
   baseServicePort: parseInt(process.env.BASE_SERVICE_PORT || "3000", 10),
   baseServiceTimeout: parseInt(process.env.BASE_SERVICE_TIMEOUT || "5000", 10),
 
