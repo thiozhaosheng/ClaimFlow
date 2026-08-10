@@ -110,6 +110,7 @@ export default function EditClaimModal({ open, claim, onSave, onCancel }) {
               <label className="form-label">Total (S$)</label>
               <input
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min="0"
                 className="form-control"
@@ -122,6 +123,7 @@ export default function EditClaimModal({ open, claim, onSave, onCancel }) {
             <label className="form-label">GST (S$) — optional</label>
             <input
               type="number"
+              inputMode="decimal"
               step="0.01"
               min="0"
               className="form-control"

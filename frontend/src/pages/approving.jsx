@@ -203,7 +203,7 @@ export default function Approving() {
            <Search className="h-3.5 w-3.5 search-leading-icon" />
            <input
              id="manager-search-input"
-             type="text"
+             type="search"
              className="form-control"
              placeholder="Search by ID or employee name"
              value={searchQuery}

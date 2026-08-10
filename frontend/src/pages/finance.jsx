@@ -245,7 +245,7 @@ export default function Finance() {
             <Search className="h-3.5 w-3.5 search-leading-icon" />
             <input
               id="finance-search-input"
-              type="text"
+              type="search"
               className="form-control"
               placeholder="Search by claim ID, employee, or actor…"
               value={searchAudit}

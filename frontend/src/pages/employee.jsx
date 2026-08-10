@@ -27,6 +27,7 @@ import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import EditClaimModal from "../components/editclaimmodal.jsx";
+import ConfirmModal from "../components/confirmmodal.jsx";
 import PolicyFlag from "../components/policyflag.jsx";
 import CategoryFields, {
   missingRequiredCategoryFields,
@@ -194,6 +195,8 @@ export default function Employee() {
   const navigate = useNavigate();
   const [activeClaim, setActiveClaim] = useState(null);
   const [editingClaim, setEditingClaim] = useState(null);
+  // The claim awaiting withdrawal confirmation, or null when the dialog is shut.
+  const [withdrawingClaim, setWithdrawingClaim] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
@@ -660,6 +663,10 @@ export default function Employee() {
                     </span>
                     <input
                       type="number"
+                      // A currency field should open the keypad, not the
+                      // alphabetic keyboard. "decimal" keeps the separator key,
+                      // which "numeric" omits.
+                      inputMode="decimal"
                       step="0.01"
                       min="0"
                       className="form-control border-l-0 pl-1"
@@ -684,6 +691,7 @@ export default function Employee() {
                     </span>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.01"
                       min="0"
                       className="form-control border-l-0 pl-1"
@@ -926,28 +934,9 @@ export default function Employee() {
                         </button>
                         <button
                           type="button"
-                          onClick={async (e) => {
+                          onClick={(e) => {
                             e.stopPropagation();
-                            if (
-                              !window.confirm(
-                                "Withdraw this claim? It won't be visible to approvers but stays archived in case of disputes.",
-                              )
-                            )
-                              return;
-                            try {
-                              await withdrawClaim(item.id);
-                              addToast({
-                                variant: "info",
-                                title: "Claim withdrawn",
-                                message: `${item.id} has been withdrawn from review.`,
-                              });
-                            } catch (err) {
-                              addToast({
-                                variant: "error",
-                                title: "Couldn't withdraw",
-                                message: err?.message || "Try again in a moment.",
-                              });
-                            }
+                            setWithdrawingClaim(item);
                           }}
                           className="inline-flex items-center gap-1 px-2 py-1 rounded-ds-sm text-[11px] font-medium text-danger-text hover:bg-danger-bg transition-colors"
                           title="Withdraw claim"
@@ -964,6 +953,34 @@ export default function Employee() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        open={!!withdrawingClaim}
+        title="Withdraw this claim?"
+        message="It won't be visible to approvers any more, but stays archived in case of disputes."
+        confirmLabel="Withdraw claim"
+        cancelLabel="Keep claim"
+        destructive
+        onCancel={() => setWithdrawingClaim(null)}
+        onConfirm={async () => {
+          const claim = withdrawingClaim;
+          setWithdrawingClaim(null);
+          try {
+            await withdrawClaim(claim.id);
+            addToast({
+              variant: "info",
+              title: "Claim withdrawn",
+              message: `${claim.id} has been withdrawn from review.`,
+            });
+          } catch (err) {
+            addToast({
+              variant: "error",
+              title: "Couldn't withdraw",
+              message: err?.message || "Try again in a moment.",
+            });
+          }
+        }}
+      />
 
       <ClaimDetailModal
         open={!!activeClaim}
