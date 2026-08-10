@@ -18,7 +18,7 @@ export default defineConfig({
     },
     // `RECORD=1 npx playwright test` slows the run down so the captured video
     // is watchable. CI leaves it unset and runs at full speed.
-    launchOptions: process.env.RECORD ? { slowMo: 250 } : {},
+    launchOptions: process.env.RECORD ? { slowMo: 600 } : {},
   },
   projects: [
     {

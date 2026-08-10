@@ -42,6 +42,16 @@ jest.mock('../models/claim.model', () => ({
     { id: 'claim-1', status: 'Pending', amount: 10, category: 'Transport' },
     { id: 'claim-2', status: 'Approved', amount: 32, category: 'Meals' },
   ]),
+  // Owned by the same user the mocked auth injects, so the controller's
+  // employee-ownership check passes and the 200 path is the one under test.
+  findById: jest.fn().mockResolvedValue({
+    id: 1,
+    userId: 'user-123',
+    status: 'Pending',
+    amount: 18.5,
+    category: 'Transport',
+    merchant: 'Grab Singapore',
+  }),
 }));
 jest.mock('../models/user.model', () => ({
   findById: jest.fn().mockResolvedValue({
@@ -181,6 +191,32 @@ describe('Claims API integration (real router + controller + policy engine)', ()
       );
       // Assert — scoped to the authenticated user, not a global fetch
       expect(claimModel.getClaimsByUser).toHaveBeenCalledWith('user-123');
+    });
+  });
+
+  describe('GET /claims/:id', () => {
+    it('returns a single claim (200) whose body carries the merchant name', async () => {
+      // Arrange / Act — request the resource by id
+      const res = await request(app).get('/claims/1');
+
+      // Assert — status
+      expect(res.status).toBe(200);
+      // Assert — headers
+      expect(res.headers['content-type']).toMatch(/application\/json/);
+      expect(res.headers['x-content-type-options']).toBe('nosniff');
+      // Assert — body structure
+      expect(res.body).toHaveProperty('status', 'success');
+      expect(res.body.data.claim).toEqual(
+        expect.objectContaining({
+          id: 1,
+          merchant: 'Grab Singapore',
+          category: 'Transport',
+          amount: 18.5,
+        }),
+      );
+      // Assert — the id from the URL is what was looked up, as a number, so the
+      // `/:id` route is not being shadowed by `/my` or matched as a string.
+      expect(claimModel.findById).toHaveBeenCalledWith(1);
     });
   });
 });

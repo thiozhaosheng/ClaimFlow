@@ -8,22 +8,38 @@ test.describe('Employee Claim Submission', () => {
    * real; only the HTTP responses are canned.
    */
   test.beforeEach(async ({ page }) => {
+    // The stubbed backend keeps one piece of state: whether a claim has been
+    // submitted yet. Before submission the employee's list is empty; after it,
+    // the list returns the new claim — so the test can verify the claim really
+    // appears on screen rather than only trusting the success toast.
+    const submittedClaims: Array<Record<string, unknown>> = [];
+    let signedIn = false;
+
+    const claimList = () => ({
+      status: 'success',
+      results: submittedClaims.length,
+      data: { claims: submittedClaims },
+    });
+
+    const employee = {
+      email: 'demo.employee@claimflow.com',
+      name: 'Demo Employee',
+      role: 'Employee',
+    };
+
+    // Session check: unauthenticated until the login call succeeds, then it
+    // keeps returning the user — so a page reload stays signed in, the way a
+    // real session behaves.
     await page.route('**/api/auth/me', route =>
-      route.fulfill({ status: 401, json: { message: 'Unauthorized' } }),
+      signedIn
+        ? route.fulfill({ json: { status: 'success', data: { user: employee } } })
+        : route.fulfill({ status: 401, json: { message: 'Unauthorized' } }),
     );
 
-    await page.route('**/api/auth/login', route =>
-      route.fulfill({
-        json: {
-          token: 'mock-token',
-          user: {
-            email: 'demo.employee@claimflow.com',
-            name: 'Demo Employee',
-            role: 'Employee',
-          },
-        },
-      }),
-    );
+    await page.route('**/api/auth/login', route => {
+      signedIn = true;
+      return route.fulfill({ json: { token: 'mock-token', user: employee } });
+    });
 
     // Receipt OCR — returns a fully-read Azure result.
     await page.route('**/api/claims/parse-receipt', route =>
@@ -41,10 +57,8 @@ test.describe('Employee Claim Submission', () => {
       }),
     );
 
-    // Employee claim list — empty, in the envelope the app expects.
-    await page.route('**/api/claims/my', route =>
-      route.fulfill({ json: { status: 'success', results: 0, data: { claims: [] } } }),
-    );
+    // Employee claim list — reflects whatever has been submitted so far.
+    await page.route('**/api/claims/my', route => route.fulfill({ json: claimList() }));
 
     // Notifications bell.
     await page.route('**/api/notifications/my', route =>
@@ -57,23 +71,36 @@ test.describe('Employee Claim Submission', () => {
     // Claim submission + the manager/finance list endpoint.
     await page.route('**/api/claims', route => {
       if (route.request().method() === 'POST') {
+        const claim = {
+          id: 1,
+          category: 'Transport',
+          amount: 20,
+          merchant: 'GrabTest',
+          status: 'Pending',
+          expenseDate: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        };
+        // Record it so the employee's list shows it on the next fetch.
+        submittedClaims.push(claim);
         return route.fulfill({
           status: 201,
           json: {
             status: 'success',
-            data: { claim: { id: 1, category: 'Transport', amount: 20, status: 'Pending' } },
+            data: { claim },
             policy: { outcome: 'route-to-human', ruleId: 'default', message: 'Sent to a reviewer.' },
           },
         });
       }
-      return route.fulfill({ json: { status: 'success', results: 0, data: { claims: [] } } });
+      return route.fulfill({ json: claimList() });
     });
   });
-  test('should fail to submit without a receipt', async ({ page }) => {
+  test('a claim with no receipt is blocked before it can be submitted', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Sign in as Employee/i }).click();
     await expect(page.getByRole('heading', { name: 'Submit & track your claims' })).toBeVisible();
 
+    // Everything except the receipt is filled in, so the only thing keeping the
+    // claim from being submitted is the missing-receipt rule.
     await page.getByPlaceholder('e.g., Grab to client meeting').fill('Missing Receipt Claim');
     await page.getByPlaceholder('e.g., Grab, NTUC FairPrice, Toast Box').fill('GrabTest');
     await page.locator('input[type="number"]').first().fill('20.00');
@@ -86,12 +113,12 @@ test.describe('Employee Claim Submission', () => {
     await page.getByRole('combobox').nth(1).selectOption({ label: 'Client meeting' });
     await page.getByRole('combobox').nth(2).selectOption({ label: 'Morning (06-12)' });
 
-    const submitBtn = page.getByRole('button', { name: 'Submit claim' });
-    await expect(submitBtn).toBeDisabled();
+    // The block is enforced in the UI, and it names the rule that caused it.
+    await expect(page.getByRole('button', { name: 'Submit claim' })).toBeDisabled();
     await expect(page.getByText('block-missing-receipt')).toBeVisible();
   });
 
-  test('should login and submit a claim with a receipt', async ({ page }) => {
+  test('an employee can submit a claim with a receipt', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Sign in as Employee/i }).click();
     await expect(page.getByRole('heading', { name: 'Submit & track your claims' })).toBeVisible();
@@ -122,7 +149,19 @@ test.describe('Employee Claim Submission', () => {
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10000 });
     // 2. a success toast confirms the claim was accepted, and
     await expect(page.getByText('Claim submitted')).toBeVisible({ timeout: 10000 });
-    // 3. the toast names the claim and its pending status.
+    // 3. the toast names the claim and its pending status, and
     await expect(page.getByText(/is now pending review/i)).toBeVisible();
+    // 4. the claim appears in the employee's claim list, and survives a reload
+    //    — so the result is really on screen, not just an optimistic toast.
+    await page.reload();
+    const claimRow = page.getByRole('button', {
+      name: /Transport Claim[\s\S]*Pending[\s\S]*S\$20\.00/,
+    });
+    await expect(claimRow).toBeVisible({ timeout: 10000 });
+    await expect(claimRow).toBeInViewport({ timeout: 5000 });
+
+    // When recording for submission, hold on the success state briefly so the
+    // confirmation is readable in the video. Skipped in normal and CI runs.
+    if (process.env.RECORD) await page.waitForTimeout(2500);
   });
 });
