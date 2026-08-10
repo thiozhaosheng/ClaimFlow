@@ -19,7 +19,9 @@
     "prisma:push": "cross-env PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 npx prisma db push --accept-data-loss",
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "db:setup": "npm run prisma:generate && npm run prisma:push && npm run prisma:seed"
+    "db:setup": "npm run prisma:generate && npm run prisma:push && npm run prisma:seed",
+    "test:integration:ephemeral": "node scripts/integration-db.mjs",
+    "test:evidence:db": "node scripts/integration-db.mjs --evidence"
   },
   "keywords": [],
   "author": "",

@@ -12,7 +12,26 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
+    # A disposable Postgres for the integration tier. Deliberately NOT the Azure
+    # server: GitHub runners have dynamic egress IPs, so reaching Azure from here
+    # would mean opening the database firewall to a range that cannot be pinned
+    # down. These credentials are local to the runner and die with the job.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: claimflow
+          POSTGRES_PASSWORD: claimflow
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - uses: actions/checkout@v5
 
@@ -25,12 +44,24 @@ jobs:
       run: |
         cd backend/api
         npm ci
-        
-    - name: Run Unit/Integration Tests
+
+    - name: Run Unit Tests
       run: |
         cd backend/api
-        npx jest
-        
+        npx jest --selectProjects unit
+
+    # Creates a uniquely-named database on the service container, pushes the
+    # schema, seeds it, runs the suites and drops it again. Split from the unit
+    # step so a database problem is never mistaken for a failing unit test.
+    - name: Run Integration Tests (ephemeral database)
+      run: |
+        cd backend/api
+        npm run test:integration:ephemeral
+      env:
+        INTEGRATION_DB_ADMIN_URL: postgresql://claimflow:claimflow@localhost:5432/postgres
+        JWT_SECRET: ci-only-jwt-secret-not-used-outside-this-job
+
+
     - name: Install dependencies (Frontend)
       run: |
         cd frontend
