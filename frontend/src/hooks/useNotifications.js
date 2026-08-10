@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "../utils/api.js";
+import { api, API_BASE } from "../utils/api.js";
 import { useAuth } from "../context/authcontext.jsx";
 
 const POLL_INTERVAL_MS = 25_000;
@@ -34,8 +34,9 @@ export function useNotifications() {
     
     if (!session) return () => undefined;
     
+    // Connect to SSE for live notifications (unless we are in mock mode)
     // Connect to SSE for live notifications
-    const eventSource = new EventSource(`/api/notifications/live?token=${session.token}`);
+    const eventSource = new EventSource(`${API_BASE}/notifications/live?token=${session.token}`);
     
     eventSource.onmessage = (event) => {
       // Refresh the notification list when we get a push
@@ -50,7 +51,7 @@ export function useNotifications() {
 
     return () => {
       mountedRef.current = false;
-      eventSource.close();
+      if (eventSource) eventSource.close();
     };
   }, [refresh, session]);
 

@@ -64,7 +64,7 @@ export default function AppShell() {
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="lg:hidden flex h-7 w-7 items-center justify-center rounded-ds-sm text-text-secondary hover:bg-subtle hover:text-foreground transition-colors"
+            className="lg:hidden flex min-h-[44px] min-w-[44px] items-center justify-center rounded-ds-sm text-text-secondary hover:bg-subtle hover:text-foreground transition-colors"
             aria-label="Open navigation"
           >
             <PanelLeft className="h-4 w-4" />
@@ -73,7 +73,7 @@ export default function AppShell() {
           <button
             type="button"
             onClick={() => setNavOpen((v) => !v)}
-            className="hidden lg:flex h-7 w-7 items-center justify-center rounded-ds-sm text-text-tertiary hover:bg-subtle hover:text-foreground transition-colors"
+            className="hidden lg:flex min-h-[44px] min-w-[44px] items-center justify-center rounded-ds-sm text-text-tertiary hover:bg-subtle hover:text-foreground transition-colors"
             aria-label={navOpen ? "Hide navigation" : "Show navigation"}
             title={navOpen ? "Hide nav (⌘\\)" : "Show nav (⌘\\)"}
           >

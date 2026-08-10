@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 const TOKEN_KEY = "claimflow_token";
 
 export function getToken() {
@@ -120,11 +120,8 @@ const realApi = {
   postForm: (path, formData) => requestForm(path, formData),
 };
 
-// VITE_MOCK_API=true short-circuits every API call to a localStorage-backed
-// mock so the frontend is usable without the backend.
-import { mockApi } from "./mockApi.js";
-const useMock = import.meta.env.VITE_MOCK_API === "true";
-export const api = useMock ? mockApi : realApi;
+// Mock API has been completely removed to fully rely on the DB.
+export const api = realApi;
 
 // Map the backend Role enum (PascalCase) to the URL slug used in routes (/employee, /approving, /finance).
 // Status no longer needs a mapper — backend and frontend now share the same vocabulary

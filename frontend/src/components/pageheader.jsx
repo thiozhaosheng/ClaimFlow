@@ -1,9 +1,7 @@
 export default function PageHeader({ title, subtitle, actions, eyebrow }) {
   return (
-    // Sticks to the top of the scrollable <main> area in AppShell so the
-    // title + actions stay visible while the user scrolls the form below.
-    // bg-app + a faint border-b so content scrolling under it doesn't bleed.
-    <header className="sticky top-0 z-20 -mt-4 lg:-mt-5 mb-8 pt-4 pb-4 bg-app border-b border-border-subtle flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between">
+    // Standard page header without sticky positioning
+    <header className="mb-8 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between">
       <div className="min-w-0 w-full lg:flex-1 lg:basis-[600px]">
         {eyebrow && (
           <p className="mb-0.5 text-[10.5px] uppercase tracking-[0.12em] font-medium text-text-tertiary">

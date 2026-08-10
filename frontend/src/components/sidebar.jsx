@@ -89,7 +89,7 @@ export default function Sidebar({ onNavigate, className }) {
                 onClick={onNavigate}
                 className={({ isActive }) =>
                   cn(
-                    "flex items-center gap-2.5 px-2.5 h-8 rounded-ds-sm text-sm font-medium transition-colors no-underline",
+                    "flex items-center gap-2.5 px-3 min-h-[44px] rounded-ds-md text-sm font-medium transition-colors no-underline",
                     isActive
                       ? "bg-subtle text-foreground"
                       : "text-text-secondary hover:bg-subtle hover:text-foreground",
@@ -110,7 +110,7 @@ export default function Sidebar({ onNavigate, className }) {
               <NavLink
                 to={to}
                 onClick={onNavigate}
-                className="flex items-center gap-2.5 px-2.5 h-8 rounded-ds-sm text-sm font-medium transition-colors no-underline text-text-secondary hover:bg-subtle hover:text-foreground"
+                className="flex items-center gap-2.5 px-3 min-h-[44px] rounded-ds-md text-sm font-medium transition-colors no-underline text-text-secondary hover:bg-subtle hover:text-foreground"
               >
                 <Icon className="h-4 w-4" />
                 {label}
@@ -144,20 +144,20 @@ export default function Sidebar({ onNavigate, className }) {
             title={
               theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
             }
-            className="flex h-7 w-7 items-center justify-center rounded-ds-sm text-text-tertiary hover:bg-subtle hover:text-foreground transition-colors"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-ds-sm text-text-tertiary hover:bg-subtle hover:text-foreground transition-colors"
           >
             {theme === "dark" ? (
-              <Sun className="h-3.5 w-3.5" />
+              <Sun className="h-5 w-5" />
             ) : (
-              <Moon className="h-3.5 w-3.5" />
+              <Moon className="h-5 w-5" />
             )}
           </button>
           <button
             type="button"
             onClick={logout}
-            className="flex h-7 flex-1 items-center justify-center gap-1.5 rounded-ds-sm text-[12px] font-medium text-text-secondary hover:bg-subtle hover:text-foreground transition-colors"
+            className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-ds-sm text-[13px] font-medium text-text-secondary hover:bg-subtle hover:text-foreground transition-colors"
           >
-            <LogOut className="h-3.5 w-3.5" />
+            <LogOut className="h-4 w-4" />
             <span>Sign out</span>
           </button>
         </div>
