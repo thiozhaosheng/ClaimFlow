@@ -9,6 +9,29 @@ const BASE_SERVICE_CONFIG = {
     timeout: config.baseServiceTimeout
 };
 
+/**
+ * A non-2xx response from the Base Service, carrying what it actually said.
+ *
+ * Rejections used to be the parsed body alone, which threw away res.statusCode.
+ * Every controller then had to invent a status in its catch block, so a 403
+ * reached the browser as 500, a 422 policy rejection as a generic 400, and a
+ * 500 as 401 — the last genuinely misleading, since a broken database then
+ * reads to the user as a wrong password.
+ *
+ * Carrying the status and the body lets the gateway relay what happened rather
+ * than guess. `status` is kept on the instance so any code still reading that
+ * field off the rejection behaves as before.
+ */
+class BaseServiceError extends Error {
+    constructor(statusCode, body) {
+        super(body?.message || `Base Service responded with ${statusCode}`);
+        this.name = 'BaseServiceError';
+        this.upstreamStatus = statusCode;
+        this.body = body;
+        this.status = body?.status || 'error';
+    }
+}
+
 // OCR (Azure Document Intelligence) + blob upload can legitimately take much
 // longer than a normal CRUD call — give it its own generous ceiling instead
 // of reusing the short default meant for plain JSON round-trips.
@@ -61,7 +84,7 @@ const makeInternalRequestRaw = (method, path, body, contentType, token = null, t
                 logUtil.info(`Base Service responded with status: ${res.statusCode}`);
                 try {
                     const parsed = JSON.parse(responseBody);
-                    if (res.statusCode >= 400) reject(parsed);
+                    if (res.statusCode >= 400) reject(new BaseServiceError(res.statusCode, parsed));
                     else resolve(parsed);
                 } catch (e) {
                     reject({ status: 'error', message: 'Invalid JSON from Base Service' });
@@ -104,7 +127,7 @@ const makeInternalRequest = (method, path, data = null, token = null) => {
                 logUtil.info(`Base Service responded with status: ${res.statusCode}`);
                 try {
                     const parsed = JSON.parse(body);
-                    if (res.statusCode >= 400) reject(parsed);
+                    if (res.statusCode >= 400) reject(new BaseServiceError(res.statusCode, parsed));
                     else resolve(parsed);
                 } catch (e) {
                     reject({ status: 'error', message: 'Invalid JSON from Base Service' });
@@ -122,6 +145,7 @@ const makeInternalRequest = (method, path, data = null, token = null) => {
 };
 
 module.exports = {
+    BaseServiceError,
     fetchClaims: (token) => makeInternalRequest('GET', '/claims', null, token),
     createClaim: (claimData, token) => makeInternalRequest('POST', '/claims', claimData, token),
     updateClaimStatus: (claimId, statusData, token) => makeInternalRequest('PATCH', `/workflow/review/${claimId}`, statusData, token),
