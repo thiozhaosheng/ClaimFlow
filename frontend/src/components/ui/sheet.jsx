@@ -28,6 +28,7 @@ export const SheetContent = forwardRef(
       <SheetOverlay />
       <DialogPrimitive.Content
         ref={ref}
+        aria-describedby={undefined}
         className={cn(
           "fixed z-50 gap-4 bg-card shadow-ds-lg transition ease-in-out",
           side === "left" &&

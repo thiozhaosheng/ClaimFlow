@@ -518,9 +518,9 @@ export default function Employee() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8">
-          <div className="workspace-card p-5">
+          <div className="workspace-card p-6">
             <h2 className="workspace-card-title mb-3 flex items-center gap-2">
               <span className="plus-icon-badge">
                 <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
@@ -832,7 +832,7 @@ export default function Employee() {
         </div>
 
         <div className="lg:col-span-4">
-          <div className="workspace-card p-5 h-full">
+          <div className="workspace-card p-6 h-full">
 
             <details className="mb-3 group">
               <summary className="cursor-pointer text-[11px] font-medium text-text-tertiary hover:text-text-primary inline-flex items-center gap-1.5 select-none">

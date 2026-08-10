@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 const TOKEN_KEY = "claimflow_token";
 
 export function getToken() {
@@ -120,6 +120,8 @@ const realApi = {
   postForm: (path, formData) => requestForm(path, formData),
 };
 
+// The mock API is gone: every call below goes to the real backend, so a
+// failure surfaces as an error rather than quietly returning invented data.
 export const api = realApi;
 
 // Map the backend Role enum (PascalCase) to the URL slug used in routes (/employee, /approving, /finance).

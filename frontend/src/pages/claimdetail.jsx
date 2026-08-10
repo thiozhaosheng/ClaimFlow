@@ -172,7 +172,7 @@ export default function ClaimDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
         {/* LEFT — claim info */}
         <div className="lg:col-span-1 flex flex-col gap-4">
-          <div className="workspace-card p-5">
+          <div className="workspace-card p-6">
             <div className="flex items-center gap-3 mb-4">
               <CategoryIcon category={claim.type} size={42} />
               <div className="min-w-0">
@@ -214,7 +214,7 @@ export default function ClaimDetail() {
         {/* RIGHT — process + requirements */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           {/* status / process */}
-          <div className="workspace-card p-5">
+          <div className="workspace-card p-6">
             <h2 className="panel-subtitle mb-4">Claim process</h2>
             <StageTracker stages={stages} />
 
@@ -249,7 +249,7 @@ export default function ClaimDetail() {
           </div>
 
           {/* requirements checklist */}
-          <div className="workspace-card p-5">
+          <div className="workspace-card p-6">
             <div className="flex items-center justify-between mb-3">
               <h2 className="panel-subtitle">Documents &amp; requirements</h2>
               <span className={`req-summary req-summary-${summary}`}>
