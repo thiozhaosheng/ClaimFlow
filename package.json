@@ -14,7 +14,7 @@
     "evidence:frontend": "npm --prefix frontend run test:evidence",
     "evidence:e2e": "npm --prefix frontend run test:e2e:evidence",
     "test:pyramid": "node scripts/test-pyramid.mjs",
-    "test:evidence": "npm run reports:dir && npm run evidence:backend && npm run evidence:frontend && npm run test:pyramid",
+    "test:evidence": "npm run reports:dir && npm run evidence:backend && npm run evidence:frontend && npm run evidence:e2e && npm run test:pyramid",
     "test:integration:ephemeral": "npm --prefix backend/api run test:integration:ephemeral"
   }
 }

@@ -166,6 +166,24 @@ describeDb('Users API (real database, real auth middleware)', () => {
       expect(res.status).toBe(401);
     });
 
+    it('refuses an Employee (403) — the directory is not theirs to read', async () => {
+      const res = await request(app)
+        .get('/api/users')
+        .set('Authorization', `Bearer ${signFor(users.employee)}`);
+
+      expect(res.status).toBe(403);
+      // No partial leak on the refusal path.
+      expect(JSON.stringify(res.body)).not.toContain(users.finance.email);
+    });
+
+    it('allows a Manager', async () => {
+      const res = await request(app)
+        .get('/api/users')
+        .set('Authorization', `Bearer ${signFor(users.manager)}`);
+
+      expect(res.status).toBe(200);
+    });
+
     it('never returns password hashes to an authenticated caller', async () => {
       const res = await request(app)
         .get('/api/users')

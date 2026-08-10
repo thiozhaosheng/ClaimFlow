@@ -1,12 +1,26 @@
 import { Router } from 'express';
 import * as userController from '../controllers/user.controller';
-import { protect } from '../middleware/auth.middleware';
+import { protect, restrictTo } from '../middleware/auth.middleware';
+import { Role } from '@prisma/client';
 
 const router = Router();
 
+// Own record only — these read the caller's id off the token.
 router.get('/profile', protect, userController.getProfile);
 router.get('/me/export', protect, userController.exportUserData);
-router.get('/', protect, userController.getAllUsers);
+
+// The staff directory: every user's name, email, role and department. `protect`
+// alone left that readable by any employee who logged in, which is more than
+// submitting a claim needs and more personal data than the PDPA position in the
+// compliance docs describes collecting for that purpose. Restricted to the two
+// roles that act on other people's claims. Nothing in the frontend or the
+// gateway calls this, so the narrower guard breaks no caller.
+router.get(
+  '/',
+  protect,
+  restrictTo(Role.Manager, Role.FinanceAdmin),
+  userController.getAllUsers,
+);
 
 // Unauthenticated by necessity: these two ARE the credential path. The auth
 // gateway calls /verify to check a login and /register to create an account,
