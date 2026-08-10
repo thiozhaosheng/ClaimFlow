@@ -90,7 +90,10 @@ export const getProfile = async (req: Request, res: Response) => {
  */
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
-    const users = await userModel.findAll();
+    // findAll() returns whole User rows, passwordHash included. Serialising
+    // those straight to the client handed out every credential hash in the
+    // system, so the field is stripped here rather than trusted not to matter.
+    const users = (await userModel.findAll()).map(({ passwordHash, ...safe }) => safe);
     res.status(200).json({ status: 'success', results: users.length, data: { users } });
   } catch (error: any) {
     res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
@@ -134,22 +137,48 @@ export const registerUser = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Changes the password of the *authenticated* caller.
+ *
+ * The account is taken from the verified JWT, never from the request body. An
+ * earlier version read `email` off the body and reset whatever account it
+ * named, with no token required — an unauthenticated takeover of any account
+ * whose email was known, which for the seeded demo accounts is all of them.
+ * Two things close that: `protect` on the route, and proof of the current
+ * password here, so a stolen session alone cannot change credentials.
+ */
 export const updatePassword = async (req: Request, res: Response) => {
   try {
-    const { email, newPassword } = req.body;
-    logUtil.info('Updating password for:', email);
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: true, code: 'UNAUTHORIZED', message: 'Not authenticated' });
+    }
 
-    const user = await userModel.findByEmail(email);
+    const { currentPassword, newPassword } = req.body ?? {};
+    if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' || !newPassword) {
+      return res.status(400).json({
+        error: true,
+        code: 'BAD_REQUEST',
+        message: 'currentPassword and newPassword are required',
+      });
+    }
+
+    const user = await userModel.findById(userId);
 
     if (!user) {
-      logUtil.error(`Update failed: User with email ${email} not found`);
+      logUtil.error(`Update failed: user ${userId} from a valid token no longer exists`);
       return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      logUtil.error(`Update failed: wrong current password for user ${userId}`);
+      return res.status(401).json({ error: true, code: 'UNAUTHORIZED', message: 'Current password is incorrect' });
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await userModel.update(user.id, { passwordHash });
 
-    logUtil.info('Password updated successfully');
+    logUtil.info(`Password updated for user ${userId}`);
     res.status(200).json({ status: 'success', message: 'Password updated' });
   } catch (error: any) {
     logUtil.error('Database error during password update:', error);
