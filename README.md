@@ -1,5 +1,12 @@
 # ClaimFlow
 
+![React](https://img.shields.io/badge/React-18-61DAFB.svg?logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5-646CFF.svg?logo=vite&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4-000000.svg?logo=express&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-5-2D3748.svg?logo=prisma&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791.svg?logo=postgresql&logoColor=white)
+![Azure](https://img.shields.io/badge/Azure-Document_Intelligence-0078D4.svg)
+
 An expense claim portal for Singapore SMEs. An employee submits a receipt, the
 system reads it and checks it against the company's IRAS and GST rules, an
 approving officer reviews what is left, and finance pays it out. Three roles,
