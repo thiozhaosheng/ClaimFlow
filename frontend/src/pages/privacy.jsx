@@ -48,7 +48,7 @@ export default function Privacy() {
         </ol>
       </nav>
 
-      <p className="text-[11px] uppercase tracking-[0.12em] font-medium text-text-tertiary mb-2">
+      <p className="text-[0.75rem] uppercase tracking-[0.12em] font-medium text-text-tertiary mb-2">
         Privacy
       </p>
       <h1 className="text-[2.25rem] font-semibold tracking-tightest leading-[1.05] mb-3">

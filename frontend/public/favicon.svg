@@ -1,20 +1,32 @@
 <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Attribute names here must be real SVG (stop-color, stroke-width), NOT the
+    camelCase React spelling. The previous version of this file used stopColor
+    and strokeWidth, which a browser silently ignores — so the tab icon
+    rendered as a hairline black wireframe instead of the brand mark.
+
+    Colours are the same blue-violet as --brand / --brand-2 in index.css, and
+    lighten under a dark UA theme so the mark stays visible in a dark tab strip.
+  -->
+  <style>
+    .cf-from { stop-color: #4f46e5; }
+    .cf-to   { stop-color: #8b5cf6; }
+    @media (prefers-color-scheme: dark) {
+      .cf-from { stop-color: #a5b4fc; }
+      .cf-to   { stop-color: #c4b5fd; }
+    }
+  </style>
   <defs>
     <linearGradient id="cfPrimary" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-      <stop stopColor="#3b82f6" />
-      <stop offset="1" stopColor="#8b5cf6" />
+      <stop class="cf-from" />
+      <stop offset="1" class="cf-to" />
     </linearGradient>
     <linearGradient id="cfSecondary" x1="0" y1="50" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-      <stop stopColor="#6366f1" stopOpacity="0.9" />
-      <stop offset="1" stopColor="#a855f7" stopOpacity="0.4" />
+      <stop class="cf-from" stop-opacity="0.9" />
+      <stop offset="1" class="cf-to" stop-opacity="0.4" />
     </linearGradient>
-    <filter id="cfGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#6366f1" floodOpacity="0.25" />
-    </filter>
   </defs>
-  <g filter="url(#cfGlow)">
-    <path d="M50 18 L82 36 L50 54 L18 36 Z" fill="url(#cfPrimary)" />
-    <path d="M18 50 L50 68 L82 50" stroke="url(#cfSecondary)" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M18 66 L50 84 L82 66" stroke="url(#cfSecondary)" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
-  </g>
+  <path d="M50 18 L82 36 L50 54 L18 36 Z" fill="url(#cfPrimary)" />
+  <path d="M18 50 L50 68 L82 50" stroke="url(#cfSecondary)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M18 66 L50 84 L82 66" stroke="url(#cfSecondary)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
 </svg>

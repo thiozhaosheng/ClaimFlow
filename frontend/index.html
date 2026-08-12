@@ -3,9 +3,59 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0c0a09" media="(prefers-color-scheme: dark)" />
-    <title>ClaimFlow Portal</title>
+    <!-- Must track --bg-app in index.css. These were #fafaf9 / #0c0a09, warm
+         stone values left over from an earlier palette, so on mobile the
+         browser chrome sat a shade off the page it was framing. -->
+    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <!-- Theme must be set before first paint. The React hook that manages it
+         (usetheme.js) runs after hydration, so without this every dark-mode
+         visit opened on a flash of white page. Same storage key and fallback
+         order as the hook: stored choice first, then the OS preference. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("claimflow-theme");
+          if (t !== "light" && t !== "dark") {
+            t = matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          }
+          document.documentElement.classList.toggle("dark", t === "dark");
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <title>ClaimFlow — expense claims for Singapore SMEs</title>
+    <meta
+      name="description"
+      content="Snap a receipt and know where your claim stands before you put your phone down. IRAS-aligned policy checks, receipt OCR and a full audit trail, built for Singapore SMEs."
+    />
+
+    <!-- Link previews (WhatsApp, Telegram, LinkedIn). The card image is
+         rendered by scripts/generate-og-image.mjs in the same design
+         language as the homepage. NOTE: most scrapers require an ABSOLUTE
+         og:image URL — once the production hostname is settled, prefix
+         /og-image.png with it (and add og:url); until then previews may
+         omit the image on some platforms. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ClaimFlow" />
+    <meta property="og:title" content="ClaimFlow — expense claims for Singapore SMEs" />
+    <meta
+      property="og:description"
+      content="Get reimbursed without chasing anyone. Receipt OCR, IRAS-aligned policy checks and a full audit trail."
+    />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ClaimFlow — expense claims for Singapore SMEs" />
+    <meta
+      name="twitter:description"
+      content="Get reimbursed without chasing anyone. Receipt OCR, IRAS-aligned policy checks and a full audit trail."
+    />
+    <meta name="twitter:image" content="/og-image.png" />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,11 +63,6 @@
     <link
       href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
-    />
-
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
   </head>
 

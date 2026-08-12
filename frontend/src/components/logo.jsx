@@ -13,17 +13,26 @@ export default function Logo({ size = 32, variant = "filled", className = "" }) 
     >
       {!isMonogram && (
         <defs>
-          {/* Vibrant brand gradient for the logo to make it pop against the minimal UI */}
+          {/* The mark is the source of the brand colour, so it reads the same
+              tokens the UI does rather than hardcoding hexes. That also means
+              it lightens on dark backgrounds instead of staying indigo-600
+              against near-black. */}
           <linearGradient id="cfPrimary" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#3b82f6" /> {/* blue-500 */}
-            <stop offset="1" stopColor="#8b5cf6" /> {/* violet-500 */}
+            <stop stopColor="var(--brand)" />
+            <stop offset="1" stopColor="var(--brand-2)" />
           </linearGradient>
           <linearGradient id="cfSecondary" x1="0" y1="50" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#6366f1" stopOpacity="0.9" /> {/* indigo-500 */}
-            <stop offset="1" stopColor="#a855f7" stopOpacity="0.4" /> {/* purple-500 */}
+            <stop stopColor="var(--brand)" stopOpacity="0.9" />
+            <stop offset="1" stopColor="var(--brand-2)" stopOpacity="0.4" />
           </linearGradient>
           <filter id="cfGlow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#6366f1" floodOpacity="0.25" />
+            <feDropShadow
+              dx="0"
+              dy="4"
+              stdDeviation="6"
+              floodOpacity="0.25"
+              style={{ floodColor: "var(--brand)" }}
+            />
           </filter>
         </defs>
       )}

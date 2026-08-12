@@ -4,15 +4,22 @@ import React, {
   useState,
   useCallback,
 } from "react";
+import { AlertTriangle, Check, Info, X } from "lucide-react";
 
 const ToastContext = createContext(null);
 
 let toastIdSeq = 0;
 
+// lucide, like the rest of the app. These were Font Awesome glyphs, which made
+// the toast the one surface in the product drawn in a different icon language —
+// and pulled the whole Font Awesome stylesheet off a CDN to render three icons.
+// `warning` was missing from the old map, so a warning toast (the OCR
+// couldn't-verify path in employee.jsx) silently showed the info icon.
 const ICONS = {
-  success: "fa-check",
-  error: "fa-xmark",
-  info: "fa-circle-info",
+  success: Check,
+  error: X,
+  warning: AlertTriangle,
+  info: Info,
 };
 
 export function ToastProvider({ children }) {
@@ -61,11 +68,11 @@ function ToastContainer({ toasts, onDismiss }) {
 }
 
 function Toast({ toast, onDismiss }) {
-  const iconClass = ICONS[toast.variant] || ICONS.info;
+  const Icon = ICONS[toast.variant] || ICONS.info;
   return (
     <div className={`toast-card toast-${toast.variant}`} role="status">
       <div className="toast-icon">
-        <i className={`fa-solid ${iconClass}`}></i>
+        <Icon className="h-4 w-4" aria-hidden="true" />
       </div>
       <div className="toast-content">
         {toast.title && <div className="toast-title">{toast.title}</div>}
@@ -76,7 +83,7 @@ function Toast({ toast, onDismiss }) {
         onClick={() => onDismiss(toast.id)}
         aria-label="Dismiss notification"
       >
-        <i className="fa-solid fa-xmark"></i>
+        <X className="h-3.5 w-3.5" aria-hidden="true" />
       </button>
     </div>
   );
