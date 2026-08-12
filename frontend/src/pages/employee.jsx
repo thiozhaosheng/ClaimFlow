@@ -657,9 +657,17 @@ export default function Employee() {
               {receiptMissing && !parsing && (
                 <div className="text-text-tertiary text-[0.8125rem] mt-2 flex items-start gap-1.5">
                   <XCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                  {/* The rule id printed here, block-missing-receipt, is not
+                      in policies.json — the rule is
+                      block-missing-receipt-over-threshold and it only fires
+                      above S$50. So the line quoted a rule that does not exist
+                      to justify a stricter requirement than the one that does.
+                      The form genuinely does need a receipt every time, because
+                      the amount, GST and date are read off it, so say that
+                      instead of dressing a product decision up as policy. */}
                   <span>
-                    Every claim needs a receipt before it can be submitted.
-                    Rule: <code>block-missing-receipt</code>.
+                    Every claim needs a receipt — the amount, GST and date are
+                    read from it.
                   </span>
                 </div>
               )}

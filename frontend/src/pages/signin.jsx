@@ -38,7 +38,9 @@ const TRUST_LINKS = [
   {
     to: "/policies",
     name: "Approval policy",
-    desc: "The rules that decide auto-approve, review or block",
+    // Not "auto-approve": the engine recommends and an officer decides. This
+    // line was the last place the old wording survived.
+    desc: "The rules that decide what is blocked, what needs review, and what is within policy",
   },
   {
     to: "/compliance",
@@ -337,9 +339,13 @@ export default function SignIn() {
               ))}
             </div>
 
+            {/* No mailto. admin@claimflow.dev was invented — nobody reads it,
+                and a contact link that goes nowhere is worse than none: the
+                one person who clicks it waits for a reply that cannot come.
+                Accounts here are created by whoever runs the finance system,
+                so say that and let them find the right person. */}
             <p className="auth-card-modern-footer">
-              Don’t have an account?{" "}
-              <a href="mailto:admin@claimflow.dev">Contact your admin</a>
+              Accounts are created by your finance administrator.
             </p>
 
             {/* The three page links that used to sit here are now the index

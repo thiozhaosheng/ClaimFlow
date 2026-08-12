@@ -115,11 +115,17 @@ test.describe('Employee Claim Submission', () => {
     await expect(steps.getByText('Details')).toBeVisible();
     await expect(steps.getByText('Review')).toBeVisible();
 
-    // With no receipt attached, the missing-receipt gate fires here, on step
-    // one: the rule is named in the UI and Continue will not advance — the
-    // Details and Review steps (and the Submit button on Review) are
-    // unreachable, so the claim cannot be submitted at all.
-    await expect(page.getByText('block-missing-receipt')).toBeVisible();
+    // With no receipt attached, the gate fires here, on step one: the
+    // requirement is stated and Continue will not advance — the Details and
+    // Review steps (and the Submit button on Review) are unreachable, so the
+    // claim cannot be submitted at all.
+    //
+    // This used to assert the string "block-missing-receipt", which pinned a
+    // rule id that is not in policies.json — the real rule is
+    // block-missing-receipt-over-threshold and it only fires above S$50. The
+    // form requires a receipt every time because the amount, GST and date are
+    // read off it, so the requirement is what to assert, not a borrowed id.
+    await expect(page.getByText(/Every claim needs a receipt/)).toBeVisible();
     const continueButton = page.getByRole('button', { name: 'Continue', exact: true });
     await expect(continueButton).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Submit claim' })).toHaveCount(0);
@@ -181,7 +187,7 @@ test.describe('Employee Claim Submission', () => {
       page.getByText(/CLM-001 \(Transport · S\$20\.00\) is within policy/),
     ).toBeVisible();
     // 3. the wizard resets to the Receipt step for the next claim, and
-    await expect(page.getByText('block-missing-receipt')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Every claim needs a receipt/)).toBeVisible({ timeout: 10000 });
     // 4. the claim appears in the employee's claim list, and survives a reload
     //    — so the result is really on screen, not just an optimistic toast.
     await page.reload();
