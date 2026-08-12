@@ -42,29 +42,38 @@ function adaptClaim(claim) {
 }
 
 
-// Adapt a backend AuditLog (with executor include) into the frontend's log shape.
+// Adapt a backend AuditLog (executor and claim included) into the log shape the
+// finance table and its CSV expect.
+//
+// Three fields used to be filled in with nothing, because the endpoint returned
+// only the log row and its executor: the amount was hardcoded to 0, the
+// department to an em dash, and `employee` was set to the executor — so the
+// Employee and Actor columns printed the same name on every row, and the ledger
+// reported S$0.00 against every action. The claim now travels with the log, so
+// the submitter, the amount and the department are the real ones.
 function adaptAuditLog(log) {
   const executor = log.executor || {};
+  const claim = log.claim || {};
+  const submitter = claim.user || {};
   const createdAt = log.createdAt ? new Date(log.createdAt) : new Date();
   return {
     id: `CLM-${String(log.claimId).padStart(3, "0")}`,
     rawId: log.claimId,
-    employee: executor.name || "Unknown",
+    employee: submitter.name || "Unknown",
     date: createdAt.toISOString().slice(0, 10),
     time: createdAt.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
     }),
-    type: log.action,
-    department: "—",
-    amount: 0,
+    type: claim.category || log.action,
+    department: submitter.department || "—",
+    amount: claim.amount != null ? Number(claim.amount) : 0,
     status: log.newStatus,
     actor: executor.name || "System",
     role: mapRoleFromApi(executor.role || "FinanceAdmin"),
     action: log.action.replace(/_/g, " ").toLowerCase(),
     reason: log.remarks || undefined,
-    bank: "—",
   };
 }
 
