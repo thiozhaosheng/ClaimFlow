@@ -46,6 +46,15 @@ const FIELD_ORDER = [
 export function correctionRequestOf(claim) {
   const request = claim?.details?.correctionRequest;
   if (!request) return null;
+  // A request to fix something only stands while the claim is still open. The
+  // record of it stays on the claim after a decision, which is right for the
+  // audit trail and wrong for the queue: a rejected claim was showing
+  // "Correction requested" and a Fix and resend button, so the submitter was
+  // invited to redo work for an approver who had already closed it. It also
+  // put the count out — the sidebar said one claim needed fixing while the
+  // banner above it named two.
+  if (claim.withdrawn) return null;
+  if (claim.status && claim.status !== "Pending") return null;
   const raw = Array.isArray(request.fields) ? request.fields : [];
   if (raw.length === 0) return null;
   const known = FIELD_ORDER.filter((key) => raw.includes(key));

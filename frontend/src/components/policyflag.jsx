@@ -25,6 +25,16 @@ const SHORT_LABEL = {
 };
 
 /**
+ * A claim that has already been settled. The flag is advice about a decision
+ * still to be made, so re-running the rules against one of these says nothing
+ * anyone can act on — and reads as a contradiction. "Paid" beside "Blocked" is
+ * the case that gave this away: the money left the account weeks ago, and the
+ * row still claimed policy would stop it. The rules can also have changed since,
+ * which makes today's verdict on last quarter's claim actively misleading.
+ */
+const SETTLED = new Set(["Endorsed", "Paid", "Rejected", "Withdrawn"]);
+
+/**
  * Inline flag indicator for a claim row. Two variants:
  *  - variant="dot"  : tiny coloured dot + native title tooltip (use in dense tables)
  *  - variant="chip" : small chip with icon + short label + tooltip (use in cards)
@@ -51,6 +61,7 @@ export default function PolicyFlag({
   }, [claim]);
 
   if (!policy) return null;
+  if (claim.withdrawn || SETTLED.has(claim.status)) return null;
   if (hideAutoApproved && policy.outcome === "auto-approve") return null;
 
   const Icon = ICON[policy.outcome];
