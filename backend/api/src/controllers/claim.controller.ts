@@ -13,6 +13,41 @@ import {
 import { evaluateClaim } from '../services/policyEngine';
 
 /**
+ * Sanity-check the money on a claim before anything is written.
+ *
+ * Nothing checked these. The policy engine tests category, dates, receipts and
+ * thresholds — the things a rule can be written about — and everyone assumed
+ * that covered submission, so an amount of zero or a GST larger than the total
+ * went straight into the database and through approval. One such claim is in
+ * the demo data now: S$46.60 with S$51.19 of GST on it, which no receipt in
+ * Singapore can produce and which every screen displayed without comment.
+ *
+ * The rules cannot express this: they compare a field against a constant, not
+ * two fields against each other. It belongs here, before the write.
+ *
+ * @returns an error message for the caller, or null when the numbers are sound
+ */
+export const checkClaimAmounts = (
+  amount: unknown,
+  gstAmount: unknown,
+): string | null => {
+  const total = Number(amount);
+  if (!Number.isFinite(total) || total <= 0) {
+    return 'Enter a claim amount greater than zero.';
+  }
+  if (gstAmount === null || gstAmount === undefined || gstAmount === '') return null;
+
+  const gst = Number(gstAmount);
+  if (!Number.isFinite(gst) || gst < 0) {
+    return 'Enter a GST amount of zero or more, or leave it blank.';
+  }
+  if (gst > total) {
+    return 'GST cannot be more than the claim total.';
+  }
+  return null;
+};
+
+/**
  * @swagger
  * components:
  *   schemas:
@@ -170,6 +205,13 @@ export const createClaim = async (req: Request, res: Response) => {
 
     if (!receiptUrl) {
       return res.status(400).json({ error: true, code: 'MISSING_RECEIPT', message: 'A receipt must be provided to submit a claim.' });
+    }
+
+    const amountProblem = checkClaimAmounts(amount, gstAmount);
+    if (amountProblem) {
+      return res
+        .status(400)
+        .json({ error: true, code: 'INVALID_AMOUNT', message: amountProblem });
     }
 
     const submitter = await userModel.findById(req.user!.id);
@@ -396,6 +438,20 @@ export const editClaim = async (req: Request, res: Response) => {
       if (key in req.body) updates[key] = req.body[key];
     }
     if (updates.expenseDate) updates.expenseDate = new Date(updates.expenseDate);
+
+    // An edit can put the numbers wrong just as easily as a submission can, and
+    // correcting an amount is the single most common edit. Whichever of the two
+    // the caller left out keeps its stored value, so the pair is always checked
+    // as it will actually be saved.
+    const editProblem = checkClaimAmounts(
+      'amount' in updates ? updates.amount : claim.amount,
+      'gstAmount' in updates ? updates.gstAmount : claim.gstAmount,
+    );
+    if (editProblem) {
+      return res
+        .status(400)
+        .json({ error: true, code: 'INVALID_AMOUNT', message: editProblem });
+    }
 
     // If an approver had asked for specific fields to be corrected, saving
     // the edit closes that loop: the request is cleared, the approver is told
