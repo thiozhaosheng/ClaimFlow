@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
+  Download,
   FileText,
   Inbox,
   LayoutDashboard,
@@ -9,6 +10,8 @@ import {
   Sun,
 } from "lucide-react";
 import { useAuth } from "../context/authcontext.jsx";
+import { useToast } from "../context/toastcontext.jsx";
+import { api } from "../utils/api.js";
 import { useTheme } from "../hooks/usetheme.js";
 import { useClaims } from "../hooks/useclaims.js";
 import { evaluatePolicies, claimContextFromForm } from "../lib/policy.js";
@@ -169,6 +172,14 @@ const LEGAL_LINKS = [
   { to: "/privacy", label: "Privacy" },
 ];
 
+/**
+ * Last resort only. The session carries the name the account was registered
+ * under, and that is what the rest of the app shows — the approver's queue
+ * names Rachel Tan, and so does the toast when a claim goes back to her. This
+ * pulled a name out of the email instead, so the same person was "Demo
+ * Employee" in her own sidebar, and anyone whose address does not happen to
+ * be first.last gets a stranger's name on their own screen.
+ */
 function deriveName(email) {
   if (!email) return "";
   const local = email.split("@")[0];
@@ -205,7 +216,50 @@ export default function Sidebar({ onNavigate, className }) {
     !error && (!loading || Object.keys(latestMap).length > 0);
   const summaryTo = SUMMARY_ROUTES[session.role];
 
-  const name = deriveName(session.email);
+  const { addToast } = useToast();
+  const [exporting, setExporting] = useState(false);
+
+  /**
+   * The sign-in page tells everyone "Export your data whenever you want", and
+   * GET /api/users/me/export has been there the whole time returning the
+   * account, its claims and their audit trail with third parties redacted.
+   * Nothing in the app ever called it, so the promise was unkeepable by anyone
+   * who was not willing to write their own HTTP request. This is the button.
+   */
+  const downloadMyData = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const payload = await api.get("/api/users/me/export");
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(payload, null, 2)], {
+          type: "application/json",
+        }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `claimflow-my-data-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      addToast({
+        variant: "success",
+        title: "Your data is downloading",
+        message: "Your account, your claims and their history, in one file.",
+      });
+    } catch (e) {
+      addToast({
+        variant: "error",
+        title: "Could not prepare your download",
+        message: e.message,
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const name = session.name?.trim() || deriveName(session.email);
   const initials = (name.match(/\b\w/g) || ["U"])
     .slice(0, 2)
     .join("")
@@ -304,6 +358,16 @@ export default function Sidebar({ onNavigate, className }) {
             ) : (
               <Moon className="h-5 w-5" />
             )}
+          </button>
+          <button
+            type="button"
+            onClick={downloadMyData}
+            disabled={exporting}
+            aria-label="Download my data"
+            title="Download my data"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-ds-sm text-text-tertiary hover:bg-subtle hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            <Download className="h-5 w-5" />
           </button>
           <button
             type="button"
