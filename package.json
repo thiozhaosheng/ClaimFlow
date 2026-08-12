@@ -2,7 +2,8 @@
   "name": "claimflow-root",
   "private": true,
   "scripts": {
-    "dev": "npm run dev --prefix frontend",
+    "dev": "node scripts/dev.mjs",
+    "dev:frontend": "npm run dev --prefix frontend",
     "build": "npm run build --prefix frontend",
     "test": "npm run test --prefix frontend",
     "test:unit": "npm --prefix backend/api run test:unit && npm --prefix frontend run test",
