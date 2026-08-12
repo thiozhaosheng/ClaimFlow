@@ -8,7 +8,7 @@ const rateLimit = require("express-rate-limit");
 const authService = require("./src/authService");
 const logUtil = require("./src/logUtil");
 const config = require("./src/config/config");
-const { createProxyMiddleware } = require("http-proxy-middleware");
+const { createProxyMiddleware, fixRequestBody } = require("http-proxy-middleware");
 
 const app = express();
 const PORT = config.gatewayPort;
@@ -132,6 +132,17 @@ app.use(
     pathFilter: "/api",
     target: `http://${config.baseServiceHost}:${config.baseServicePort}`,
     changeOrigin: true,
+    // express.json() above has ALREADY consumed the request stream, so the
+    // proxied request arrived at the API with no body — the API sat waiting
+    // for bytes that never came ("request aborted, expected: 32, received: 0")
+    // and the caller hung until it gave up. Every body-carrying endpoint that
+    // is not explicitly routed above went through here: editing a claim,
+    // withdrawing one, marking a notification read, posting a comment. They
+    // were all dead in the real app; only the network-stubbed tests passed.
+    // fixRequestBody re-serialises the parsed body onto the proxied request.
+    on: {
+      proxyReq: fixRequestBody,
+    },
   })
 );
 
