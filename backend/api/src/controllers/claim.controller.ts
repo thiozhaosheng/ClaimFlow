@@ -53,7 +53,7 @@ async function notifyDepartmentManager(args: {
   submitterId: number;
   submitterDepartment: string | null;
   claimId: number;
-  kind: 'auto-endorsed' | 'route-to-human' | 'ocr-unavailable' | 'ocr-incomplete';
+  kind: 'recommended' | 'route-to-human' | 'ocr-unavailable' | 'ocr-incomplete';
   category: string;
   amount: number;
   merchant: string | null;
@@ -77,7 +77,7 @@ async function notifyDepartmentManager(args: {
   if (candidates.length === 0) return;
 
   const titlePrefix = {
-    'auto-endorsed': 'Auto-endorsed',
+    recommended: 'Ready to approve',
     'route-to-human': 'New claim to review',
     'ocr-unavailable': 'Manual review needed',
     'ocr-incomplete': 'Manual review needed',
@@ -89,6 +89,8 @@ async function notifyDepartmentManager(args: {
       ? 'OCR could not read the receipt at all — verify every field against the receipt image.'
       : args.kind === 'ocr-incomplete'
       ? `OCR couldn't read: ${args.ocrMissingFields || 'some fields'} — the submitter entered ${args.ocrMissingFields?.includes(',') ? 'these' : 'this'} by hand. Verify against the receipt image.`
+      : args.kind === 'recommended'
+      ? `Within policy (${args.ruleId}) and the receipt read cleanly — verify the amount against the image and approve.`
       : `Rule: ${args.ruleId} — ${args.ruleMessage}${args.ocrMissingFields ? ` · OCR also couldn't read: ${args.ocrMissingFields}` : ''}`;
 
   await Promise.all(
@@ -108,7 +110,13 @@ async function notifyDepartmentManager(args: {
 async function notifySubmitter(args: {
   submitterId: number;
   claimId: number;
-  kind: 'claim-endorsed' | 'claim-rejected' | 'claim-paid' | 'claim-edited' | 'receipt-needs-attention';
+  kind:
+    | 'claim-endorsed'
+    | 'claim-rejected'
+    | 'claim-paid'
+    | 'claim-edited'
+    | 'receipt-needs-attention'
+    | 'changes-requested';
   title: string;
   body: string;
   hint?: string;
@@ -133,12 +141,14 @@ async function notifySubmitter(args: {
  *   post:
  *     summary: Submit a new expense claim
  *     description: |
- *       Runs the company approval policy against the incoming claim. Outcomes:
- *       - `block` → 422 with the policy message
- *       - `auto-approve` AND OCR was successful → status set to Endorsed, audit
- *         entry written, dept. manager notified for visibility
- *       - `auto-approve` BUT OCR source is `unavailable` → suppressed; claim
- *         goes to Pending and dept. manager is asked to manually verify
+ *       Runs the company approval policy against the incoming claim. The
+ *       engine ADVISES — it never approves. Outcomes:
+ *       - `block` → 422 with the policy message; nothing is written
+ *       - `auto-approve` AND OCR read the receipt cleanly → claim is created
+ *         Pending with a RECOMMENDATION recorded; the manager sees it as
+ *         "ready to approve" and remains the one who approves it
+ *       - `auto-approve` BUT OCR had issues → recommendation withheld; the
+ *         manager is asked to verify fields against the receipt image
  *       - `route-to-human` → Pending; dept. manager notified with the matched
  *         rule as a hint
  *     tags: [Claims]
@@ -196,10 +206,15 @@ export const createClaim = async (req: Request, res: Response) => {
     const ocrIncomplete = ocrUnavailable || details?.ocrIncomplete === true;
     const ocrMissingFieldsList: string =
       typeof details?.ocrMissingFields === 'string' ? details.ocrMissingFields : '';
-    const wouldAutoApprove = policy.outcome === 'auto-approve';
-    const autoApprove = wouldAutoApprove && !ocrIncomplete;
+    const inPolicy = policy.outcome === 'auto-approve';
+    const recommendApproval = inPolicy && !ocrIncomplete;
 
-    const initialStatus = autoApprove ? ClaimStatus.Endorsed : ClaimStatus.Pending;
+    // The engine advises; a person approves. Every claim that is not blocked
+    // is created Pending — a rule match becomes a recommendation the manager
+    // sees, never a status the system writes on its own. (It used to set
+    // Endorsed here directly, which meant an engine bug could quietly move
+    // money.)
+    const initialStatus = ClaimStatus.Pending;
 
     const newClaim = await claimModel.createClaim({
       amount,
@@ -215,20 +230,20 @@ export const createClaim = async (req: Request, res: Response) => {
     });
 
     // ---- audit + notifications -----------------------------------------
-    if (autoApprove) {
+    if (recommendApproval) {
       await auditModel.createAuditLog({
         claimId: newClaim.id,
-        action: 'AUTO_APPROVAL_BY_POLICY',
+        action: 'POLICY_RECOMMENDED_APPROVAL',
         performedBy: req.user!.id,
         oldStatus: ClaimStatus.Pending,
-        newStatus: ClaimStatus.Endorsed,
+        newStatus: ClaimStatus.Pending,
         remarks: policy.ruleId,
       });
       await notifyDepartmentManager({
         submitterId: submitter.id,
         submitterDepartment: submitter.department,
         claimId: newClaim.id,
-        kind: 'auto-endorsed',
+        kind: 'recommended',
         category,
         amount: Number(amount),
         merchant: merchant ?? null,
@@ -236,23 +251,21 @@ export const createClaim = async (req: Request, res: Response) => {
         ruleId: policy.ruleId,
         ruleMessage: policy.message,
       });
-    } else if (wouldAutoApprove && ocrIncomplete) {
-      // Auto-approve was suppressed because OCR didn't fully read the
-      // receipt (either it failed outright, or read some fields but not
-      // all) — log + notify the approver so they know to do a manual check,
-      // and notify the submitter too so they know why their claim didn't
-      // auto-endorse like usual.
+    } else if (inPolicy && ocrIncomplete) {
+      // The claim is within policy, but OCR didn't fully read the receipt —
+      // so the recommendation is withheld and the approver is told exactly
+      // which fields were typed by hand and need checking against the image.
       await auditModel.createAuditLog({
         claimId: newClaim.id,
         action: ocrUnavailable
-          ? 'AUTO_APPROVAL_SUPPRESSED_OCR_UNAVAILABLE'
-          : 'AUTO_APPROVAL_SUPPRESSED_OCR_INCOMPLETE',
+          ? 'RECOMMENDATION_WITHHELD_OCR_UNAVAILABLE'
+          : 'RECOMMENDATION_WITHHELD_OCR_INCOMPLETE',
         performedBy: req.user!.id,
         oldStatus: ClaimStatus.Pending,
         newStatus: ClaimStatus.Pending,
         remarks: ocrUnavailable
-          ? `${policy.ruleId} (suppressed because OCR did not read the receipt)`
-          : `${policy.ruleId} (suppressed because OCR could not read: ${ocrMissingFieldsList || 'some fields'})`,
+          ? `${policy.ruleId} (recommendation withheld: OCR did not read the receipt)`
+          : `${policy.ruleId} (recommendation withheld: OCR could not read ${ocrMissingFieldsList || 'some fields'})`,
       });
       await notifyDepartmentManager({
         submitterId: submitter.id,
@@ -273,8 +286,8 @@ export const createClaim = async (req: Request, res: Response) => {
         kind: 'receipt-needs-attention',
         title: 'Your receipt needs a second look',
         body: ocrUnavailable
-          ? "We couldn't read your receipt automatically, so this claim is going to your manager for manual review instead of auto-approving."
-          : `We couldn't read ${ocrMissingFieldsList || 'some fields'} from your receipt automatically, so this claim is going to your manager for manual review instead of auto-approving.`,
+          ? "We couldn't read your receipt automatically, so your manager will check the details you typed against the receipt image."
+          : `We couldn't read ${ocrMissingFieldsList || 'some fields'} from your receipt automatically, so your manager will check what you typed against the receipt image.`,
         hint: 'This is expected — no action needed unless your approver reaches out with a question.',
       });
     } else {
@@ -323,7 +336,11 @@ export const createClaim = async (req: Request, res: Response) => {
     res.status(201).json({
       status: 'success',
       data: { claim: newClaim },
-      policy: { ...policy, autoApproveSuppressedByOcr: wouldAutoApprove && ocrUnavailable },
+      policy: {
+        ...policy,
+        recommendation: recommendApproval ? 'approve' : 'review',
+        recommendationWithheldByOcr: inPolicy && ocrIncomplete,
+      },
     });
   } catch (error: any) {
     res.status(400).json({ status: 'error', message: error.message });
@@ -380,7 +397,62 @@ export const editClaim = async (req: Request, res: Response) => {
     }
     if (updates.expenseDate) updates.expenseDate = new Date(updates.expenseDate);
 
+    // If an approver had asked for specific fields to be corrected, saving
+    // the edit closes that loop: the request is cleared, the approver is told
+    // what changed, and the claim goes straight back into their queue. Without
+    // this the approver would have to notice the fix themselves — which is the
+    // chasing this feature exists to remove.
+    const previousDetails =
+      claim.details && typeof claim.details === 'object' ? (claim.details as any) : {};
+    const pendingCorrection = previousDetails.correctionRequest;
+
+    if (pendingCorrection) {
+      const mergedDetails =
+        'details' in updates && updates.details && typeof updates.details === 'object'
+          ? { ...updates.details }
+          : { ...previousDetails };
+      delete mergedDetails.correctionRequest;
+      updates.details = mergedDetails;
+    }
+
     const updated = await claimModel.updateClaim(claimId, updates);
+
+    if (pendingCorrection) {
+      const askedFor: string[] = Array.isArray(pendingCorrection.fields)
+        ? pendingCorrection.fields
+        : [];
+      const FIELD_LABELS: Record<string, string> = {
+        merchant: 'Merchant',
+        expenseDate: 'Expense date',
+        amount: 'Amount',
+        gstAmount: 'GST',
+        category: 'Category',
+        receipt: 'Receipt image',
+      };
+      const labelled = askedFor.map((f) => FIELD_LABELS[f] ?? f).join(', ');
+      const submitter = await userModel.findById(claim.userId);
+
+      await auditModel.createAuditLog({
+        claimId,
+        action: 'CORRECTION_SUBMITTED',
+        performedBy: req.user!.id,
+        oldStatus: claim.status,
+        newStatus: claim.status,
+        remarks: labelled ? `Corrected: ${labelled}` : 'Corrected after review',
+      });
+
+      if (pendingCorrection.requestedById) {
+        await notifModel.createNotification({
+          recipientId: Number(pendingCorrection.requestedById),
+          claimId,
+          kind: 'correction-submitted',
+          title: `${submitter?.name ?? 'The submitter'} corrected ${labelled || 'the claim'}`,
+          body: `${claim.category} · ${claim.merchant ?? '—'} · ${formatSGD(Number(updated?.amount ?? claim.amount))}`,
+          hint: 'Re-check the corrected fields against the receipt, then approve.',
+        });
+      }
+    }
+
     res.status(200).json({ status: 'success', data: { claim: updated } });
   } catch (error: any) {
     res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
@@ -400,6 +472,11 @@ export const withdrawClaim = async (req: Request, res: Response) => {
     if (claim.status !== ClaimStatus.Pending) {
       return res.status(422).json({ error: true, code: 'UNPROCESSABLE_ENTITY', message: 'Only pending claims can be withdrawn'  });
     }
+    // A withdrawn claim is no longer anyone's to-do: retire its open
+    // notifications so an approver's "action needed" row cannot outlive the
+    // claim it points at.
+    await notifModel.retireForClaim(claimId);
+
     const updated = await claimModel.updateClaim(claimId, {
       withdrawn: true,
       withdrawnAt: new Date(),

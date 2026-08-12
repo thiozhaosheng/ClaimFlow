@@ -48,6 +48,21 @@ export async function markRead(id: number, recipientId: number): Promise<Notific
   return db.notification.findUnique({ where: { id } });
 }
 
+/**
+ * Retire every unread notification that pointed at a claim once someone has
+ * acted on it. Without this, "Action needed" items sat in the approver's
+ * stack forever after the claim was decided — a stale to-do list is the
+ * opposite of a controlled one. Marking read (not deleting) keeps the row in
+ * history.
+ */
+export async function retireForClaim(claimId: number): Promise<number> {
+  const result = await db.notification.updateMany({
+    where: { claimId, readAt: null },
+    data: { readAt: new Date() },
+  });
+  return result.count;
+}
+
 export async function markAllRead(recipientId: number): Promise<number> {
   const result = await db.notification.updateMany({
     where: { recipientId, readAt: null },

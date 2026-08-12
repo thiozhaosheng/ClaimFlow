@@ -72,7 +72,14 @@ model Notification {
   recipientId Int       @map("recipient_id")
   claim       Claim?    @relation(fields: [claimId], references: [id], name: "ClaimNotifications")
   claimId     Int?      @map("claim_id")
-  kind        String    // 'auto-endorsed' | 'route-to-human' | 'claim-endorsed' | 'claim-rejected' | 'claim-paid' | 'ocr-unavailable' | 'ocr-incomplete' | 'claim-edited' | 'receipt-needs-attention'
+  // 'recommended'          policy says it is within the rules — the approver still decides
+  // 'route-to-human'       needs the approver's judgement
+  // 'ocr-unavailable'      the scan failed; every field was typed by hand
+  // 'ocr-incomplete'       the scan read some fields but not all
+  // 'changes-requested'    the approver named fields that do not match the receipt
+  // 'correction-submitted' the submitter fixed them; back in the approver's queue
+  // 'claim-endorsed' | 'claim-rejected' | 'claim-paid' | 'claim-edited' | 'receipt-needs-attention'
+  kind        String
   title       String
   body        String
   // Optional inline hint shown when the recipient opens the claim — surfaces

@@ -554,12 +554,12 @@ async function main() {
           data: {
             recipientId: approver.id,
             claimId: claim.id,
-            kind: 'auto-endorsed',
-            title: `Auto-endorsed: ${employee.name}`,
+            kind: 'recommended',
+            title: `Ready to approve: ${employee.name}`,
             body: `${recipe.category} · ${merchant} · S$${amount.toFixed(2)} — within ${autoApproveMeal ? 'meal' : 'transport'} allowance.`,
             hint: autoApproveMeal
-              ? 'Policy: Meals under S$30 with a receipt are auto-endorsed.'
-              : 'Policy: Transport under S$50 with a receipt is auto-endorsed.',
+              ? 'Within the meal allowance and the receipt read cleanly — verify the amount and approve.'
+              : 'Within the transport allowance and the receipt read cleanly — verify the amount and approve.',
             createdAt: daysAgo(ageDays),
           },
         });
@@ -574,7 +574,7 @@ async function main() {
               performedBy: primaryFinance.id,
               oldStatus: ClaimStatus.Endorsed,
               newStatus: ClaimStatus.Paid,
-              remarks: 'Batch payout — auto-endorsed claims included.',
+              remarks: 'Batch payout — approved claims included.',
               createdAt: daysAgo(paidAge),
             },
           });

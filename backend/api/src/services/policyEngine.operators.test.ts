@@ -4,9 +4,9 @@
  * OPERATOR-SEMANTICS FIXTURE. This suite mocks the policy file on purpose.
  * That is the opposite of what policyEngine.test.ts does, so the distinction
  * matters: the SHIPPED 11-rule catalogue is verified for real in
- * policyEngine.test.ts (no mocks) and end-to-end in
- * src/routes/__tests__/claims.policy.integration.test.ts. Nothing here is
- * evidence about the shipped rules.
+ * policyEngine.test.ts (no mocks), and one shipped rule is driven over HTTP in
+ * src/routes/claim.routes.test.ts. Nothing here is evidence about the shipped
+ * rules.
  *
  * A fixture is unavoidable here because config/policies.json only ever uses
  * six of the twelve operators the engine implements:

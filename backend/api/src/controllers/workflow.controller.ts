@@ -46,6 +46,8 @@ export const markAsPaid = async (req: Request, res: Response) => {
 
     const updatedClaim = await claimModel.updateClaimStatus(claimId, newStatus);
 
+    await notifModel.retireForClaim(claimId);
+
     await auditModel.createAuditLog({
       claimId,
       action: 'FINANCE_REIMBURSEMENT',
@@ -107,13 +109,44 @@ export const getAuditTrail = async (_req: Request, res: Response) => {
  *     security:
  *       - bearerAuth: []
  */
+/**
+ * Human labels for the fields an approver can send back. Kept here so the
+ * notification text names the exact field ("Amount, Expense date") instead
+ * of making the submitter guess what "details don't match" means.
+ */
+const FIELD_LABELS: Record<string, string> = {
+  merchant: 'Merchant',
+  expenseDate: 'Expense date',
+  amount: 'Amount',
+  gstAmount: 'GST',
+  category: 'Category',
+  receipt: 'Receipt image',
+};
+
+const labelFields = (fields: string[]) =>
+  fields.map((f) => FIELD_LABELS[f] ?? f).join(', ');
+
 export const reviewClaim = async (req: Request, res: Response) => {
-  const { action, remarks } = req.body;
+  const { action, remarks, fields } = req.body;
   const claimId = parsePositiveIntegerParam(req.params.id);
   if (!claimId) return res.status(400).json({ message: 'Invalid claim id' });
 
-  if (action !== 'approve' && action !== 'reject') {
-    return res.status(400).json({ message: 'Action must be approve or reject' });
+  if (action !== 'approve' && action !== 'reject' && action !== 'request-changes') {
+    return res
+      .status(400)
+      .json({ message: 'Action must be approve, reject or request-changes' });
+  }
+
+  // Asking for a correction has to name what is wrong, otherwise it is just a
+  // rejection with extra steps and the approver ends up chasing the submitter
+  // by message anyway — the exact double-handling this replaces.
+  if (action === 'request-changes') {
+    const list: string[] = Array.isArray(fields) ? fields.filter((f) => typeof f === 'string') : [];
+    if (list.length === 0) {
+      return res.status(400).json({
+        message: 'Say which fields do not match so the submitter knows what to fix.',
+      });
+    }
   }
 
   try {
@@ -124,9 +157,63 @@ export const reviewClaim = async (req: Request, res: Response) => {
     const reviewerName = reviewer?.name ?? 'Your approving officer';
 
     const oldStatus = claim.status;
+
+    // ---- request-changes: the claim stays alive -------------------------
+    // It remains Pending and keeps its receipt, its OCR result and its id.
+    // The submitter fixes the named fields in place and it comes straight
+    // back — no resubmission from scratch, no chasing.
+    if (action === 'request-changes') {
+      const list: string[] = (fields as string[]).filter((f) => typeof f === 'string');
+      const existingDetails =
+        claim.details && typeof claim.details === 'object' ? (claim.details as any) : {};
+      const updated = await claimModel.updateClaim(claimId, {
+        details: {
+          ...existingDetails,
+          correctionRequest: {
+            fields: list,
+            note: typeof remarks === 'string' ? remarks : '',
+            requestedBy: reviewerName,
+            requestedById: req.user!.id,
+            requestedAt: new Date().toISOString(),
+          },
+        },
+      } as any);
+
+      await auditModel.createAuditLog({
+        claimId,
+        action: 'CHANGES_REQUESTED',
+        performedBy: req.user!.id,
+        oldStatus,
+        newStatus: oldStatus,
+        remarks: `${labelFields(list)}${remarks ? ` — ${remarks}` : ''}`,
+      });
+
+      await notifModel.retireForClaim(claimId);
+      await notifModel.createNotification({
+        recipientId: claim.userId,
+        claimId: claim.id,
+        kind: 'changes-requested',
+        title: `Fix ${labelFields(list)} on your ${claim.category.toLowerCase()} claim`,
+        body: remarks
+          ? `${reviewerName}: ${remarks}`
+          : `${reviewerName} checked your receipt and these do not match: ${labelFields(list)}.`,
+        hint: 'Open the claim, correct those fields and save — it goes straight back for approval.',
+      });
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'Correction requested',
+        data: { claim: updated },
+      });
+    }
+
     const newStatus = action === 'approve' ? ClaimStatus.Endorsed : ClaimStatus.Rejected;
 
     const updatedClaim = await claimModel.updateClaimStatus(claimId, newStatus);
+
+    // The decision retires every open notification about this claim — the
+    // approver's "action needed" row must not outlive the action.
+    await notifModel.retireForClaim(claimId);
 
     await auditModel.createAuditLog({
       claimId,

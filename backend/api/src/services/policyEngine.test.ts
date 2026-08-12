@@ -11,9 +11,9 @@
  * file is well formed, that it is read once and cached, and that an unmatched
  * claim falls through to the documented default.
  *
- * Per-rule behaviour is verified end-to-end in
- * src/routes/__tests__/claims.policy.integration.test.ts, which drives each
- * rule through POST /api/claims so the wiring is proven too, not just the
+ * Per-rule decision behaviour is covered against a fixed rule set in
+ * policyEngine.scenarios.test.ts, and src/routes/claim.routes.test.ts drives a
+ * shipped rule through POST /claims so the wiring is proven too, not just the
  * pure function. Operator semantics — including the six operators the shipped
  * config never exercises — live in policyEngine.operators.test.ts.
  */
