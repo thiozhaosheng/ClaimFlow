@@ -82,10 +82,14 @@ function evaluatePolicies(claim) {
   for (const rule of policies.rules) {
     const ok = rule.when.every((c) => evaluateCondition(c, ctx));
     if (ok) {
-      return { outcome: rule.then, ruleId: rule.id };
+      return { outcome: rule.then, ruleId: rule.id, label: rule.label };
     }
   }
-  return { outcome: "route-to-human", ruleId: "default" };
+  // Not a rule — this is what happens when none of them matched. It was being
+  // listed under "Top rules hit" as though "default" were a rule, and it was
+  // the top entry, so the most-cited rule in the dashboard was one that does
+  // not exist.
+  return { outcome: "route-to-human", ruleId: "default", label: "No rule matched" };
 }
 
 function isoWeekKey(d) {
@@ -149,15 +153,19 @@ export function useFinanceInsights(claims, range = "30d") {
     const policyCounts = { "auto-approve": 0, "route-to-human": 0, block: 0 };
     const policyReasons = {};
     for (const c of filtered) {
-      const { outcome, ruleId } = evaluatePolicies(c);
+      const { outcome, ruleId, label } = evaluatePolicies(c);
       policyCounts[outcome] = (policyCounts[outcome] || 0) + 1;
       const key = `${outcome}:${ruleId}`;
-      policyReasons[key] = (policyReasons[key] || 0) + 1;
+      // Carry the rule's written name through the tally: the list is read by a
+      // person, and "default" or "route-meal-missing-attendees-context" is the
+      // engine talking to itself.
+      const seen = policyReasons[key] || { count: 0, label };
+      policyReasons[key] = { count: seen.count + 1, label: seen.label || label };
     }
     const topPolicyReasons = Object.entries(policyReasons)
-      .map(([key, count]) => {
+      .map(([key, { count, label }]) => {
         const [outcome, ruleId] = key.split(":");
-        return { outcome, ruleId, count };
+        return { outcome, ruleId, label, count };
       })
       .sort((a, b) => b.count - a.count)
       .slice(0, 6);

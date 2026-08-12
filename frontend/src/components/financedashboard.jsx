@@ -597,7 +597,7 @@ export default function FinanceDashboard({ claims, loading }) {
                       {view.topPolicyReasons.map((r) => (
                         <li key={`${r.outcome}-${r.ruleId}`}>
                           <span className="min-w-0 flex items-center gap-2">
-                            <span className="fin-rule-id">{r.ruleId}</span>
+                            <span className="fin-rule-id">{r.label || r.ruleId}</span>
                             <Badge variant={POLICY_VARIANT[r.outcome]}>
                               {POLICY_LABELS[r.outcome]}
                             </Badge>
