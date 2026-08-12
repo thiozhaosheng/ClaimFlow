@@ -536,13 +536,19 @@ async function main() {
       const approver = deptManager ?? managers[0];
 
       if (wouldAutoApprove) {
+        // The engine recommends; it does not approve. This wrote
+        // AUTO_APPROVAL_BY_POLICY and moved the claim Pending -> Endorsed with
+        // the submitter as the actor, so the demo audit trail showed the engine
+        // approving claims on its own — the exact behaviour the product was
+        // changed to remove, on the one screen a reader goes to for proof of
+        // what happened. It now matches what createClaim actually writes.
         await db.auditLog.create({
           data: {
             claimId: claim.id,
-            action: 'AUTO_APPROVAL_BY_POLICY',
+            action: 'POLICY_RECOMMENDED_APPROVAL',
             performedBy: employee.id,
             oldStatus: ClaimStatus.Pending,
-            newStatus: ClaimStatus.Endorsed,
+            newStatus: ClaimStatus.Pending,
             remarks: autoApproveMeal ? 'auto-approve-small-meal' : 'auto-approve-transport',
             createdAt: daysAgo(ageDays),
           },
@@ -564,6 +570,24 @@ async function main() {
           },
         });
         notifCount++;
+
+        // A recommendation is not an endorsement: something an officer did has
+        // to stand between Pending and Endorsed, or the trail cannot explain
+        // how the claim moved.
+        if (status === ClaimStatus.Endorsed || status === ClaimStatus.Paid) {
+          await db.auditLog.create({
+            data: {
+              claimId: claim.id,
+              action: 'MANAGER_APPROVAL',
+              performedBy: approver.id,
+              oldStatus: ClaimStatus.Pending,
+              newStatus: ClaimStatus.Endorsed,
+              remarks: 'Recommended by policy, checked and endorsed.',
+              createdAt: daysAgo(Math.max(0, ageDays - randInt(1, 3))),
+            },
+          });
+          auditCount++;
+        }
 
         if (status === ClaimStatus.Paid) {
           const paidAge = Math.max(0, ageDays - randInt(3, 6));
