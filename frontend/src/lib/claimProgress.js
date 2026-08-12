@@ -52,10 +52,22 @@ export function deriveStages(claim) {
   ];
 }
 
+/**
+ * Whole calendar days between an expense date and today, in local time.
+ *
+ * "2026-08-12" parses as midnight UTC, and `now` is a local instant. Subtracting
+ * them and flooring counted elapsed hours, not days: in Singapore (UTC+8) an
+ * expense from yesterday came out as 22 hours, so the claim page read "Expense
+ * was 0 days ago" the morning after. The same arithmetic decides the 90-day
+ * window, where being a day out is the difference between a claim that is
+ * inside the limit and one the checklist marks as past it.
+ */
 function daysSince(dateStr, now = new Date()) {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return null;
-  return Math.floor((now - d) / 86_400_000);
+  const expenseDay = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((today - expenseDay) / 86_400_000);
 }
 
 /**
@@ -125,7 +137,11 @@ export function deriveRequirements(claim, now = new Date()) {
       age == null
         ? "No expense date."
         : age <= MAX_AGE_DAYS
-        ? `Expense was ${age} day${age === 1 ? "" : "s"} ago.`
+        ? age === 0
+          ? "Expense was today."
+          : age === 1
+          ? "Expense was yesterday."
+          : `Expense was ${age} days ago.`
         : `Expense is ${age} days old — past the ${MAX_AGE_DAYS}-day limit.`,
   });
 

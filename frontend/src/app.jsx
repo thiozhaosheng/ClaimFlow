@@ -9,6 +9,7 @@ import Compliance from "./pages/compliance.jsx";
 import Policies from "./pages/policies.jsx";
 import Privacy from "./pages/privacy.jsx";
 import ClaimDetail from "./pages/claimdetail.jsx";
+import NotFound from "./pages/notfound.jsx";
 
 export default function App() {
   return (
@@ -57,6 +58,9 @@ export default function App() {
           }
         />
       </Route>
+      {/* Anything else. Without this the router matched nothing and the page
+          rendered blank, which reads as a broken app rather than a bad link. */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
