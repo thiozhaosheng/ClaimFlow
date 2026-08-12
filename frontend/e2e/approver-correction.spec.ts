@@ -8,12 +8,28 @@ import { test, expect, Page } from '@playwright/test';
  * PATCH /api/workflow/review/:id. The point of the feature is that a mismatch
  * no longer forces the approver out of the portal to chase the submitter, so
  * the test follows exactly that path and checks the queue reflects it.
+ *
+ * GATED, for the same reason the backend's integration tier is gated on
+ * DATABASE_URL_TEST (see backend/api/src/__tests__/helpers/describeDb.ts):
+ *
+ *   1. The other three e2e suites stub the network boundary so `npx playwright
+ *      test` passes on a runner with no backend. This one cannot — the real
+ *      PATCH is the assertion — so ungated it fails CI, which is exactly what
+ *      it did on the first push.
+ *   2. It SEEDS TWO REAL CLAIMS. `DATABASE_URL` points at the shared dev
+ *      database that also serves the deployed site, so reaching a stack has to
+ *      be a deliberate act, never a side effect of running the suite.
+ *
+ * To run it, with the API, gateway and web app up:
+ *   E2E_LIVE_STACK=1 npx playwright test e2e/approver-correction.spec.ts
  */
 
-const SHOTS =
-  '/private/tmp/claude-501/-Users-dan-NP-CET/1a798234-f1d0-418f-9f01-47910141dd16/scratchpad';
-
 const DEMO_PASSWORD = 'claimflow-demo';
+
+test.skip(
+  () => !process.env.E2E_LIVE_STACK,
+  'needs a live stack and writes real claims — set E2E_LIVE_STACK=1 to run it',
+);
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -87,7 +103,7 @@ test('an approver sends mismatched fields back instead of chasing the submitter'
   await expect(continueToPolicy).toBeEnabled();
   await page.mouse.move(0, 0);
   await page.waitForTimeout(300); // let the row transitions settle before capturing
-  await page.screenshot({ path: `${SHOTS}/correction-verify.png` });
+  await page.screenshot({ path: test.info().outputPath('correction-verify.png') });
 
   await continueToPolicy.click();
   await page.getByRole('button', { name: 'Continue to decision' }).click();
@@ -106,7 +122,7 @@ test('an approver sends mismatched fields back instead of chasing the submitter'
   }
 
   await page.getByLabel('Note for the submitter (optional)').fill('Receipt total reads S$46.60');
-  await page.screenshot({ path: `${SHOTS}/correction-decision.png` });
+  await page.screenshot({ path: test.info().outputPath('correction-decision.png') });
 
   // ---- send it: the real endpoint, the real response ---------------------
   const [response] = await Promise.all([
@@ -140,7 +156,7 @@ test('an approver sends mismatched fields back instead of chasing the submitter'
   await expect(row.getByText('Awaiting correction')).toBeVisible({ timeout: 15000 });
   await expect(row.getByText('Waiting on Rachel')).toBeVisible();
   await expect(row.getByRole('button', { name: 'Review', exact: true })).toHaveCount(0);
-  await page.screenshot({ path: `${SHOTS}/correction-queue.png` });
+  await page.screenshot({ path: test.info().outputPath('correction-queue.png') });
 
   // The filter finds them, and the count is the real one.
   await page.getByLabel('Filter by status').selectOption('Awaiting correction');
@@ -151,7 +167,7 @@ test('an approver sends mismatched fields back instead of chasing the submitter'
   // ---- dark mode, no overflow, no page errors ---------------------------
   await page.getByRole('button', { name: /Switch to dark mode/i }).click();
   await expect(page.locator('html.dark')).toHaveCount(1);
-  await page.screenshot({ path: `${SHOTS}/correction-queue-dark.png` });
+  await page.screenshot({ path: test.info().outputPath('correction-queue-dark.png') });
 
   // The same flow again in dark, far enough in to capture both new surfaces.
   await page.getByLabel('Filter by status').selectOption('Pending');
@@ -163,11 +179,11 @@ test('an approver sends mismatched fields back instead of chasing the submitter'
   await answer('GST', /^Matches$/);
   await page.mouse.move(0, 0);
   await page.waitForTimeout(300);
-  await page.screenshot({ path: `${SHOTS}/correction-verify-dark.png` });
+  await page.screenshot({ path: test.info().outputPath('correction-verify-dark.png') });
   await continueToPolicy.click();
   await page.getByRole('button', { name: 'Continue to decision' }).click();
   await expect(page.getByRole('radio', { name: /Approve/i })).toHaveCount(0);
-  await page.screenshot({ path: `${SHOTS}/correction-decision-dark.png` });
+  await page.screenshot({ path: test.info().outputPath('correction-decision-dark.png') });
   await page.getByRole('button', { name: 'Back' }).click();
   await page.getByRole('button', { name: 'Back' }).click();
   await page.getByRole('button', { name: 'Cancel' }).click();
