@@ -4,8 +4,24 @@
 
 /* ==========================================================================
    DESIGN TOKENS — "Editorial Ledger"
-   Linear × Mercury × Vercel restraint. Warm stone neutrals + deep indigo
-   accent. Borders over shadows. Tabular numerals. One typeface (Geist).
+   Linear × Mercury × Vercel restraint. Cool slate neutrals, a MONOCHROME
+   accent, borders over shadows, tabular numerals, one typeface (Geist).
+
+   Two different things are called "accent" here, and they are not
+   interchangeable:
+
+     --accent   The UI accent, and it is deliberately achromatic (near-black
+                on light, near-white on dark). Primary buttons, links and
+                emphasis use it. This is what keeps the product quiet.
+
+     --brand    ClaimFlow blue-violet, taken from the logo gradient. Spent
+                sparingly and only where colour carries meaning — focus,
+                hover, the numbered flow, the ambient wash behind the hero.
+                If it starts appearing on ordinary surfaces it has stopped
+                being a signal, so add it deliberately or not at all.
+
+   An earlier revision of this comment described "warm stone neutrals + deep
+   indigo accent". Neither was true of the tokens below.
    ========================================================================== */
 
 :root {
@@ -18,7 +34,7 @@
   /* Text — cool near-black zinc/slate */
   --text-primary: #18181b;  /* zinc-900 */
   --text-secondary: #3f3f46;/* zinc-700 (darkened for contrast) */
-  --text-tertiary: #71717a; /* zinc-500 (darkened for contrast) */
+  --text-tertiary: #6b6b75; /* zinc-500, darkened again: #71717a was 4.46:1 on --surface-inset */
 
   /* Borders — ultra-thin hairlines */
   --border-subtle: #f1f1f3; /* ~zinc-100 */
@@ -30,6 +46,20 @@
   --accent-hover: #374151;  /* gray-700 */
   --accent-subtle: #f3f4f6; /* gray-100 */
   --accent-ring: rgba(17, 24, 39, 0.18);
+
+  /* Brand — the logo's blue-violet. --brand is the text-safe end (6.5:1 on
+     white, so it is legal on small type); --brand-2 is the violet end of the
+     logo gradient and is DECORATIVE ONLY — never put text in it. */
+  --brand: #4f46e5;         /* indigo-600 */
+  --brand-2: #8b5cf6;       /* violet-500 */
+  --brand-subtle: #eef2ff;  /* indigo-50 */
+  --brand-ring: rgba(79, 70, 229, 0.22);
+
+  /* An inset surface — a well pressed INTO a card, for inputs and list rows.
+     Not the same as --bg-subtle, which is a raised tint on the canvas. The
+     difference only matters in dark mode, where recessed has to go darker
+     than the card while --bg-subtle goes lighter. */
+  --surface-inset: #f4f6f9;
 
   /* Status — desaturated premium pastels (emerald / amber / rose) */
   --success: #059669;        /* emerald-600 */
@@ -53,6 +83,14 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
+
+  /* Inside the workspace the geometry tightens. A 16px radius on a data panel
+     reads consumer-friendly; ledgers, statements and approval queues read as
+     precise. The marketing page keeps the softer ladder — a landing page and
+     a finance tool are different rooms. */
+  --radius-panel: 10px;
+  --radius-control: 8px;
+  --radius-chip: 5px;
 
   /* Shadows — wide, ambient, barely-there depth (premium "floating" look) */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.03);
@@ -100,6 +138,17 @@
   --accent-hover: #e5e7eb;  /* gray-200 */
   --accent-subtle: rgba(249, 250, 251, 0.14);
   --accent-ring: rgba(249, 250, 251, 0.28);
+
+  /* Brand lightens on dark so it stays legible against near-black (indigo-600
+     would sit at ~2:1 here and fail). */
+  --brand: #a5b4fc;         /* indigo-300 */
+  --brand-2: #c4b5fd;       /* violet-300 */
+  --brand-subtle: rgba(129, 140, 248, 0.16);
+  --brand-ring: rgba(165, 180, 252, 0.30);
+
+  /* Darker than --bg-card here, not lighter: on a dark UI a recess is a hole,
+     not a highlight. */
+  --surface-inset: #0e0e11;
 
   --success: #34d399;
   --success-bg: rgba(16, 185, 129, 0.14);
@@ -208,7 +257,10 @@ a {
 
 code {
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.85em;
+  /* 0.92em, not 0.85: mono runs optically smaller than the sans beside it,
+     and 0.85 of an already-small parent produced 10px rule names. */
+  font-size: 0.95em;
+  border-radius: var(--radius-chip);
   background-color: var(--bg-subtle);
   border: 1px solid var(--border-subtle);
   padding: 0.05rem 0.35rem;
@@ -339,6 +391,9 @@ code {
    ========================================================================== */
 
 .auth-shell {
+  --col-lead: 484px;
+  --col-form: 396px;
+  --col-gap: clamp(2.5rem, 9vw, 8.5rem);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -349,10 +404,19 @@ code {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.85rem 2rem;
+  /* Same track as .auth-split below, so the logo sits on the left column's
+     edge and the toggle on the form's, at every width, without a magic
+     padding value to keep in sync. */
+  display: grid;
+  grid-template-columns: minmax(0, var(--col-lead)) minmax(0, var(--col-form));
+  justify-content: center;
+  column-gap: var(--col-gap);
+  padding: 0.85rem 1.5rem;
   border-bottom: 1px solid var(--border-subtle);
   background-color: var(--bg-app);
 }
+
+.auth-topbar > div:last-child { justify-self: end; }
 
 .auth-topbar-brand {
   display: flex;
@@ -367,18 +431,6 @@ code {
   letter-spacing: -0.015em;
 }
 
-.auth-topbar-help {
-  font-size: 0.82rem;
-  color: var(--text-tertiary);
-}
-
-.auth-topbar-help a {
-  color: var(--accent);
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.auth-topbar-help a:hover { text-decoration: underline; }
 
 .auth-topbar-theme {
   width: 32px;
@@ -389,7 +441,7 @@ code {
   background-color: transparent;
   border: 1px solid var(--border-default);
   color: var(--text-secondary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: var(--transition-base);
 }
@@ -399,196 +451,433 @@ code {
   color: var(--text-primary);
 }
 
-/* Two-column shell — quiet left brand, focused right form */
+/* Three regions, not two panels.
+
+   Desktop: the lead (badge, headline, promise) and the proof (the receipt
+   composition) stack in the left column, with the form spanning both rows on
+   the right.
+
+   Phone: the same three regions become one column and regroup AROUND the form
+   — lead, form, proof. The old layout put the whole story below the form, so a
+   phone visitor landed on a bare card with nothing telling them what they were
+   signing into. */
 .auth-split {
   flex: 1;
+  position: relative;
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
+  /* Two content-width columns centred as a PAIR, not two columns stretched to
+     opposite edges of the viewport. Before this the middle gap was 432px
+     against 64px outer margins — nearly 7x — which reads as a hole rather
+     than a gutter. Now the gap is smaller than the outer margins at every
+     width, so the space belongs to the composition. */
+  grid-template-columns: minmax(0, var(--col-lead)) minmax(0, var(--col-form));
+  justify-content: center;
+  column-gap: var(--col-gap);
+  padding-inline: 1.5rem;
+  /* The 1fr spacer rows are what centre the left column. Without them the
+     form — which spans every row and is far taller than the lead or the
+     proof — stretches those two content rows and strands the receipt
+     composition below the fold. */
+  /* The form spans the three content rows, so its bottom edge IS the proof
+     row's bottom edge is the claim card's bottom edge. The footer sits in its
+     own row underneath both. The 1fr spacers are load-bearing: they centre the
+     stack, and without them the form stretches the content rows. */
+  grid-template-rows: 1fr auto auto auto 1fr;
+  /* The form spans the lead+proof rows and starts at their top, so it takes
+     the SAME 2rem top padding as the lead — the form card's cap line and the
+     kicker's land on one structural line rather than a tuned number. Its
+     bottom then falls ~28px clear of the claim card's: far enough to read as
+     a decision, where the old 6px gap read as a mistake. */
+  grid-template-areas:
+    ".     ."
+    "lead  form"
+    "proof form"
+    "foot  ."
+    ".     .";
   min-height: 0;
 }
 
-@media (max-width: 991px) {
-  .auth-split { grid-template-columns: 1fr; }
-  .auth-form-panel { order: -1; }
-  .auth-brand-panel { order: 1; padding: 2rem 1.5rem 3rem; }
-  .auth-flow,
-  .auth-stat-strip { display: none; }
+.auth-brand-lead {
+  grid-area: lead;
+  padding: 2rem 0 0;
 }
 
-.auth-brand-panel {
-  padding: 3.5rem 4rem;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  background-color: var(--bg-app);
+/* The page footer, in its own grid row so the row above can end exactly where
+   the claim card ends. */
+.auth-brand-foot {
+  grid-area: foot;
+  padding: 2.25rem 0 0;
 }
 
-.auth-brand-panel-content {
+.auth-brand-proof {
+  grid-area: proof;
+  padding: 0;
+}
+
+.auth-brand-lead,
+.auth-brand-proof {
   position: relative;
   z-index: 1;
-  max-width: 520px;
+  min-width: 0;
+}
+
+.auth-brand-inner {
+  max-width: 484px;
   width: 100%;
 }
 
-.auth-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  padding: 0.3rem 0.7rem;
-  border-radius: 999px;
-  margin-bottom: 1.25rem;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
+/* Entrance. Each element rises in just behind the one above it, so the page
+   assembles rather than blinking into place. Short and once — this is a login
+   page, not a showreel. The receipt lands last, handing off to the scan
+   animation already running inside it. */
+/* `backwards`, NOT `both`: a forwards fill keeps asserting the final keyframe
+   (`transform: none`) at animation-origin priority for the life of the page,
+   which silently outranks every declared transform underneath it — the claim
+   card's hover lift computed to matrix(1,0,0,1,0,0) and did nothing. */
+.auth-brand-inner > * {
+  animation: auth-rise 0.55s var(--ease) backwards;
+}
+.auth-brand-lead .auth-brand-inner > *:nth-child(1) { animation-delay: 0.04s; }
+.auth-brand-lead .auth-brand-inner > *:nth-child(2) { animation-delay: 0.10s; }
+.auth-brand-proof .auth-brand-inner > *:nth-child(1) { animation-delay: 0.20s; }
+.auth-brand-foot .auth-brand-inner > *:nth-child(1) { animation-delay: 0.28s; }
+.auth-brand-foot .auth-brand-inner > *:nth-child(2) { animation-delay: 0.34s; }
+
+@keyframes auth-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
 }
 
-.auth-eyebrow svg { color: var(--accent); }
-
-.auth-headline {
-  font-size: 3rem;
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  margin-bottom: 0.85rem;
-  color: var(--text-primary);
-  line-height: 1.02;
+@media (max-width: 991px) {
+  .auth-split {
+    display: flex;
+    flex-direction: column;
+    align-content: stretch;
+  }
+  /* No `order` here any more. The DOM is lead -> form -> proof -> foot, which
+     is both the visual order and the tab order; reordering with CSS sent the
+     keyboard through six stops ~1200px below the fold before it reached the
+     email field (WCAG 2.4.3). */
+  .auth-topbar {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.85rem 1.5rem;
+  }
+  .auth-split { padding-inline: 0; }
+  .auth-brand-lead  { padding: 2.25rem 1.5rem 1.25rem; }
+  .auth-brand-proof { padding: 0.5rem 1.5rem 0; }
+  .auth-brand-foot  { padding: 1.5rem 1.5rem 2.5rem; }
+  .auth-topbar      { padding: 0.85rem 1.5rem; }
 }
 
-.auth-headline-accent {
-  color: var(--accent);
-  /* no animated gradient; the colour does the work */
-}
-
-.auth-subheadline {
-  font-size: 1.02rem;
-  color: var(--text-secondary);
-  margin-bottom: 1.75rem;
-  line-height: 1.55;
-  max-width: 460px;
-  letter-spacing: -0.008em;
-}
-
-/* compact stat row */
-.auth-stat-strip {
+/* --- lead: badge, headline, promise --- */
+/* --- lead: a ruled label and one sentence --- */
+/* Was `.auth-eyebrow`, a rounded pill with an icon and caps text. Flattened
+   to a label with a rule after it: the same information, without the badge
+   convention every template hero opens with. */
+.auth-kicker {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  margin-bottom: 1.75rem;
-}
-
-.auth-stat-strip > div {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.1;
-}
-
-.auth-stat-strip strong {
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.auth-stat-strip span {
-  font-size: 0.72rem;
-  color: var(--text-tertiary);
-  font-weight: 500;
-  margin-top: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.auth-stat-divider {
-  height: 24px;
-  width: 1px;
-  background-color: var(--border-default);
-  opacity: 0.7;
-}
-
-/* 4-step automation flow — minimal, no animation, single column on mobile */
-.auth-flow {
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
-}
-
-.auth-flow-step {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 1.15rem 1.25rem;
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  align-items: flex-start;
-  gap: 0.7rem;
-  position: relative;
-  transition: var(--transition-base);
-}
-
-.auth-flow-step:hover {
-  border-color: var(--border-default);
-}
-
-.auth-flow-num {
-  position: absolute;
-  top: 0.55rem;
-  right: 0.7rem;
-  font-size: 0.65rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-  font-family: "Geist Mono", monospace;
+  letter-spacing: 0.09em;
+  margin-bottom: 1.1rem;
 }
 
-.auth-flow-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  background-color: var(--bg-subtle);
-  color: var(--accent);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.auth-kicker svg {
+  color: var(--brand);
   flex-shrink: 0;
 }
 
-.auth-flow-text { min-width: 0; }
+/* No trailing rule. It was ornament — it encoded nothing, and a small label
+   above a headline needs no hardware to read as an eyebrow. */
 
-.auth-flow-text strong {
-  display: block;
+
+/* No max-width here: the line break is set explicitly in the markup, and a
+   character limit only fights it — it wrapped this sentence onto four lines. */
+/* Larger than before (2.8rem): the summary sentence under it was cut, so the
+   headline carries the whole left-column voice and can afford the presence. */
+.auth-headline {
+  font-size: 2.4375rem;      /* 39px */
+  font-weight: 500;          /* 600 at this size reads blocky; 500 is the display weight */
+  letter-spacing: -0.028em;  /* -0.04em is a >64px value; at 39px it jams the counters */
+  margin-bottom: 2.5rem;
+  color: var(--text-primary);
+  line-height: 1.1;
+  /* Round caps overshoot: the G was landing 2px right of the flat-sided B in
+     the kicker and the card edge below it. */
+  margin-left: -0.07em;
+}
+
+
+/* --- proof: one claim as a single crafted card --- */
+/* Straight-on, generous radius, one soft shadow. The Apple move is a single
+   confident object with real interior space — not a tilted card on a wash,
+   and not ruled rows that read as a report. */
+.auth-claim {
+  /* Pulled up over the photo's lower-left corner; the paying hand on the
+     photo's right side stays visible beside the card. z-index because a
+     later sibling's background does not reliably paint over an earlier
+     sibling's image content. */
+  /* Fills the column, so its left and right edges are the same edges the
+     kicker rule, the headline and the footer links use. */
+  margin: 0;
+  max-width: none;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  /* 16px, not 24: one radius on every object regardless of size flattens the
+     nesting. Card 16 > control 9 > chip 999. */
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 1.35rem 1.6rem 1.4rem;
+  font-variant-numeric: tabular-nums;
+  transition: var(--transition-base);
+}
+
+/* No hover lift on the card itself: it is a figure, not a button, and
+   lifting a thing that does nothing when clicked is a false affordance.
+   The pointer feedback lives on the tabs, which are the part you use. */
+
+/* --- the segmented control (iOS-style, three verdicts) --- */
+.auth-claim-seg {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background-color: var(--surface-inset);
+  border: 1px solid var(--border-subtle);
+  /* UISegmentedControl is a rounded rectangle (~9px), not a stadium. The
+     999px pill was the Tailwind/shadcn toggle-group, mislabelled iOS. */
+  border-radius: 9px;
+  padding: 3px;
+  margin-bottom: 1.15rem;
+}
+
+.auth-claim-seg-thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 3);
+  border-radius: 7px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(calc(var(--seg) * 100%));
+  transition: transform 0.25s var(--ease);
+}
+
+.auth-claim-seg-btn {
+  position: relative;
+  z-index: 1;
+  height: 32px;
+  border: 0;
+  background: none;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.auth-claim-seg-btn.is-active { color: var(--text-primary); font-weight: 600; }
+/* Seat the ring inside the button: adjacent buttons are flush, so a 2px ring
+   at 2px offset overlapped both neighbours and the container's outer edge. */
+.auth-claim-seg-btn:focus-visible { outline-offset: -2px; }
+.auth-claim-seg-btn:not(.is-active):hover {
+  color: var(--text-primary);
+  background-color: var(--bg-card);
+}
+
+/* Remounted on every switch (key={verdict}), so this entrance replays and
+   the change reads as the product running, not text swapping. */
+.auth-claim-body {
+  animation: auth-step-in 0.3s var(--ease) both;
+}
+
+.auth-claim-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.auth-claim-chip {
+  font-size: 0.6875rem;
   font-weight: 600;
-  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.24rem 0.55rem;
+  border-radius: 999px;
+  background-color: var(--bg-subtle);
+  color: var(--text-secondary);
+}
+
+.auth-claim-date {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.auth-claim-merchant {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-secondary);
+  letter-spacing: -0.005em;
+  margin: 0 0 0.25rem;
+}
+
+/* The amount is the card's headline — large, light-weight numerals, the way a
+   payment sheet presents a total. */
+.auth-claim-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  font-size: 1.5625rem;   /* 25px — 1.56x below the headline, still 1.8x its own card */
+  font-weight: 600;
+  /* Display type must declare its leading: this inherited body's 1.5, which
+     wrapped a 48px line box around a 32px number and cost ~22px of dead air. */
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0 0 1.2rem;
+}
+
+.auth-claim-gst {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+}
+
+
+.auth-claim-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0.9rem 0 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* A timeline with a connecting rail and dots — the standard visual for
+   "these things happened in order", and it carries the story without any
+   sentence having to. */
+.auth-claim-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 0.9rem;
+  padding: 0.32rem 0 0.32rem 1.1rem;
+  animation: auth-step-in 0.45s var(--ease) both;
+  animation-delay: calc(0.18s + var(--i) * 0.11s);
+}
+
+.auth-claim-step::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background-color: var(--border-strong);
+}
+
+.auth-claim-step::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: calc(50% + 6px);
+  bottom: calc(-50% + 6px);
+  width: 1px;
+  background-color: var(--border-subtle);
+}
+
+.auth-claim-step:last-child::after { display: none; }
+
+/* The verdict step gets the one spot of colour — and the colour is the
+   verdict, matching the product's own status colours. */
+.auth-claim-step--ok::before { background-color: var(--success); }
+.auth-claim-step--ok .auth-claim-label { color: var(--success-text); font-weight: 600; }
+.auth-claim-step--warn::before { background-color: var(--warning); }
+.auth-claim-step--warn .auth-claim-label { color: var(--warning-text); font-weight: 600; }
+.auth-claim-step--stop::before { background-color: var(--danger); }
+.auth-claim-step--stop .auth-claim-label { color: var(--danger-text); font-weight: 600; }
+
+.auth-claim-time {
+  font-family: "Geist Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  align-self: center;
+}
+
+.auth-claim-label {
+  font-size: 0.8125rem;
+  /* 500, not 600: every one of the four steps was bold, so the one that
+     carries the verdict had nothing but colour to separate it. */
+  font-weight: 500;
   color: var(--text-primary);
   letter-spacing: -0.005em;
-  margin-bottom: 2px;
+  align-self: center;
 }
 
-.auth-flow-text span {
-  font-size: 0.75rem;
+.auth-claim-detail {
+  font-weight: 400;
+  color: var(--text-tertiary);
+  margin-left: 0.45rem;
+}
+
+@keyframes auth-step-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* --- index: three quiet links on one line --- */
+.auth-index {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.auth-index-link {
+  font-size: 0.8125rem;
+  font-weight: 500;
   color: var(--text-secondary);
-  line-height: 1.4;
+  text-decoration: none;
+  transition: var(--transition-fast);
 }
 
-@media (max-width: 480px) {
-  .auth-flow { grid-template-columns: 1fr; }
+.auth-index-link:hover { color: var(--brand); }
+
+.auth-footnote {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
 }
 
 /* right panel — quiet form */
+/* Canvas, not a white slab. This panel used to be --bg-card with the form
+   sitting directly on it and .auth-card-modern set to transparent — so the
+   right half had no figure and ground at all, while the left half had a
+   tilted receipt under a lifted claim card. One canvas across both halves,
+   with an elevated object on each side, is what balances them. */
 .auth-form-panel {
-  padding: 2rem 2.5rem;
+  grid-area: form;
+  position: relative;
+  z-index: 1;
+  padding: 2rem 0 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--bg-card);
-  border-left: 1px solid var(--border-subtle);
+  align-items: flex-start;
+  /* Right-aligned to the page's 4rem gutter, so the card's right edge, the
+     theme toggle and the topbar all end on one line. */
+  justify-content: flex-end;
+  background-color: transparent;
 }
 
 @media (max-width: 991px) {
@@ -600,22 +889,25 @@ code {
 
 .auth-card-modern {
   width: 100%;
-  max-width: 360px;
+  max-width: 396px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  padding: 1.85rem 1.75rem 1.6rem;
 }
 
+/* Carries the gap the subtitle used to provide — the subtitle itself was
+   cut for describing a two-field form to someone already looking at it. */
 .auth-card-modern-title {
-  font-size: 1.65rem;
+  /* 20px. At 1.65rem this was a third display item across the fold, competing
+     with the headline it sits beside; it labels a card, it is not a page title. */
+  font-size: 1.25rem;
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.015em;
   color: var(--text-primary);
-  margin-bottom: 0.35rem;
-  line-height: 1.1;
-}
-
-.auth-card-modern-subtitle {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.15rem;
+  line-height: 1.2;
 }
 
 .auth-error {
@@ -643,54 +935,104 @@ code {
 
 .form-group-modern label {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: 0.4rem;
 }
 
+/* Recessed at rest, and it rises to the card's own surface when focused —
+   so the field you are typing in is the one lit thing on the card. */
 .form-group-modern input {
   width: 100%;
-  height: 40px;
+  height: 42px;
   padding: 0 0.85rem;
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background-color: var(--bg-card);
-  font-size: 0.9rem;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-inset);
+  font-size: 0.875rem;
   color: var(--text-primary);
   transition: var(--transition-base);
   font-family: inherit;
 }
 
+.form-group-modern label.form-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.auth-forgot {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.auth-forgot:hover { color: var(--text-primary); text-decoration: underline; }
+.auth-forgot:disabled { opacity: 0.6; cursor: default; }
+
 .form-group-modern input::placeholder { color: var(--text-tertiary); }
 
 .form-group-modern input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  background-color: var(--bg-card);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-ring);
 }
 
-.auth-row-meta {
+
+/* One row of three, replacing three stacked rows of icon tile + bold title +
+   grey subtitle + chevron — a component whose 9 sub-elements carried 3 words
+   of information, and whose two person-icons differed by about two pixels. */
+.auth-demo-hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin: 1.6rem 0 0.6rem;
+}
+
+.auth-demo-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.25rem;
-  margin-top: -0.3rem;
+  gap: 0.5rem;
 }
 
-.auth-row-meta a {
-  font-size: 0.82rem;
-  color: var(--accent);
-  text-decoration: none;
+.auth-demo-btn {
+  flex: 1;
+  height: 38px;
+  padding: 0 0.5rem;
+  background: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 0.8125rem;
   font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
 }
 
-.auth-row-meta a:hover { text-decoration: underline; }
+.auth-demo-btn:hover {
+  background-color: var(--surface-inset);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.auth-demo-btn:disabled { opacity: 0.55; cursor: default; }
+
+/* Every control inside the card shares one radius: input 12, primary 12,
+   demo 12, under a 16px card. The primary button was 8px, so three values
+   stacked inside a 100px span. */
+.auth-card-modern .btn-primary { border-radius: var(--radius-md); }
 
 .auth-card-modern-footer {
-  margin-top: 1.5rem;
+  margin-top: 1.35rem;
   text-align: center;
-  font-size: 0.84rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
 }
 
@@ -703,14 +1045,14 @@ code {
 .auth-card-modern-footer a:hover { text-decoration: underline; }
 
 .auth-divider {
-  display: flex;
+  display: none;   /* space separates these now, not a rule */
   align-items: center;
   gap: 0.85rem;
-  margin: 1.25rem 0 0.85rem;
-  font-size: 0.7rem;
+  margin: 1.35rem 0 1rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   font-weight: 500;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -723,88 +1065,21 @@ code {
 }
 
 /* demo accounts — quiet bordered rows */
-.auth-demo-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.auth-demo-btn {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.15rem 1.25rem;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  text-align: left;
-  cursor: pointer;
-  transition: var(--transition-base);
-  font-family: inherit;
-}
-
-.auth-demo-btn:hover {
-  background-color: var(--bg-subtle);
-  border-color: var(--border-default);
-}
-
-.auth-demo-btn-icon {
-  width: 36px;
-  height: 36px;
-  background-color: var(--bg-subtle);
-  color: var(--text-secondary);
-  border-radius: var(--radius-md);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  flex-shrink: 0;
-  transition: var(--transition-base);
-}
-
-.auth-demo-btn:hover .auth-demo-btn-icon {
-  background-color: var(--accent-subtle);
-  color: var(--accent);
-}
-
-.auth-demo-btn-meta { flex: 1; min-width: 0; }
-
-.auth-demo-btn-meta strong {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  letter-spacing: -0.005em;
-}
-
-.auth-demo-btn-meta span {
-  display: block;
-  font-size: 0.74rem;
-  color: var(--text-tertiary);
-  margin-top: 1px;
-}
-
-.auth-demo-btn-arrow {
-  color: var(--text-tertiary);
-  font-size: 0.78rem;
-  transition: var(--transition-fast);
-}
-
-.auth-demo-btn:hover .auth-demo-btn-arrow {
-  color: var(--accent);
-  transform: translateX(2px);
-}
 
 /* ==========================================================================
    WORKSPACE CARDS, PAGE LAYOUT
    ========================================================================== */
 
+/* The workspace's general-purpose panel. Was a 24px radius on a shadow — the
+   softest surface in the product, on the screens people work in all day. The
+   design system's own stated principle is "borders over shadows"; this is it
+   applied: a defined hairline, workspace geometry, no float. The marketing
+   page keeps the softer cards. */
 .workspace-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-panel);
+  box-shadow: none;
 }
 
 .workspace-card.p-4 { padding: 1.1rem !important; }
@@ -1233,33 +1508,15 @@ code {
   letter-spacing: -0.012em;
 }
 
-.claim-mini-card {
-  border: 1px solid var(--border-subtle);
-  background-color: var(--bg-card);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 0.85rem;
-  border-left: 2px solid var(--border-default);
-  transition: var(--transition-base);
-}
-
-.claim-mini-card:hover {
-  border-color: var(--border-default);
-  background-color: var(--bg-subtle);
-}
-
-.claim-mini-card.pending { border-left-color: var(--warning); }
-.claim-mini-card.endorsed { border-left-color: var(--accent); }
-.claim-mini-card.paid { border-left-color: var(--success); }
-.claim-mini-card.rejected { border-left-color: var(--danger); }
-
-.claim-mini-card.clickable { cursor: pointer; }
+/* .claim-mini-card removed: the employee page lists claims in a .data-table
+   now, not a column of bordered cards. */
 
 /* ==========================================================================
    BADGES — quiet pills with a tight border
    ========================================================================== */
 
 .badge-custom {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
@@ -1416,29 +1673,150 @@ code {
 }
 
 .data-table thead th {
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-tertiary);
-  background-color: transparent;
+  background-color: var(--bg-app);
   border-bottom: 1px solid var(--border-default);
-  padding: 0.65rem 0.85rem;
-  letter-spacing: 0.08em;
+  padding: 0.6rem 0.95rem;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   text-align: left;
+  /* The header stays put while the body scrolls — a queue you scroll should
+     never leave you guessing which column you are reading. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .data-table tbody tr {
   transition: background-color 0.1s ease;
 }
 
+/* Rows highlight; they do not levitate. A shadow lift on every row of a
+   ledger is a consumer-app gesture and it makes a dense table restless. */
 .data-table tbody tr:hover { background-color: var(--bg-subtle); }
+.data-table tbody tr:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 
 .data-table tbody td {
-  padding: 0.85rem;
+  padding: 0.7rem 0.95rem;
   border-bottom: 1px solid var(--border-subtle);
-  font-size: 0.86rem;
+  font-size: 0.875rem;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+
+/* Money and counts belong on a right edge so magnitudes line up and can be
+   compared down the column without reading every digit. */
+.data-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Record references read as records: monospace, so CLM-014 and CLM-141
+   cannot be misread at a glance. */
+/* The upcoming-stage numeral inherited a sub-12px size from its badge. */
+.stage-num {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-ref {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+}
+
+/* The panel a table lives in: hairline-defined, not floated. */
+.data-panel {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+
+.data-panel-head {
+  display: flex;
+  align-items: baseline;
+  /* Not space-between: on a full-width panel that shoved the title and its
+     count to opposite ends and left ~800px of nothing between them — the
+     same void the homepage had before its two columns were grouped. They
+     read as one label, so they sit together. */
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.data-panel-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.data-panel-scroll {
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+/* --- metric strip: figures on one ruled band, not four floating cards ----
+   Four big cards each holding one number is a marketing dashboard. Finance
+   reads a strip of figures the way it reads a statement header. */
+.metric-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+
+.metric-strip > * + * {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.metric-item {
+  padding: 0.85rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.metric-item-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-tertiary);
+}
+
+.metric-item-value {
+  font-size: 1.5625rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-item-sub {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .metric-strip { grid-auto-flow: row; }
+  .metric-strip > * + * {
+    border-left: 0;
+    border-top: 1px solid var(--border-subtle);
+  }
 }
 
 .data-table tbody tr:last-child td {
@@ -1805,6 +2183,22 @@ code {
 
 main.container-fluid { padding: 1.75rem 1.75rem !important; }
 
+/* Narrow-screen overrides for rules DEFINED BELOW the 991px block near the
+   top of this file. Media queries add no specificity, so those earlier
+   overrides silently lose to the later base rule — .auth-form-panel's
+   flex-end survived into the stacked layout and stranded the sign-in card
+   against the right edge with the entire left half blank. */
+@media (max-width: 991px) {
+  .auth-form-panel {
+    justify-content: center;
+    padding: 1.5rem 1.5rem 0;
+  }
+  .auth-brand-inner {
+    max-width: 520px;
+    margin-inline: auto;
+  }
+}
+
 @media (max-width: 768px) {
   main.container-fluid { padding: 1.25rem 1rem !important; }
 }
@@ -1883,7 +2277,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 
 .preflight-rule {
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   background-color: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -2099,6 +2493,12 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .modal-sheet-wide { max-width: 640px; }
+
+/* The review sheet compares a receipt image against the typed fields side by
+   side, so it needs real width — .modal-sheet's 480px squeezed both into
+   columns too narrow to compare. Declared here, after .modal-sheet, because
+   a rule in a component stylesheet loses to this one on source order alone. */
+.modal-sheet.review-sheet { max-width: 760px; }
 
 @keyframes modal-fade {
   from { opacity: 0; } to { opacity: 1; }
@@ -2357,7 +2757,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .timeline-meta {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   margin-top: 2px;
 }
@@ -2747,14 +3147,11 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
    DARK MODE TARGETED OVERRIDES (selectors that need explicit dark tweaks)
    ========================================================================== */
 
-.dark header { background-color: var(--bg-card); }
+/* No slab behind page headers in dark mode: `header` is an unscoped element
+   selector, so this painted a lighter card colour behind every PageHeader on
+   every workspace. The header sits on the canvas like everything else. */
 .dark .auth-topbar { background-color: var(--bg-app); }
 
-.dark .auth-brand-panel {
-  background-image:
-    linear-gradient(var(--border-subtle) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
-}
 
 .dark .form-select {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23a8a29e' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
@@ -2871,17 +3268,59 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   }
   .toast-card { min-width: 0; }
 
-  .auth-form-panel { padding: 2rem 1.25rem; }
-  .auth-brand-panel { padding: 2rem 1.5rem; }
-  .auth-headline { font-size: 2rem; }
-  .auth-subheadline { font-size: 0.92rem; }
+  /* The form is a padded card now, so the panel must not also pad it — the
+     two stacked and squeezed "Sign in as Approving Officer" onto two lines. */
+  /* Same 1.5rem inset as the claim card below it, so the two stacked cards
+     share one left and right edge. */
+  .auth-form-panel {
+    padding: 1.5rem 1.5rem 2.25rem;
+    justify-content: center;
+  }
+  /* Was max-width:none, which made the card 739px wide at a 768px viewport —
+     700px-wide inputs — then 396px one pixel later. */
+  .auth-card-modern {
+    max-width: 420px;
+    margin-inline: auto;
+    padding: 1.5rem 1.15rem 1.35rem;
+    border-radius: var(--radius-lg);
+  }
+  /* 44px touch targets. Measured at 390px, seven controls were 18-32px tall. */
+  .auth-demo-btn { height: 44px; }
+  .auth-claim-seg-btn { height: 44px; }
+  .auth-topbar-theme { width: 44px; height: 44px; }
+  .auth-index { gap: 1rem; }
+  .auth-index-link,
+  .auth-card-modern-footer a,
+  .auth-forgot {
+    display: inline-block;
+    padding-block: 0.8rem;
+    min-height: 44px;
+  }
+  .auth-forgot { margin-block: -0.8rem; }  /* keep the label row's height */
+  /* Nothing under 12px on a phone. These all passed through at desktop size. */
+  .auth-claim-chip { font-size: 0.75rem; }
+  .auth-demo-hint { font-size: 0.8125rem; }
+  /* The hard break is set for the desktop column width. On a phone it turns a
+     two-line sentence into four and pushes the form off the first screen, so
+     let the text wrap where it naturally falls instead. */
+  /* On a phone the headline hands off to the form panel, not the claim
+     card, so the desktop's card-sized gap reads as a hole here. */
+  .auth-headline {
+    font-size: 1.9375rem;
+    letter-spacing: -0.022em;
+    line-height: 1.14;
+    margin-bottom: 1.25rem;
+  }
+  .auth-headline br { display: none; }
   .auth-topbar { padding: 0.85rem 1.1rem; }
-  .auth-topbar-help { display: none; }
+
+  .auth-claim { padding: 1.15rem 1.15rem 1rem; margin: 0; }
+  .auth-claim-amount { font-size: 1.4375rem; }
+  /* Details used to be hidden here, but they are data fragments now
+     ("11 rules", "≤ S$50 allowance") — short enough to keep. */
 }
 
-@media (max-width: 480px) {
-  .auth-card-modern-title { font-size: 1.35rem; }
-}
+/* No 480px step for the card title: at 1.25rem it needs none. */
 
 @media (prefers-reduced-motion: reduce) {
   .role-workspace,
@@ -2889,6 +3328,17 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   .modal-sheet,
   .modal-backdrop,
   .toast-card { animation: none; }
+
+  /* These start at opacity 0 via `animation-fill-mode: both`, so plain
+     `animation: none` would leave them invisible rather than static. */
+  .auth-claim-step,
+  .auth-claim-body,
+  .auth-brand-inner > * {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
   * { transition: none !important; }
 }
 
@@ -2910,15 +3360,19 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   opacity: 0.5;
   pointer-events: none;
 }
+/* Both blobs are brand-tinted. They used to be a hardcoded indigo and a teal
+   (#2dd4bf) that belonged to no palette in this file — so the ambient colour
+   behind a dashboard disagreed with the ambient colour behind the sign-in
+   page, on the same product, one click apart. */
 .bg-blobs::before {
   width: 340px; height: 340px;
   top: -120px; right: -80px;
-  background: radial-gradient(circle at 30% 30%, #818cf8, transparent 70%);
+  background: radial-gradient(circle at 30% 30%, var(--brand), transparent 70%);
 }
 .bg-blobs::after {
   width: 300px; height: 300px;
   bottom: -140px; left: -100px;
-  background: radial-gradient(circle at 70% 70%, #2dd4bf, transparent 70%);
+  background: radial-gradient(circle at 70% 70%, var(--brand-2), transparent 70%);
 }
 .dark .bg-blobs::before,
 .dark .bg-blobs::after { opacity: 0.28; }
@@ -3023,14 +3477,9 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   overflow: hidden;
   transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease);
 }
-.stat-color-card::after {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 3px;
-  background: var(--cat);
-  opacity: 0.9;
-}
+/* No accent rail across the card top — a coloured cap bar on a rounded card
+   is a template device, and the category colour already lives in the icon
+   chip. The card is its numbers. */
 .stat-color-card.clickable { cursor: pointer; }
 .stat-color-card.clickable:hover {
   transform: translateY(-2px);
@@ -3052,27 +3501,6 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   .cat-tile:hover, .stat-color-card:hover { transform: none; }
 }
 
-/* Decorative color blobs behind the auth brand panel (sits above the panel
-   background, below the content which is z-index:1). */
-.auth-blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.15;
-  z-index: 0;
-  pointer-events: none;
-}
-.auth-blob-a {
-  width: 360px; height: 360px;
-  top: -80px; left: -60px;
-  background: radial-gradient(circle, var(--accent), transparent 70%);
-}
-.auth-blob-b {
-  width: 320px; height: 320px;
-  bottom: -90px; right: 8%;
-  background: radial-gradient(circle, var(--text-tertiary), transparent 70%);
-}
-.dark .auth-blob { opacity: 0.1; }
 
 /* ==========================================================================
    CLAIM DETAIL — full-page view, process tracker, requirements checklist
@@ -3197,7 +3625,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 
 /* requirements checklist */
 .req-summary {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
@@ -3344,30 +3772,9 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
    ========================================================================== */
 .claim-rows { display: flex; flex-direction: column; gap: 0.55rem; }
 
-.claim-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
-  text-align: left;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
-  padding: 0.85rem 1rem;
-  cursor: pointer;
-  transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease),
-    border-color 0.16s var(--ease);
-}
-.claim-row:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--border-default);
-}
-.claim-row:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
+/* .claim-row (the floating queue card) removed: the approval queue is a
+   .data-table. Its descendant helpers below are still in use by the table
+   cells and the correction rows. */
 
 .claim-row-id {
   display: flex;
@@ -3451,29 +3858,18 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   border: 1px solid transparent;
   transition: var(--transition-base);
 }
-.row-btn-approve {
-  color: var(--success-text);
-  background: var(--success-bg);
-  border-color: color-mix(in srgb, var(--success) 22%, transparent);
+.row-btn-review {
+  border: 1px solid var(--border-default);
+  background: none;
+  color: var(--text-secondary);
 }
-.row-btn-approve:hover {
-  background: var(--success);
-  color: #fff;
-  border-color: var(--success);
+.row-btn-review:hover {
+  background-color: var(--surface-inset);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
-.row-btn-reject {
-  width: 32px;
-  justify-content: center;
-  padding: 0;
-  color: var(--danger-text);
-  background: var(--danger-bg);
-  border-color: color-mix(in srgb, var(--danger) 22%, transparent);
-}
-.row-btn-reject:hover {
-  background: var(--danger);
-  color: #fff;
-  border-color: var(--danger);
-}
+/* .row-btn-reject removed with the one-click reject button — rejection now
+   happens inside the stepped review, with a required reason. */
 .claim-row-chevron { color: var(--text-tertiary); opacity: 0; transition: var(--transition-fast); }
 .claim-row:hover .claim-row-chevron { opacity: 1; }
 
@@ -3495,46 +3891,11 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
    UNIFIED DASHBOARD METRICS & TOOLBAR
    ========================================================================== */
 
-.metric-strip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.metric-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 1.15rem;
-  box-shadow: var(--shadow-xs);
-  display: flex;
-  flex-direction: column;
-}
-
-.metric-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-tertiary);
-  margin-bottom: 0.25rem;
-}
-
-.metric-value {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.025em;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-
-.metric-sub {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-top: 0.25rem;
-}
+/* The metric band lives once, in the business layer above. A legacy
+   .metric-strip / .metric-card / .metric-label / .metric-value / .metric-sub
+   block sat here and, being later in the file, overrode the band's layout
+   wherever it was used. Nothing renders those classes any more, and outer
+   spacing now belongs to each page rather than to the component. */
 
 .data-toolbar {
   display: flex;
@@ -3557,7 +3918,10 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   .data-toolbar {
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
+    /* The filters and the search box are one set of controls. Pushed apart
+       they left a 460px hole across the middle of the bar. */
+    justify-content: flex-start;
+    gap: 0.75rem;
   }
 }
 

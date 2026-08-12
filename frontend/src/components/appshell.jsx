@@ -49,11 +49,11 @@ export default function AppShell() {
       <div
         className={cn(
           "hidden lg:flex shrink-0 flex-col border-r border-border-subtle bg-card transition-[width] duration-200 ease-out overflow-hidden",
-          navOpen ? "w-60" : "w-0",
+          navOpen ? "w-52" : "w-0",
         )}
         aria-hidden={!navOpen}
       >
-        <div className="w-60 h-full flex flex-col">
+        <div className="w-52 h-full flex flex-col">
           <Sidebar />
         </div>
       </div>
@@ -98,7 +98,14 @@ export default function AppShell() {
         </div>
 
         <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6 lg:py-5">
-          <div className="mx-auto w-full max-w-5xl">
+          {/* The workspace fills the width beside the rail. max-w-5xl (1024px)
+              centred the content in whatever space was left over, which left a
+              void between the sidebar and the page — 104px at 1440 and 344px at
+              1920. The homepage centres inside the WHOLE viewport, so there is
+              nothing to its left to be stranded from; a workspace sits next to
+              a rail, so it starts next to it. The cap only bites on very wide
+              displays, where an unbounded ledger would sprawl. */}
+          <div className="mx-auto w-full max-w-[1440px]">
             <Outlet />
           </div>
         </main>

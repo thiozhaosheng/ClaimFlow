@@ -4,15 +4,15 @@ export default function PageHeader({ title, subtitle, actions, eyebrow }) {
     <header className="mb-8 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between">
       <div className="min-w-0 w-full lg:flex-1 lg:basis-[600px]">
         {eyebrow && (
-          <p className="mb-0.5 text-[10.5px] uppercase tracking-[0.12em] font-medium text-text-tertiary">
+          <p className="mb-1 text-[0.75rem] uppercase tracking-[0.1em] font-medium text-text-tertiary">
             {eyebrow}
           </p>
         )}
-        <h1 className="text-[1.25rem] leading-[1.15] font-semibold tracking-tighter text-text-primary">
+        <h1 className="text-[1.75rem] leading-[1.15] font-semibold tracking-tighter text-text-primary">
           {title}
         </h1>
         {subtitle && (
-          <p className="mt-1 text-[0.82rem] text-text-secondary leading-[1.5] max-w-2xl">
+          <p className="mt-1.5 text-[0.875rem] text-text-secondary leading-[1.5] max-w-2xl">
             {subtitle}
           </p>
         )}

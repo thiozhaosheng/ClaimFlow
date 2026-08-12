@@ -18,6 +18,14 @@ export default {
           subtle: "var(--accent-subtle)",
           ring: "var(--accent-ring)",
         },
+        // The logo's blue-violet. Use sparingly and only where colour means
+        // something — see the token comment in index.css.
+        brand: {
+          DEFAULT: "var(--brand)",
+          2: "var(--brand-2)",
+          subtle: "var(--brand-subtle)",
+          ring: "var(--brand-ring)",
+        },
         success: {
           DEFAULT: "var(--success)",
           bg: "var(--success-bg)",
