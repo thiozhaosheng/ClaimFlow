@@ -20,7 +20,7 @@ const SECTIONS = [
     to: "/policies",
     icon: BookOpen,
     docHref:
-      "https://github.com/thiozhaosheng/ClaimFlow/blob/develop/docs/compliance/approval-policy.md",
+      "https://github.com/thiozhaosheng/ClaimFlow/blob/main/docs/compliance/approval-policy.md",
   },
   {
     title: "Privacy notice",
@@ -29,7 +29,7 @@ const SECTIONS = [
     to: "/privacy",
     icon: Lock,
     docHref:
-      "https://github.com/thiozhaosheng/ClaimFlow/blob/develop/docs/compliance/pdpa.md",
+      "https://github.com/thiozhaosheng/ClaimFlow/blob/main/docs/compliance/pdpa.md",
   },
 ];
 
@@ -38,28 +38,28 @@ const EXTERNAL_DOCS = [
     title: "Data inventory",
     summary:
       "Every schema field mapped to its PDPA classification, lawful basis, and retention period.",
-    href: "https://github.com/thiozhaosheng/ClaimFlow/blob/develop/docs/compliance/data-inventory.md",
+    href: "https://github.com/thiozhaosheng/ClaimFlow/blob/main/docs/compliance/data-inventory.md",
     icon: Database,
   },
   {
     title: "IRAS GST compliance",
     summary:
       "Tax invoice fields, the S$1,000 simplified-invoice threshold, and disallowed input tax categories.",
-    href: "https://github.com/thiozhaosheng/ClaimFlow/blob/develop/docs/compliance/gst-iras.md",
+    href: "https://github.com/thiozhaosheng/ClaimFlow/blob/main/docs/compliance/gst-iras.md",
     icon: ScrollText,
   },
   {
     title: "Retention policy",
     summary:
       "The consolidated retention schedule and the PDPA-vs-IRAS conflict resolution via anonymisation.",
-    href: "https://github.com/thiozhaosheng/ClaimFlow/blob/develop/docs/compliance/retention-policy.md",
+    href: "https://github.com/thiozhaosheng/ClaimFlow/blob/main/docs/compliance/retention-policy.md",
     icon: FileText,
   },
   {
     title: "QA acceptance checklist",
     summary:
       "Test cases for consent, DSAR, GST, retention, and the approval-policy outcomes.",
-    href: "https://github.com/thiozhaosheng/ClaimFlow/blob/develop/docs/compliance/qa-compliance-checklist.md",
+    href: "https://github.com/thiozhaosheng/ClaimFlow/blob/main/docs/compliance/qa-compliance-checklist.md",
     icon: ClipboardCheck,
   },
 ];

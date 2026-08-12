@@ -107,7 +107,7 @@ export default function Privacy() {
       <P>
         Each field has a documented purpose, listed in our{" "}
         <a
-          href="https://github.com/thiozhaosheng/ClaimFlow/blob/develop/docs/compliance/data-inventory.md"
+          href="https://github.com/thiozhaosheng/ClaimFlow/blob/main/docs/compliance/data-inventory.md"
           target="_blank"
           rel="noreferrer"
           className="text-accent hover:underline"
@@ -139,7 +139,7 @@ export default function Privacy() {
         is active and for one year after deactivation, then anonymised. Full
         schedule:{" "}
         <a
-          href="https://github.com/thiozhaosheng/ClaimFlow/blob/develop/docs/compliance/retention-policy.md"
+          href="https://github.com/thiozhaosheng/ClaimFlow/blob/main/docs/compliance/retention-policy.md"
           target="_blank"
           rel="noreferrer"
           className="text-accent hover:underline"
@@ -171,9 +171,14 @@ export default function Privacy() {
 
       <H2>6. Where your data is stored</H2>
       <P>
-        ClaimFlow runs on Microsoft Azure (Static Web Apps, App Service,
-        Postgres Flexible Server). The configured region is set by the
-        infrastructure team. Where any processing happens outside Singapore
+        {/* The named products were wrong: the deployed frontend is a container
+            image behind nginx, not Azure Static Web Apps. Naming a specific
+            service in a privacy notice is a factual claim, so this now says
+            only what can be checked from outside — Azure, and a managed
+            PostgreSQL database. */}
+        ClaimFlow runs on Microsoft Azure, with claims and account data held in
+        a managed Azure Database for PostgreSQL. The configured region is set by
+        the infrastructure team. Where any processing happens outside Singapore
         (for example, receipt OCR via Azure Document Intelligence), comparable
         protection is required under PDPA s.26.
       </P>
@@ -182,7 +187,10 @@ export default function Privacy() {
       <UL>
         <li>
           <strong className="text-text-primary font-medium">Access</strong> —
-          you can request a copy of every record about you held by ClaimFlow.
+          download a copy of everything ClaimFlow holds about you at any time,
+          from the button beside your name in the sidebar. It contains your
+          account, your claims and their full history, with other people&rsquo;s
+          names removed.
         </li>
         <li>
           <strong className="text-text-primary font-medium">Correction</strong>{" "}
@@ -197,11 +205,11 @@ export default function Privacy() {
         </li>
       </UL>
       <P>
-        To exercise any of these, email your employer's Data Protection
-        Officer. Implementation of the in-portal export and erasure flow is
-        tracked in the{" "}
+        Access is in the portal. For correction and withdrawal of consent,
+        email your employer&rsquo;s Data Protection Officer — the in-portal
+        erasure flow is still to be built, and is tracked in the{" "}
         <a
-          href="https://github.com/thiozhaosheng/ClaimFlow/blob/develop/docs/compliance/pdpa.md"
+          href="https://github.com/thiozhaosheng/ClaimFlow/blob/main/docs/compliance/pdpa.md"
           target="_blank"
           rel="noreferrer"
           className="text-accent hover:underline"
