@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -7,14 +7,11 @@ import {
   AlertTriangle,
   Ban,
   CircleDashed,
-  UploadCloud,
-  Eye,
-  Pencil,
   ShieldCheck,
   FileText,
 } from "lucide-react";
 import { useClaims } from "../hooks/useclaims.js";
-import { useToast } from "../context/toastcontext.jsx";
+import { useReceipt } from "../hooks/usereceipt.js";
 import { formatSGD, formatSGDate } from "../utils/helpers.js";
 import { evaluatePolicies, claimContextFromForm } from "../lib/policy.js";
 import {
@@ -24,7 +21,6 @@ import {
 } from "../lib/claimProgress.js";
 import categoryFields from "../data/categoryFields.json";
 import CategoryIcon from "../components/categoryicon.jsx";
-import { Sheet, SheetContent, SheetTitle } from "../components/ui/sheet.jsx";
 
 const STATUS_KEY = {
   Pending: "pending",
@@ -71,12 +67,13 @@ export default function ClaimDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { latestMap, claimsDb } = useClaims();
-  const { addToast } = useToast();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  // Locally-staged uploads (demo): keyed by requirement key.
-  const [staged, setStaged] = useState({});
 
   const claim = latestMap[id];
+  const {
+    src: receiptSrc,
+    broken: receiptBroken,
+    markBroken: markReceiptBroken,
+  } = useReceipt(claim);
 
   const history = useMemo(
     () => (claim ? claimsDb.filter((log) => log.id === claim.id) : []),
@@ -101,11 +98,7 @@ export default function ClaimDetail() {
     () => (claim ? deriveRequirements(claim) : []),
     [claim],
   );
-  // Fold locally-staged docs into the checklist so the drawer feels live.
-  const effectiveReqs = requirements.map((r) =>
-    staged[r.key] ? { ...r, state: "done", detail: `${staged[r.key]} (staged)` } : r,
-  );
-  const summary = requirementsSummary(effectiveReqs);
+  const summary = requirementsSummary(requirements);
 
   const categorySpec = claim ? categoryFields[claim.type] : null;
   const detailEntries =
@@ -134,14 +127,6 @@ export default function ClaimDetail() {
 
   const statusKey = STATUS_KEY[claim.status] || "pending";
 
-  const stageUpload = (key) => {
-    setStaged((prev) => ({ ...prev, [key]: "Document" }));
-    addToast({
-      variant: "success",
-      title: "Document staged",
-      message: "Demo only — wiring to storage happens on submit.",
-    });
-  };
 
   return (
     <section className="role-workspace claim-detail">
@@ -160,12 +145,6 @@ export default function ClaimDetail() {
             {claim.id}
           </h1>
           <span className={`badge-custom badge-${statusKey}`}>{claim.status}</span>
-        </div>
-        <div className="claim-detail-actions">
-          <button className="btn-secondary" onClick={() => setDrawerOpen(true)}>
-            <UploadCloud className="h-4 w-4" />
-            <span>Upload documents</span>
-          </button>
         </div>
       </div>
 
@@ -193,8 +172,30 @@ export default function ClaimDetail() {
               {claim.gstAmount != null && (
                 <InfoRow label="GST" value={formatSGD(claim.gstAmount)} />
               )}
-              {claim.bank && <InfoRow label="Bank account" value={claim.bank} />}
             </dl>
+
+            {/* The receipt itself, not a claim that one exists. This page used
+                to state "Attached." and stop, so the person who submitted the
+                claim was the only one who could not look at it — the approver
+                has had it in the review modal all along. */}
+            {claim.receiptUrl && (
+              <div className="claim-receipt-view">
+                {receiptSrc && !receiptBroken ? (
+                  <a href={receiptSrc} target="_blank" rel="noreferrer">
+                    <img
+                      src={receiptSrc}
+                      alt={`Receipt for ${claim.id}`}
+                      onError={markReceiptBroken}
+                    />
+                    <span>Open full size</span>
+                  </a>
+                ) : (
+                  <p className="claim-receipt-missing">
+                    Receipt stored, preview unavailable.
+                  </p>
+                )}
+              </div>
+            )}
 
             {detailEntries.length > 0 && (
               <div className="mt-4 pt-4 border-t border-border-subtle">
@@ -263,7 +264,7 @@ export default function ClaimDetail() {
               </span>
             </div>
             <ul className="req-list">
-              {effectiveReqs.map((r) => {
+              {requirements.map((r) => {
                 const pres = REQ_PRESENTATION[r.state] || REQ_PRESENTATION.optional;
                 const Icon = pres.icon;
                 return (
@@ -275,15 +276,6 @@ export default function ClaimDetail() {
                       <div className="req-label">{r.label}</div>
                       {r.detail && <div className="req-detail">{r.detail}</div>}
                     </div>
-                    {r.canUpload && !staged[r.key] && (
-                      <button
-                        className="req-upload"
-                        onClick={() => setDrawerOpen(true)}
-                      >
-                        <UploadCloud className="h-3.5 w-3.5" />
-                        Upload
-                      </button>
-                    )}
                   </li>
                 );
               })}
@@ -309,7 +301,9 @@ export default function ClaimDetail() {
                         ? "Blocked by policy"
                         : "Routed for review"}
                     </strong>
-                    <span className="preflight-rule">{policy.ruleId}</span>
+                    {policy.label && (
+                      <span className="preflight-rule">{policy.label}</span>
+                    )}
                   </div>
                   <p className="preflight-message">{policy.message}</p>
                 </div>
@@ -320,58 +314,6 @@ export default function ClaimDetail() {
       </div>
 
       {/* right-side upload drawer */}
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="right" className="w-full sm:w-[26rem] p-0 flex flex-col">
-          <div className="px-5 h-14 flex items-center border-b border-border-subtle">
-            <SheetTitle className="font-semibold text-[0.95rem]">
-              Upload documents
-            </SheetTitle>
-          </div>
-          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
-            <p className="text-[13px] text-text-secondary">
-              Attach the documents this claim still needs. Each appears against the
-              checklist as soon as it's added.
-            </p>
-            {effectiveReqs
-              .filter((r) => r.canUpload || staged[r.key] || r.state === "missing")
-              .map((r) => (
-                <div key={r.key} className="drawer-doc">
-                  <div className="min-w-0">
-                    <div className="text-[13px] font-medium">{r.label}</div>
-                    <div className="text-[0.75rem] text-text-tertiary">{r.detail}</div>
-                  </div>
-                  {staged[r.key] ? (
-                    <span className="drawer-doc-done">
-                      <Check className="h-3.5 w-3.5" /> Added
-                    </span>
-                  ) : (
-                    <label className="drawer-doc-upload">
-                      <UploadCloud className="h-3.5 w-3.5" />
-                      Choose file
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*,.pdf"
-                        onChange={() => stageUpload(r.key)}
-                      />
-                    </label>
-                  )}
-                </div>
-              ))}
-            {effectiveReqs.filter((r) => r.canUpload || staged[r.key] || r.state === "missing").length === 0 && (
-              <div className="text-center text-sm text-text-tertiary py-8">
-                <Check className="h-6 w-6 mx-auto mb-2 text-success" />
-                Nothing outstanding — all documents are in.
-              </div>
-            )}
-          </div>
-          <div className="border-t border-border-subtle p-4 flex justify-end">
-            <button className="btn-primary px-4" onClick={() => setDrawerOpen(false)}>
-              Done
-            </button>
-          </div>
-        </SheetContent>
-      </Sheet>
     </section>
   );
 }

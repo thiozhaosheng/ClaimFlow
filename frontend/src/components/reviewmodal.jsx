@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { formatSGD, formatSGDate } from "../utils/helpers.js";
 import { evaluatePolicies, claimContextFromForm } from "../lib/policy.js";
-import { api } from "../utils/api.js";
+import { useReceipt } from "../hooks/usereceipt.js";
 import "./review-flow.css";
 
 const STEPS = [
@@ -83,8 +83,11 @@ export default function ReviewModal({ open, claim, actionType, onConfirm, onCanc
   const [checks, setChecks] = useState({});
   const [decision, setDecision] = useState(null);
   const [remarks, setRemarks] = useState("");
-  const [receiptSrc, setReceiptSrc] = useState(null);
-  const [receiptBroken, setReceiptBroken] = useState(false);
+  const {
+    src: receiptSrc,
+    broken: receiptBroken,
+    markBroken: markReceiptBroken,
+  } = useReceipt(claim, open);
   const [submitting, setSubmitting] = useState(false);
 
   // Reset the whole flow every time the modal opens.
@@ -107,32 +110,6 @@ export default function ReviewModal({ open, claim, actionType, onConfirm, onCanc
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onCancel]);
 
-  // Resolve the receipt image. Seeded receipts are public paths; uploaded
-  // ones are blob names that need a short-lived view URL from the API.
-  useEffect(() => {
-    setReceiptBroken(false);
-    if (!open || !claim?.receiptUrl) {
-      setReceiptSrc(null);
-      return undefined;
-    }
-    const url = claim.receiptUrl;
-    if (url.startsWith("/") || url.startsWith("http")) {
-      setReceiptSrc(url);
-      return undefined;
-    }
-    let cancelled = false;
-    api
-      .get(`/api/claims/${claim.rawId}/receipt`)
-      .then((r) => {
-        if (!cancelled) setReceiptSrc(r?.data?.viewUrl || null);
-      })
-      .catch(() => {
-        if (!cancelled) setReceiptSrc(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, claim]);
 
   const policy = useMemo(() => {
     if (!claim) return null;
@@ -244,7 +221,7 @@ export default function ReviewModal({ open, claim, actionType, onConfirm, onCanc
                       <img
                         src={receiptSrc}
                         alt={`Receipt for ${claim.id}`}
-                        onError={() => setReceiptBroken(true)}
+                        onError={markReceiptBroken}
                       />
                       <span className="review-receipt-caption">
                         <ScanLine className="h-3 w-3" aria-hidden="true" />
@@ -372,7 +349,9 @@ export default function ReviewModal({ open, claim, actionType, onConfirm, onCanc
                 </div>
                 <div className="review-policy-meta">
                   <span className="review-policy-rule-label">Matched rule</span>
-                  <span className="review-policy-rule-chip">{policy.ruleId}</span>
+                  {policy.label && (
+                    <span className="review-policy-rule-chip">{policy.label}</span>
+                  )}
                   <p className="review-policy-message">{policy.message}</p>
                 </div>
               </div>

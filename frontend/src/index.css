@@ -3539,6 +3539,38 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 .claim-detail-actions { margin-left: auto; display: flex; gap: 0.5rem; }
 
+/* the receipt, shown to whoever is looking at the claim */
+.claim-receipt-view { margin-top: 1rem; }
+.claim-receipt-view a {
+  display: block;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--bg-subtle);
+}
+.claim-receipt-view img {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  background-color: var(--bg-card);
+}
+.claim-receipt-view a span {
+  display: block;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  border-top: 1px solid var(--border-subtle);
+}
+.claim-receipt-view a:hover span { color: var(--text-secondary); }
+.claim-receipt-missing {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  padding: 0.75rem;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 8px;
+}
+
 /* info list */
 .claim-info-list { display: flex; flex-direction: column; }
 .claim-info-row {
@@ -3931,3 +3963,28 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   gap: 0.75rem;
   flex-wrap: wrap;
 }
+
+/* the catch-all route */
+.notfound-page {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  text-align: center;
+  padding: 2rem 1.5rem;
+  color: var(--text-tertiary);
+}
+.notfound-page h1 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+.notfound-page p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  max-width: 34rem;
+}
+.notfound-page .btn-primary { margin-top: 0.5rem; }
