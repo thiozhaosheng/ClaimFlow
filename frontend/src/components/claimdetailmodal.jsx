@@ -5,7 +5,7 @@ import {
   Ban,
   Eye,
   ScanLine,
-  Sparkles,
+  History,
   X,
 } from "lucide-react";
 import { formatSGD, formatSGDate } from "../utils/helpers.js";
@@ -23,7 +23,7 @@ const STATUS_KEYS = {
 };
 
 const POLICY_LABEL = {
-  "auto-approve": "Met every auto-approval check",
+  "auto-approve": "Within policy on every check",
   "route-to-human": "Flagged for your review",
   block: "Blocked at submission by policy",
 };
@@ -51,7 +51,7 @@ function buildFieldHints(claim, policy) {
   if (policy?.ruleId === "route-large-amount") {
     hints.push({
       field: "Amount",
-      message: `${formatSGD(claim.amount)} is above the S$500 auto-approve ceiling — confirm there's a business justification.`,
+      message: `${formatSGD(claim.amount)} is above S$500, so it always needs manager review — confirm there's a business justification.`,
       tone: "warning",
       icon: AlertTriangle,
     });
@@ -87,7 +87,7 @@ function buildFieldHints(claim, policy) {
   if (policy?.outcome === "auto-approve") {
     hints.push({
       field: "Status",
-      message: `${claim.ocrSource === "unavailable" ? "Would have been " : "Was "}auto-endorsed — no manager action required, but the receipt is here for spot-checks.`,
+      message: `Within policy${claim.ocrSource === "unavailable" ? ", but the receipt did not scan — verify the typed fields against the image" : " and the receipt read cleanly — a quick verify is all it needs"}.`,
       tone: "success",
       icon: ShieldCheck,
     });
@@ -299,7 +299,7 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
 
           <div className="claim-detail-history">
             <h4 className="claim-detail-history-title flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-text-tertiary" />
+              <History className="h-3.5 w-3.5 text-text-tertiary" />
               Activity
             </h4>
             {history.length === 0 ? (

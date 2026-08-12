@@ -3,7 +3,7 @@ import policies from "../data/policies.json";
 
 const OUTCOME_STYLES = {
   "auto-approve": {
-    label: "Auto-approve",
+    label: "Ready to approve",
     className: "bg-success-bg text-success-text",
   },
   "route-to-human": {
@@ -55,17 +55,19 @@ export default function Policies() {
         </ol>
       </nav>
 
-      <p className="text-[11px] uppercase tracking-[0.12em] font-medium text-text-tertiary mb-2">
+      <p className="text-[0.75rem] uppercase tracking-[0.12em] font-medium text-text-tertiary mb-2">
         Approval policy
       </p>
       <h1 className="text-[2.25rem] font-semibold tracking-tightest leading-[1.05] mb-3">
         Company approval policy
       </h1>
       <p className="text-text-secondary leading-relaxed max-w-2xl">
-        These rules run on every claim at submission time and decide whether the
-        claim is auto-approved, routed to a human reviewer, or blocked. The
-        first matching rule wins. If nothing matches, the claim is routed to a
-        human reviewer by default.
+        These rules run on every claim the moment it is submitted. A claim
+        that fails a hard rule is blocked before anything is saved; everything
+        else goes to an approver, marked either ready to approve or needing
+        their judgement. The first matching rule wins, and if nothing matches
+        the claim simply waits for its reviewer. The engine advises — a person
+        always makes the decision.
       </p>
 
       <div className="flex flex-wrap gap-x-6 gap-y-1 text-[12px] text-text-tertiary mt-6 mb-8 pb-4 border-b border-border-subtle font-mono tabular-nums">
@@ -102,19 +104,19 @@ export default function Policies() {
               className="bg-card border border-border-subtle rounded-ds-md p-5"
             >
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className="text-text-tertiary text-[11px] tabular-nums font-mono">
+                <span className="text-text-tertiary text-[0.75rem] tabular-nums font-mono">
                   #{String(idx + 1).padStart(2, "0")}
                 </span>
                 <code className="text-text-primary">{rule.id}</code>
                 <span
-                  className={`ml-auto inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${style.className}`}
+                  className={`ml-auto inline-flex items-center px-2 py-0.5 rounded text-[0.75rem] font-medium ${style.className}`}
                 >
                   {style.label}
                 </span>
               </div>
 
               <div className="mb-3">
-                <div className="uppercase text-[10px] tracking-[0.08em] text-text-tertiary font-semibold mb-1.5">
+                <div className="uppercase text-[0.75rem] tracking-[0.08em] text-text-tertiary font-semibold mb-1.5">
                   When
                 </div>
                 <ul className="m-0 pl-4 list-disc space-y-0.5">
@@ -127,7 +129,7 @@ export default function Policies() {
               </div>
 
               <div>
-                <div className="uppercase text-[10px] tracking-[0.08em] text-text-tertiary font-semibold mb-1.5">
+                <div className="uppercase text-[0.75rem] tracking-[0.08em] text-text-tertiary font-semibold mb-1.5">
                   Message to user
                 </div>
                 <p className="mb-0 text-[13px] text-text-secondary leading-relaxed">

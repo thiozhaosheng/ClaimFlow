@@ -7,20 +7,10 @@ import {
 const NOW = new Date("2024-12-01T00:00:00Z");
 
 describe("deriveStages", () => {
-  it("models the 4-step SG payout flow and marks the current stage", () => {
+  it("models the real 3-step flow and marks the current stage", () => {
     const s = deriveStages({ status: "Pending" });
-    expect(s.map((x) => x.key)).toEqual([
-      "submitted",
-      "manager",
-      "hr",
-      "payout",
-    ]);
-    expect(s.map((x) => x.state)).toEqual([
-      "done",
-      "current",
-      "upcoming",
-      "upcoming",
-    ]);
+    expect(s.map((x) => x.key)).toEqual(["submitted", "approval", "payout"]);
+    expect(s.map((x) => x.state)).toEqual(["done", "current", "upcoming"]);
   });
 
   it("advances as the claim progresses", () => {
@@ -28,19 +18,17 @@ describe("deriveStages", () => {
       "done",
       "done",
       "current",
-      "upcoming",
     ]);
     expect(deriveStages({ status: "Paid" }).map((x) => x.state)).toEqual([
-      "done",
       "done",
       "done",
       "done",
     ]);
   });
 
-  it("shows a rejected manager-approval step", () => {
+  it("shows a rejected endorsement step", () => {
     const s = deriveStages({ status: "Rejected" });
-    expect(s.find((x) => x.key === "manager")).toMatchObject({
+    expect(s.find((x) => x.key === "approval")).toMatchObject({
       state: "rejected",
     });
   });
@@ -49,7 +37,6 @@ describe("deriveStages", () => {
     expect(deriveStages({}).map((x) => x.state)).toEqual([
       "done",
       "current",
-      "upcoming",
       "upcoming",
     ]);
   });

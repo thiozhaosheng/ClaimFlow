@@ -1,0 +1,105 @@
+/* Sidebar role summary + quiet legal footer.
+   Tokens come from index.css custom properties only. */
+
+.sidebar-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sidebar-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  /* Same 44px as the workspace nav item above: these are navigation, so they
+     get a navigation target's presence rather than reading as a stat list. */
+  min-height: 44px;
+  padding: 4px 12px;
+  border-radius: var(--radius-control);
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+/* The view you are looking at is marked, the way a mail client marks the open
+   folder — otherwise the filtered queue and the rail disagree about state. */
+.sidebar-stat.active {
+  background: var(--bg-subtle);
+}
+.sidebar-stat.active .sidebar-stat-label {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.sidebar-stat:hover {
+  background: var(--bg-subtle);
+}
+
+.sidebar-stat:hover .sidebar-stat-label {
+  color: var(--text-primary);
+}
+
+.sidebar-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  transition: var(--transition-fast);
+}
+
+.sidebar-stat-value {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sidebar-legal {
+  padding: 6px 16px 12px;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
+
+.sidebar-legal a {
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.sidebar-legal a:hover {
+  color: var(--text-primary);
+}
+
+/* ---- rail foot: the rule set currently in force -------------------- */
+.sidebar-policy {
+  display: block;
+  margin: 0 8px 2px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-subtle);
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+.sidebar-policy:hover { background: var(--bg-subtle); }
+
+.sidebar-policy-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.sidebar-policy:hover .sidebar-policy-label { color: var(--text-primary); }
+
+.sidebar-policy-meta {
+  display: block;
+  margin-top: 1px;
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sidebar-policy-version {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}

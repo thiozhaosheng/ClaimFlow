@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ScanLine,
-  Sparkles,
+  ScanText,
   FlaskConical,
   AlertTriangle,
   CheckCircle2,
@@ -9,7 +9,7 @@ import {
 import { describeOcrSource } from "../lib/ocr.js";
 
 const TONE_ICON = {
-  azure: Sparkles,
+  azure: ScanText,
   sample: FlaskConical,
   unavailable: AlertTriangle,
   unknown: CheckCircle2,
@@ -52,12 +52,12 @@ export function OcrFieldTag({ live }) {
       className={`ocr-field-tag ${live ? "ocr-field-tag-live" : "ocr-field-tag-sample"}`}
       title={
         live
-          ? "Auto-filled from your receipt by Azure Document Intelligence"
+          ? "Read from your receipt by Azure Document Intelligence"
           : "Pre-filled with demo data — please verify"
       }
     >
-      {live ? <Sparkles className="h-2.5 w-2.5" /> : <FlaskConical className="h-2.5 w-2.5" />}
-      {live ? "auto-filled" : "demo"}
+      {live ? <ScanText className="h-2.5 w-2.5" /> : <FlaskConical className="h-2.5 w-2.5" />}
+      {live ? "from receipt" : "demo"}
     </span>
   );
 }

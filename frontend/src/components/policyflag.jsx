@@ -19,8 +19,8 @@ const TONE = {
 };
 
 const SHORT_LABEL = {
-  "auto-approve": "Auto-approved",
-  "route-to-human": "Flagged",
+  "auto-approve": "In policy",
+  "route-to-human": "Needs review",
   block: "Blocked",
 };
 

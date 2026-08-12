@@ -1,0 +1,627 @@
+/* Stepped review flow — verify / policy / decision.
+   Tokens come from index.css; nothing here hardcodes a colour. */
+
+.review-sheet {
+  max-width: 720px;
+}
+
+/* ---- stepper -------------------------------------------------------- */
+
+.review-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1.5rem 0.9rem;
+}
+
+.review-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.review-step-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  transition: var(--transition-base);
+}
+
+.review-step-current {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.review-step-current .review-step-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-card);
+}
+
+.review-step-done {
+  color: var(--text-secondary);
+}
+
+.review-step-done .review-step-dot {
+  background: var(--success-bg);
+  border-color: var(--success);
+  color: var(--success-text);
+}
+
+.review-step-line {
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--border-default);
+  min-width: 12px;
+}
+
+/* ---- verify phase --------------------------------------------------- */
+
+.review-verify-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.review-receipt-pane {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.review-receipt-pane img {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  background: var(--surface-inset);
+}
+
+.review-receipt-caption {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  background: var(--bg-card);
+}
+
+.review-receipt-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 200px;
+  padding: 1rem;
+  color: var(--warning-text);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.review-receipt-empty small {
+  color: var(--text-tertiary);
+  font-size: 0.6875rem;
+}
+
+/* checklist */
+
+.review-checklist {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* Each row carries two equally weighted answers — matches / doesn't match —
+   so the ordinary act of checking a field against the receipt is what
+   produces the correction request. */
+.review-check-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: var(--transition-fast);
+}
+
+.review-check-row:last-child { border-bottom: 0; }
+
+/* Colour only where it carries meaning: a row the approver has said is wrong. */
+.review-check-row.is-mismatch {
+  box-shadow: inset 2px 0 0 var(--warning);
+}
+
+.review-check-facts { flex: 1 1 7rem; }
+
+.review-check-choices {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.review-check-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  color: var(--text-tertiary);
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.review-check-choice:hover {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+}
+
+.review-check-choice:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.review-check-choice.is-match[aria-checked="true"] {
+  background: var(--success-bg);
+  border-color: var(--success);
+  color: var(--success-text);
+  font-weight: 600;
+}
+
+.review-check-choice.is-mismatch[aria-checked="true"] {
+  background: var(--warning-bg);
+  border-color: var(--warning);
+  color: var(--warning-text);
+  font-weight: 600;
+}
+
+.review-check-note {
+  margin: 0.55rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--warning-text);
+}
+
+.review-check-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  display: block;
+}
+
+.review-check-value {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  display: block;
+  margin-top: 1px;
+  overflow-wrap: anywhere;
+}
+
+.review-check-value.is-muted { color: var(--text-tertiary); }
+
+.review-check-value.is-num { font-variant-numeric: tabular-nums; }
+
+/* warning banner (OCR unavailable / incomplete) */
+
+.review-banner-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+  border-left: 2px solid var(--warning);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  margin-bottom: 0.85rem;
+}
+
+/* ---- policy phase --------------------------------------------------- */
+
+.review-policy-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.review-policy-verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.9rem 1rem;
+}
+
+.review-policy-verdict.is-ready {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.review-policy-verdict.is-judgement {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.review-policy-verdict.is-blocked {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.review-policy-headline {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.review-policy-sub {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  line-height: 1.45;
+}
+
+.review-policy-meta {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+}
+
+.review-policy-rule-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.review-policy-rule-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.4rem;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-subtle);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.review-policy-message {
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  margin: 0.45rem 0 0;
+  line-height: 1.5;
+}
+
+.review-policy-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  background: var(--surface-inset);
+}
+
+/* ---- decision phase ------------------------------------------------- */
+
+.review-recap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.9rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-inset);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- correction request -------------------------------------------- */
+
+.review-correction-callout {
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+  border-left: 2px solid var(--warning);
+  background: var(--warning-bg);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.review-correction-headline {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--warning-text);
+  line-height: 1.45;
+}
+
+.review-correction-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.45rem 0;
+}
+
+.review-correction-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  background: var(--bg-card);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--warning-text);
+}
+
+.review-correction-sub {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.review-decision-note {
+  margin: -0.35rem 0 0.85rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+.review-decision-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.review-decision-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--transition-base);
+}
+
+.review-decision-option:hover { background: var(--bg-subtle); }
+
+.review-decision-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.review-decision-sub {
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+.review-decision-option[aria-checked="true"].is-approve {
+  border-color: var(--success);
+  background: var(--success-bg);
+}
+
+.review-decision-option[aria-checked="true"].is-approve .review-decision-title {
+  color: var(--success-text);
+}
+
+.review-decision-option[aria-checked="true"].is-reject {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.review-decision-option[aria-checked="true"].is-reject .review-decision-title {
+  color: var(--danger-text);
+}
+
+.review-decision-option[aria-checked="true"].is-correct {
+  border-color: var(--warning);
+  background: var(--warning-bg);
+}
+
+.review-decision-option[aria-checked="true"].is-correct .review-decision-title {
+  color: var(--warning-text);
+}
+
+.review-decision-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- queue row: waiting on the submitter ---------------------------- */
+/* Lives here rather than in the queue stylesheet because it is the tail of
+   this flow: a claim the approver has already sent back. */
+
+.claim-chip.claim-chip-awaiting {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border-color: color-mix(in srgb, var(--warning) 30%, transparent);
+}
+
+.claim-row-waiting {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* ---- responsive + motion ------------------------------------------- */
+
+@media (max-width: 767px) {
+  .review-verify-grid { grid-template-columns: 1fr; }
+  .review-decision-options { grid-template-columns: 1fr; }
+  .review-check-row { min-height: 44px; }
+  .review-check-choices { width: 100%; }
+  .review-check-choice {
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 44px;
+  }
+  .review-decision-option { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .review-step-dot,
+  .review-check-row,
+  .review-check-choice,
+  .review-decision-option {
+    transition: none;
+  }
+}
+
+/* ---- approval queue table ------------------------------------------- */
+/* Two lines per cell where a record needs a label and its context: the
+   reference over its date, the employee over their department. Keeps the row
+   to one line of primary text while the secondary fact stays available. */
+.queue-date,
+.queue-dept {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+
+.queue-name {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.queue-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.queue-amount {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* The paperclip sits with the amount rather than taking a column of its own:
+   "is there a receipt" is a property of the claim, not a field to compare. */
+.queue-receipt {
+  display: inline-flex;
+  margin-left: 0.4rem;
+  color: var(--text-tertiary);
+  vertical-align: baseline;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- approver page frame -------------------------------------------- */
+/* The queue grows with the number of pending claims, so without a frame the
+   workspace itself scrolls and the sticky table header scrolls away with it.
+   The page becomes a column, the ledger takes whatever height is left, and
+   the scrolling happens inside the panel — which is what makes the header
+   stick and keeps the figures band and filters always on screen. */
+@media (min-width: 1024px) {
+  #view-approving {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+  #view-approving > .workspace-card:last-of-type {
+    min-height: 9rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /* A measured constant, not a derived one: topbar, page header, figures
+     band, toolbar and the panel's own padding come to ~29rem above the
+     ledger. Percentage heights do not resolve here because the workspace
+     scroller's height is not definite, so the cap is viewport-relative.
+     Revisit if the header or the figures band grows. */
+  #view-approving .data-panel-scroll {
+    max-height: calc(100vh - 32rem);
+    min-height: 9rem;
+    overflow-y: auto;
+  }
+}
+
+/* Between 1024 and 1200 the page header wraps to two lines and grows ~48px,
+   so the ledger has that much less room than the constant above assumes. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  #view-approving .data-panel-scroll {
+    max-height: calc(100vh - 35.5rem);
+  }
+}
+
+/* Waiting time: quiet by default, and marked once a claim has been sitting
+   long enough that it is the reason the queue looks bad. 30 days is the
+   threshold the page already reports as "oldest". */
+.queue-wait {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-wait-old {
+  color: var(--warning-text);
+  font-weight: 600;
+}

@@ -1,0 +1,155 @@
+/* Priority-stacked notification dropdown.
+   Tokens come from index.css; nothing here hardcodes a colour. */
+
+.notif-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  background: var(--surface-inset);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.notif-section + .notif-section .notif-section-header {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.notif-section-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.notif-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.7rem 1rem;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--transition-fast);
+}
+
+.notif-section li:last-child .notif-row { border-bottom: 0; }
+
+.notif-row:hover { background: var(--bg-subtle); }
+
+.notif-row.is-unread {
+  background: color-mix(in srgb, var(--accent-subtle) 45%, transparent);
+}
+
+.notif-row.is-unread:hover { background: var(--bg-subtle); }
+
+/* Warning rows — a failed receipt read, or an approver asking for named
+   fields to be corrected. Both mean a human has to reconcile the claim
+   against the receipt, so they are impossible to miss in the stack. */
+.notif-row.notif-row-warning {
+  border-left: 2px solid var(--warning);
+  padding-left: calc(1rem - 2px);
+}
+
+.notif-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.notif-main {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notif-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Titles wrap to two lines rather than truncating: a correction row's title
+   is the field list ("Fix Amount, GST on your meal claim"), and clipping it
+   would hide the one detail the row exists to deliver. */
+.notif-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.notif-time {
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.notif-action {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.notif-row-actionable .notif-action {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.notif-row-warning .notif-action { color: var(--warning-text); }
+
+.notif-hint {
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  line-height: 1.45;
+}
+
+.notif-row-warning .notif-hint { color: var(--warning-text); opacity: 0.9; }
+
+.notif-meta {
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notif-unread-dot {
+  display: inline-flex;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--brand);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+@media (max-width: 767px) {
+  .notif-row { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notif-row { transition: none; }
+}

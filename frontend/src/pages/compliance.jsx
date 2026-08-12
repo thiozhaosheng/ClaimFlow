@@ -16,7 +16,7 @@ const SECTIONS = [
   {
     title: "Approval policy",
     summary:
-      "The rules that decide whether a submitted claim is auto-approved, routed for human review, or blocked.",
+      "The rules that check every claim at submission — blocking what is not allowed, and marking the rest ready to approve or needing judgement.",
     to: "/policies",
     icon: BookOpen,
     docHref:
@@ -66,7 +66,7 @@ const EXTERNAL_DOCS = [
 
 function SectionHeading({ children }) {
   return (
-    <h2 className="text-[11px] uppercase tracking-[0.12em] font-semibold text-text-tertiary mt-12 mb-3">
+    <h2 className="text-[0.75rem] uppercase tracking-[0.12em] font-semibold text-text-tertiary mt-12 mb-3">
       {children}
     </h2>
   );

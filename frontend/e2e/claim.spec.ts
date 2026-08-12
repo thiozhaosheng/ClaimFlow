@@ -82,54 +82,70 @@ test.describe('Employee Claim Submission', () => {
         };
         // Record it so the employee's list shows it on the next fetch.
         submittedClaims.push(claim);
+        // The policy engine is advisory: nothing auto-approves. An in-policy
+        // claim comes back with recommendation 'approve' and the approver
+        // still makes the final decision.
         return route.fulfill({
           status: 201,
           json: {
             status: 'success',
             data: { claim },
-            policy: { outcome: 'route-to-human', ruleId: 'default', message: 'Sent to a reviewer.' },
+            policy: {
+              outcome: 'auto-approve',
+              ruleId: 'auto-approve-transport',
+              message: 'Transport claim within limits.',
+              recommendation: 'approve',
+              recommendationWithheldByOcr: false,
+            },
           },
         });
       }
       return route.fulfill({ json: claimList() });
     });
   });
-  test('a claim with no receipt is blocked before it can be submitted', async ({ page }) => {
+  test('a claim with no receipt is blocked at the Receipt step', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Sign in as Employee/i }).click();
     await expect(page.getByRole('heading', { name: 'Submit & track your claims' })).toBeVisible();
 
-    // Everything except the receipt is filled in, so the only thing keeping the
-    // claim from being submitted is the missing-receipt rule.
-    await page.getByPlaceholder('e.g., Grab to client meeting').fill('Missing Receipt Claim');
-    await page.getByPlaceholder('e.g., Grab, NTUC FairPrice, Toast Box').fill('GrabTest');
-    await page.locator('input[type="number"]').first().fill('20.00');
+    // The form is now a 3-step wizard and it opens on the Receipt step.
+    const steps = page.getByRole('list', { name: 'Claim submission steps' });
+    await expect(steps).toBeVisible();
+    await expect(steps.getByText('Receipt')).toBeVisible();
+    await expect(steps.getByText('Details')).toBeVisible();
+    await expect(steps.getByText('Review')).toBeVisible();
 
-    const today = new Date().toISOString().split('T')[0];
-    await page.locator('input[type="date"]').fill(today);
-
-    await page.getByPlaceholder('e.g., Office (Toa Payoh)').fill('Home');
-    await page.getByPlaceholder('e.g., Client (Marina Bay)').fill('Office');
-    await page.getByRole('combobox').nth(1).selectOption({ label: 'Client meeting' });
-    await page.getByRole('combobox').nth(2).selectOption({ label: 'Morning (06-12)' });
-
-    // The block is enforced in the UI, and it names the rule that caused it.
-    await expect(page.getByRole('button', { name: 'Submit claim' })).toBeDisabled();
+    // With no receipt attached, the missing-receipt gate fires here, on step
+    // one: the rule is named in the UI and Continue will not advance — the
+    // Details and Review steps (and the Submit button on Review) are
+    // unreachable, so the claim cannot be submitted at all.
     await expect(page.getByText('block-missing-receipt')).toBeVisible();
+    const continueButton = page.getByRole('button', { name: 'Continue', exact: true });
+    await expect(continueButton).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Submit claim' })).toHaveCount(0);
   });
 
-  test('an employee can submit a claim with a receipt', async ({ page }) => {
+  test('an employee can submit a claim through the Receipt → Details → Review wizard', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Sign in as Employee/i }).click();
     await expect(page.getByRole('heading', { name: 'Submit & track your claims' })).toBeVisible();
 
-    // Upload receipt
+    // --- Step 1: Receipt -------------------------------------------------
     await page.setInputFiles('input[type="file"]', 'public/test-receipts/real-grab.png');
 
-    // Give it a moment to show "Receipt attached" or simulate OCR
-    await expect(page.getByText('Demo parser')).not.toBeVisible();
+    // The stubbed parse endpoint answers as Azure, so the badge must say the
+    // receipt was read live — not filled with demo data. (`first()` because a
+    // toast with the same title also appears.)
+    await expect(
+      page.getByText('Read by Azure Document Intelligence').first(),
+    ).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('View uploaded image')).toBeVisible({ timeout: 15000 });
 
+    const continueButton = page.getByRole('button', { name: 'Continue', exact: true });
+    await expect(continueButton).toBeEnabled();
+    await continueButton.click();
+
+    // --- Step 2: Details -------------------------------------------------
     await page.getByPlaceholder('e.g., Grab to client meeting').fill('Test Playwright Claim');
     await page.getByPlaceholder('e.g., Grab, NTUC FairPrice, Toast Box').fill('GrabTest');
     await page.locator('input[type="number"]').first().fill('20.00');
@@ -137,25 +153,40 @@ test.describe('Employee Claim Submission', () => {
     const today = new Date().toISOString().split('T')[0];
     await page.locator('input[type="date"]').fill(today);
 
+    // Transport's per-category fields. Combobox 0 is the category select.
     await page.getByPlaceholder('e.g., Office (Toa Payoh)').fill('Home');
     await page.getByPlaceholder('e.g., Client (Marina Bay)').fill('Office');
     await page.getByRole('combobox').nth(1).selectOption({ label: 'Client meeting' });
     await page.getByRole('combobox').nth(2).selectOption({ label: 'Morning (06-12)' });
 
+    await continueButton.click();
+
+    // --- Step 3: Review --------------------------------------------------
+    // The summary shows what will be submitted, and the advisory policy
+    // preflight says the claim is in policy — recommended, never auto-approved.
+    await expect(page.getByText('Test Playwright Claim')).toBeVisible();
+    await expect(page.getByText('S$20.00').first()).toBeVisible();
+    await expect(
+      page.getByText('Within policy — will be marked ready to approve'),
+    ).toBeVisible();
+    await expect(page.getByText('Your approver still gives the final decision.')).toBeVisible();
+
     await page.getByRole('button', { name: 'Submit claim' }).click();
 
     // Verify the UI actually changed in response to the action:
-    // 1. the submission form closes,
-    await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10000 });
-    // 2. a success toast confirms the claim was accepted, and
-    await expect(page.getByText('Claim submitted')).toBeVisible({ timeout: 10000 });
-    // 3. the toast names the claim and its pending status, and
-    await expect(page.getByText(/is now pending review/i)).toBeVisible();
+    // 1. a toast confirms the claim was accepted with the advisory wording, and
+    await expect(page.getByText('Submitted, marked ready to approve')).toBeVisible({ timeout: 10000 });
+    // 2. the toast names the claim and says the approver still decides, and
+    await expect(
+      page.getByText(/CLM-001 \(Transport · S\$20\.00\) is within policy/),
+    ).toBeVisible();
+    // 3. the wizard resets to the Receipt step for the next claim, and
+    await expect(page.getByText('block-missing-receipt')).toBeVisible({ timeout: 10000 });
     // 4. the claim appears in the employee's claim list, and survives a reload
     //    — so the result is really on screen, not just an optimistic toast.
     await page.reload();
     const claimRow = page.getByRole('button', {
-      name: /Transport Claim[\s\S]*Pending[\s\S]*S\$20\.00/,
+      name: /Transport claim CLM-001[\s\S]*S\$20\.00, Pending/,
     });
     await expect(claimRow).toBeVisible({ timeout: 10000 });
     await expect(claimRow).toBeInViewport({ timeout: 5000 });

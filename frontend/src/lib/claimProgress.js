@@ -26,18 +26,19 @@ export function deriveStages(claim) {
   if (status === "Rejected") {
     return [
       { key: "submitted", label: "Submitted", state: "done" },
-      { key: "manager", label: "Manager approval", state: "rejected" },
-      { key: "hr", label: "HR verification", state: "upcoming" },
+      { key: "approval", label: "Approver endorsement", state: "rejected" },
       { key: "payout", label: "GIRO / PayNow payout", state: "upcoming" },
     ];
   }
 
-  // Singapore SME reimbursement flow:
-  //   Submitted → Manager approval → HR verification → GIRO/PayNow payout
-  // `rank` is the index of the stage currently in progress, so earlier stages
-  // read as done. Pending → awaiting manager (1); Endorsed → manager done, HR
-  // verifying (2); Paid → all done (4, past the last index).
-  const rank = { Pending: 1, Endorsed: 2, Paid: 4 }[status] ?? 1;
+  // The pipeline the backend actually runs — three stages, two actors:
+  //   Submitted → Approver endorsement → Finance payout (GIRO / PayNow)
+  // An "HR verification" step used to appear here; no such step exists
+  // anywhere in the product, and a process rail that invents a stage is the
+  // opposite of an audit trail. `rank` is the index of the stage currently
+  // in progress. Pending → awaiting the approver (1); Endorsed → finance
+  // paying out (2); Paid → all done (3, past the last index).
+  const rank = { Pending: 1, Endorsed: 2, Paid: 3 }[status] ?? 1;
   const stage = (key, label, index) => ({
     key,
     label,
@@ -46,9 +47,8 @@ export function deriveStages(claim) {
 
   return [
     stage("submitted", "Submitted", 0),
-    stage("manager", "Manager approval", 1),
-    stage("hr", "HR verification", 2),
-    stage("payout", "GIRO / PayNow payout", 3),
+    stage("approval", "Approver endorsement", 1),
+    stage("payout", "GIRO / PayNow payout", 2),
   ];
 }
 

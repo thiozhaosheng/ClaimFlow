@@ -10,7 +10,6 @@ import EmptyState from "../components/emptystate.jsx";
 import { exportAuditLogToCsv } from "../utils/export.js";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import FinanceDashboard from "../components/financedashboard.jsx";
-import PolicyFlag from "../components/policyflag.jsx";
 import {
   AlertTriangle,
   Building2,
@@ -28,15 +27,11 @@ export default function Finance() {
   const navigate = useNavigate();
   const { session, setFinanceTab } = useAuth();
   const { addToast } = useToast();
-  const { claimsDb, latestMap, batchMarkAsPaid, error, loading } = useClaims();
+  const { claimsDb, latestMap, error, loading } = useClaims();
   const [activeTab, setActiveTab] = useState(session?.financeTab || "dashboard");
-  const [searchQueue, setSearchQueue] = useState("");
   const [searchAudit, setSearchAudit] = useState("");
   const [auditFilter, setAuditFilter] = useState("All");
-  const [selectedClaims, setSelectedClaims] = useState(new Set());
-  const [selectAll, setSelectAll] = useState(false);
   const [activeClaim, setActiveClaim] = useState(null);
-  const [paying, setPaying] = useState(false);
 
   useShortcuts({
     onSearch: () => {
@@ -47,63 +42,6 @@ export default function Finance() {
   const switchTab = (tabKey) => {
     setActiveTab(tabKey);
     setFinanceTab(tabKey);
-  };
-
-  const endorsedClaims = Object.values(latestMap).filter((i) => {
-    if (i.status !== "Endorsed") return false;
-    if (
-      searchQueue &&
-      !i.employee.toLowerCase().includes(searchQueue.toLowerCase()) &&
-      !i.id.toLowerCase().includes(searchQueue.toLowerCase())
-    )
-      return false;
-    return true;
-  });
-
-  const handleRowSelect = (claimId, checked) => {
-    const updated = new Set(selectedClaims);
-    if (checked) updated.add(claimId);
-    else updated.delete(claimId);
-    setSelectedClaims(updated);
-  };
-
-  const handleSelectAll = (checked) => {
-    setSelectAll(checked);
-    if (checked) {
-      setSelectedClaims(new Set(endorsedClaims.map((c) => c.id)));
-    } else {
-      setSelectedClaims(new Set());
-    }
-  };
-
-  const selectedTotal = Array.from(selectedClaims).reduce((sum, id) => {
-    const claim = latestMap[id];
-    return claim ? sum + claim.amount : sum;
-  }, 0);
-
-  const handleMarkAsPaid = async () => {
-    if (selectedClaims.size === 0 || paying) return;
-    const count = selectedClaims.size;
-    const totalAtClick = selectedTotal;
-    setPaying(true);
-    try {
-      await batchMarkAsPaid(selectedClaims);
-      addToast({
-        variant: "success",
-        title: `${count} claim${count === 1 ? "" : "s"} marked as paid`,
-        message: `Total ${formatSGD(totalAtClick)} disbursed.`,
-      });
-      setSelectedClaims(new Set());
-      setSelectAll(false);
-    } catch (err) {
-      addToast({
-        variant: "error",
-        title: "Payment failed",
-        message: err?.message || "Could not mark these claims as paid.",
-      });
-    } finally {
-      setPaying(false);
-    }
   };
 
   const filteredLogs = claimsDb.filter((log) => {
@@ -204,14 +142,12 @@ export default function Finance() {
 
 
       <div
-        className={`w-full ${activeTab !== "audit" ? "hidden" : ""}`}
+        className={`finance-audit w-full ${activeTab !== "audit" ? "hidden" : ""}`}
       >
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-3 mb-4">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight text-text-primary mb-1">
-              Audit trail & export
-            </h2>
-            <p className="text-text-tertiary text-[13px]">
+            <h2 className="fin-section-title">Audit trail and export</h2>
+            <p className="fin-section-sub">
               Read-only log of all claim status changes and actions.
             </p>
           </div>
@@ -254,17 +190,22 @@ export default function Finance() {
           </div>
         </div>
 
-        <div className="workspace-card p-0 rounded-t-none border-t-0 overflow-x-auto">
-          <table className="data-table align-middle">
+        {/* The ledger sits in a data panel joined to the toolbar above it, and
+            scrolls inside itself. That is what makes .data-table's sticky
+            header useful: the column names stay put while 20,000px of log
+            passes under them, instead of the whole workspace scrolling away. */}
+        <div className="data-panel rounded-t-none border-t-0">
+          <div className="data-panel-scroll finance-audit-scroll">
+            <table className="data-table">
             <thead>
               <tr>
-                <th>Timestamp</th>
-                <th>Claim ID</th>
-                <th>Employee</th>
-                <th className="text-right">Amount</th>
-                <th>Action</th>
-                <th>Actor</th>
-                <th>Role</th>
+                <th scope="col">Timestamp</th>
+                <th scope="col">Claim ID</th>
+                <th scope="col">Employee</th>
+                <th scope="col" className="num">Amount</th>
+                <th scope="col">Action</th>
+                <th scope="col">Actor</th>
+                <th scope="col">Role</th>
               </tr>
             </thead>
             <tbody>
@@ -279,78 +220,53 @@ export default function Finance() {
                   </td>
                 </tr>
               ) : (
-                filteredLogs.map((log, idx) => {
-                  let roleBadgeClass =
-                    "bg-subtle text-text-secondary border border-border-subtle";
-                  if (log.role === "approving")
-                    roleBadgeClass =
-                      "text-accent bg-accent-subtle border border-transparent";
-                  if (log.role === "finance")
-                    roleBadgeClass =
-                      "text-info-text bg-info-bg border border-transparent";
-
-                  return (
-                    <tr
-                      key={`${log.id}-${idx}`}
-                      className="row-clickable"
-                      onClick={() => setActiveClaim(log)}
-                    >
-                      <td
-                        data-label="Timestamp"
-                        className="whitespace-nowrap text-text-secondary font-medium"
-                      >
-                        {log.date}{" "}
-                        <span className="ml-1 text-text-tertiary text-xs font-normal">
-                          {log.time}
-                        </span>
-                      </td>
-                      <td data-label="Claim">
-                        <span className="text-accent font-semibold">
-                          {log.id}
-                        </span>
-                        <br />
-                        <span className="text-text-tertiary text-xs">
-                          {escapeHtml(log.type)}
-                        </span>
-                      </td>
-                      <td data-label="Employee" className="font-medium">
-                        {escapeHtml(log.employee)}
-                      </td>
-                      <td
-                        data-label="Amount"
-                        className="text-right font-bold text-text-primary"
-                      >
-                        {formatSGD(log.amount)}
-                      </td>
-                      <td data-label="Action">
-                        <span className="text-text-primary font-medium">
-                          {escapeHtml(log.action)}
-                        </span>
-                      </td>
-                      <td data-label="Actor" className="font-semibold">
-                        {escapeHtml(log.actor)}
-                      </td>
-                      <td data-label="Role">
-                        <span
-                          className={`badge-custom ${roleBadgeClass}`}
-                          style={{ fontSize: "0.75rem", fontWeight: 500 }}
-                        >
-                          {log.role}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
+                filteredLogs.map((log, idx) => (
+                  <tr
+                    key={`${log.id}-${idx}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveClaim(log)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setActiveClaim(log);
+                      }
+                    }}
+                  >
+                    <td data-label="Timestamp" className="fin-audit-time">
+                      {log.date}
+                      <span className="fin-audit-clock">{log.time}</span>
+                    </td>
+                    <td data-label="Claim">
+                      <span className="data-ref">{log.id}</span>
+                      <span className="fin-audit-sub">
+                        {escapeHtml(log.type)}
+                      </span>
+                    </td>
+                    <td data-label="Employee">{escapeHtml(log.employee)}</td>
+                    <td data-label="Amount" className="num">
+                      {formatSGD(log.amount)}
+                    </td>
+                    <td data-label="Action">{escapeHtml(log.action)}</td>
+                    <td data-label="Actor">{escapeHtml(log.actor)}</td>
+                    <td data-label="Role">
+                      {/* The role is a fact about who acted, not a status —
+                          one neutral chip, no colour spent on it. */}
+                      <span className="fin-audit-role">{log.role}</span>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
 
-        <div className="flex justify-between items-center border-t border-border-subtle pt-3 mt-3 text-text-secondary text-xs">
+        <div className="fin-audit-foot">
           <span>
             Showing {filteredLogs.length} of {claimsDb.length} total entries
           </span>
-          <span>Total Claims: {uniqueClaimIds.size}</span>
+          <span>Total claims: {uniqueClaimIds.size}</span>
         </div>
       </div>
 

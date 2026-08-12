@@ -30,9 +30,9 @@ describe("OcrSourceBadge", () => {
 });
 
 describe("OcrFieldTag", () => {
-  it("reads 'auto-filled' for live OCR and 'demo' otherwise", () => {
+  it("reads 'from receipt' for live OCR and 'demo' otherwise", () => {
     const { rerender } = render(<OcrFieldTag live />);
-    expect(screen.getByText("auto-filled")).toBeInTheDocument();
+    expect(screen.getByText("from receipt")).toBeInTheDocument();
     rerender(<OcrFieldTag live={false} />);
     expect(screen.getByText("demo")).toBeInTheDocument();
   });

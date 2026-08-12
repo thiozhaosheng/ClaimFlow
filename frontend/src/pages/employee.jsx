@@ -1,15 +1,10 @@
-import { useState, useRef, useMemo } from "react";
+import { Fragment, useState, useRef, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   Ban,
   CheckCircle2,
-  Download,
-  FlaskConical,
-  Pencil,
-  Plus,
   ShieldCheck,
-  Trash2,
   UploadCloud,
   XCircle,
 } from "lucide-react";
@@ -19,6 +14,7 @@ import { useClaims } from "../hooks/useclaims.js";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
 import { api } from "../utils/api.js";
 import policies from "../data/policies.json";
+import categoryFieldSpecs from "../data/categoryFields.json";
 import {
   evaluatePolicies,
   claimContextFromForm,
@@ -26,7 +22,9 @@ import {
 import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
-import EditClaimModal from "../components/editclaimmodal.jsx";
+import EditClaimModal, {
+  correctionRequestOf,
+} from "../components/editclaimmodal.jsx";
 import ConfirmModal from "../components/confirmmodal.jsx";
 import PolicyFlag from "../components/policyflag.jsx";
 import CategoryFields, {
@@ -37,15 +35,24 @@ import {
   OcrFieldTag,
   OcrProgress,
 } from "../components/ocrfeedback.jsx";
-import { extractedFieldKeys, isLiveOcr } from "../lib/ocr.js";
-import { useCountUp } from "../hooks/useCountUp.js";
+import {
+  extractedFieldKeys,
+  isLiveOcr,
+  OCR_FIELD_LABELS,
+} from "../lib/ocr.js";
 import CategoryIcon from "../components/categoryicon.jsx";
+import "./employee-wizard.css";
 
-const DISALLOWED_CATEGORIES = (() => {
+export const DISALLOWED_CATEGORIES = (() => {
   const rule = policies.rules.find((r) => r.id === "block-disallowed-category");
   return rule?.when?.[0]?.value ?? [];
 })();
 
+// Only categories the policy allows are offered. Categories the policy blocks
+// outright (Medical non-statutory, Club Subscription, Family Benefit, Motor
+// Car) are deliberately NOT listed — nobody should be able to pick a category
+// that can never be claimed. See DISALLOWED_CATEGORIES / the
+// block-disallowed-category rule for the blocked list.
 const CATEGORY_OPTIONS = [
   { value: "Transport", label: "Transport (Grab / Taxi / MRT)" },
   { value: "Meal", label: "Meal" },
@@ -54,59 +61,15 @@ const CATEGORY_OPTIONS = [
   { value: "Travel", label: "Overseas Travel" },
   { value: "Training", label: "Training" },
   { value: "Medical (statutory)", label: "Medical — statutory (WICA, etc.)" },
-  { value: "Medical (non-statutory)", label: "Medical — non-statutory", disallowed: true },
-  { value: "Club Subscription", label: "Club Subscription", disallowed: true },
-  { value: "Family Benefit", label: "Family Benefit", disallowed: true },
-  { value: "Motor Car (non-commercial)", label: "Motor Car — non-commercial", disallowed: true },
 ];
 
-const RECEIPT_REQUIRED_OVER = 50;
 const FULL_TAX_INVOICE_OVER = 1000;
 const MAX_AGE_DAYS = 90;
 
-const DEMO_RECEIPTS = [
-  {
-    label: "Small Grab — auto-approves",
-    href: "/test-receipts/grab-transport.pdf",
-    ext: "PDF",
-    expect: "Transport · S$19.10 · auto-endorsed",
-  },
-  {
-    label: "Hawker meal — auto-approves",
-    href: "/test-receipts/hawker-meal.pdf",
-    ext: "PDF",
-    expect: "Meal · S$8.70 · auto-endorsed",
-  },
-  {
-    label: "Office supplies — routes to approver",
-    href: "/test-receipts/office-supplies.pdf",
-    ext: "PDF",
-    expect: "Office Supplies · S$177.00 · pending review",
-  },
-  {
-    label: "Client dinner — over S$500 ceiling",
-    href: "/test-receipts/client-dinner.pdf",
-    ext: "PDF",
-    expect: "Client Entertainment · S$657.80 · pending review with hint",
-  },
-  {
-    label: "Hawker meal (JPEG)",
-    href: "/test-receipts/hawker-meal.jpg",
-    ext: "JPG",
-    expect: "Tiny fixture to test JPEG upload path",
-  },
-  {
-    label: "Grab transport (PNG)",
-    href: "/test-receipts/grab-transport.png",
-    ext: "PNG",
-    expect: "Tiny fixture to test PNG upload path",
-  },
-  {
-    label: "Oversized file (~11 MB)",
-    href: "/test-receipts/oversized.pdf",
-    ext: "PDF",
-    expect: "Rejected by the 10 MB upload limit",
-  },
+const WIZARD_STEPS = [
+  { key: "receipt", label: "Receipt" },
+  { key: "details", label: "Details" },
+  { key: "review", label: "Review" },
 ];
 
 function todayIso() {
@@ -181,6 +144,16 @@ function minDateIso() {
   return d.toISOString().slice(0, 10);
 }
 
+// Small badge for a field the receipt read could not fill — the counterpart
+// of OcrFieldTag, so the user can see at a glance what still needs typing.
+function ManualEntryTag() {
+  return (
+    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[0.75rem] font-semibold bg-warning-bg text-warning-text border border-warning-border tracking-wide uppercase">
+      Type this in
+    </span>
+  );
+}
+
 export default function Employee() {
   const { session } = useAuth();
   const {
@@ -198,6 +171,8 @@ export default function Employee() {
   // The claim awaiting withdrawal confirmation, or null when the dialog is shut.
   const [withdrawingClaim, setWithdrawingClaim] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  // Which wizard step is showing: 0 receipt, 1 details, 2 review.
+  const [step, setStep] = useState(0);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [category, setCategory] = useState("Transport");
@@ -212,14 +187,15 @@ export default function Employee() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [extracted, setExtracted] = useState(null);
-  // Which top-level fields OCR auto-filled, so we can mark them and clear the
-  // mark once the user overrides the value.
+  // Which fields were read from the receipt, so we can mark them and clear the
+  // mark once the user overrides the value. Holds top-level keys (merchant,
+  // amount, …) plus any per-category detail keys the read prefliled.
   const [ocrFields, setOcrFields] = useState(() => new Set());
   const [details, setDetails] = useState({});
   const fileInputRef = useRef(null);
 
   const ocrLive = isLiveOcr(extracted?.source);
-  // Remove a field's "auto-filled" mark once the user edits it themselves.
+  // Remove a field's "read from receipt" mark once the user edits it themselves.
   const clearOcrField = (key) =>
     setOcrFields((prev) => {
       if (!prev.has(key)) return prev;
@@ -234,7 +210,7 @@ export default function Employee() {
   }, [amount]);
 
   const categoryDisallowed = DISALLOWED_CATEGORIES.includes(category);
-  const receiptRequired = true; // Receipts are now mandatory for ALL claims
+  // Receipts are mandatory for ALL claims — step 1 gates on one being attached.
   const receiptMissing = !hasFile;
   const fullTaxInvoiceRequired = numericAmount > FULL_TAX_INVOICE_OVER;
   const missingDetailKeys = useMemo(
@@ -267,7 +243,40 @@ export default function Employee() {
     return evaluatePolicies(ctx);
   }, [category, numericAmount, date, hasFile, details]);
 
-  const formHasMinFields = title.trim() && date && numericAmount > 0;
+  // Per-step gates for the Continue button.
+  const stepOneValid = hasFile && !parsing;
+  const stepTwoValid = Boolean(
+    title.trim() &&
+      date &&
+      numericAmount > 0 &&
+      !detailsIncomplete &&
+      !categoryDisallowed,
+  );
+
+  const goToStep = (next) => {
+    if (next === 1 && !stepOneValid) return;
+    if (next === 2 && (!stepOneValid || !stepTwoValid)) return;
+    setStep(next);
+  };
+
+  const resetForm = () => {
+    setTitle("");
+    setDate("");
+    setCategory("Transport");
+    setAmount("");
+    setGstAmount("");
+    setMerchant("");
+    setFileName("");
+    setHasFile(false);
+    setReceiptUrl(null);
+    setViewUrl(null);
+    setExtracted(null);
+    setOcrFields(new Set());
+    setDetails({});
+    setCategoryTouched(false);
+    setStep(0);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const parseFile = async (file) => {
     if (!file) return;
@@ -301,13 +310,12 @@ export default function Employee() {
       if (data.receiptUrl) setReceiptUrl(data.receiptUrl);
       if (data.viewUrl) setViewUrl(data.viewUrl);
       setExtracted(data);
-      // Mark exactly the fields OCR populated. If the user already chose a
-      // category, don't claim OCR filled it.
+      // Mark exactly the fields the read populated. If the user already chose
+      // a category, don't claim the receipt filled it.
       const filled = new Set(extractedFieldKeys(data));
       if (categoryTouched) filled.delete("category");
-      setOcrFields(filled);
 
-      // Best-effort prefill of per-category details from what OCR extracted.
+      // Best-effort prefill of per-category details from what was read.
       // Only fills empty keys — never overwrites something the user typed.
       const effectiveCategory =
         categoryTouched ? category : (data.category || category);
@@ -323,13 +331,17 @@ export default function Employee() {
           }
           return next;
         });
+        for (const [k, v] of Object.entries(detailsPrefill)) {
+          if (v !== undefined && v !== null && v !== "") filled.add(k);
+        }
       }
+      setOcrFields(filled);
       if (data.source === "unavailable") {
         addToast({
           variant: "warning",
           title: "Couldn't read this receipt",
           message:
-            "The image was uploaded but the parser couldn't extract details. Please fill in the fields manually.",
+            "The image was uploaded but we couldn't read details from it. Please fill in the fields manually.",
         });
       } else if (data.source === "azure") {
         addToast({
@@ -341,7 +353,7 @@ export default function Employee() {
         addToast({
           variant: "info",
           title: "Filled with demo data",
-          message: "No live OCR ran — verify each field before submitting.",
+          message: "Your receipt wasn't read live — verify each field before submitting.",
         });
       }
     } catch (err) {
@@ -357,6 +369,12 @@ export default function Employee() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Enter on an earlier step advances the wizard instead of submitting.
+    if (step !== 2) {
+      if (step === 0 && stepOneValid) setStep(1);
+      else if (step === 1 && stepTwoValid) setStep(2);
+      return;
+    }
     if (!title || !date || !amount || submitting) return;
     if (categoryDisallowed) {
       const rule = policies.rules.find((r) => r.id === "block-disallowed-category");
@@ -388,38 +406,24 @@ export default function Employee() {
       });
       const created = result?.claim;
       const policy = result?.policy;
-      const suppressed = policy?.autoApproveSuppressedByOcr;
-      const autoApproved =
-        policy?.outcome === "auto-approve" && !suppressed;
+      const withheld = policy?.recommendationWithheldByOcr;
+      const recommended = policy?.recommendation === "approve";
       addToast({
-        variant: suppressed ? "warning" : autoApproved ? "success" : "info",
-        title: suppressed
-          ? "Submitted — pending manual review"
-          : autoApproved
-          ? "Auto-endorsed"
+        variant: withheld ? "warning" : recommended ? "success" : "info",
+        title: withheld
+          ? "Submitted — receipt needs a manual check"
+          : recommended
+          ? "Submitted, marked ready to approve"
           : "Claim submitted",
         message: created
-          ? suppressed
-            ? `${created.id} would have auto-approved, but OCR couldn't verify the receipt — your approver will double-check.`
-            : autoApproved
-            ? `${created.id} (${created.type} · ${formatSGD(created.amount)}) was auto-endorsed by policy. Awaiting payout.`
-            : `${created.id} (${created.type} · ${formatSGD(created.amount)}) is now pending review.`
-          : "Your claim is now pending review.",
+          ? withheld
+            ? `${created.id} is within policy, but the receipt didn't scan cleanly — your approver will check the details you typed.`
+            : recommended
+            ? `${created.id} (${created.type} · ${formatSGD(created.amount)}) is within policy. Your approver just has to verify and approve.`
+            : `${created.id} (${created.type} · ${formatSGD(created.amount)}) is with your approver for review.`
+          : "Your claim is with your approver for review.",
       });
-      setTitle("");
-      setDate("");
-      setCategory("Transport");
-      setAmount("");
-      setGstAmount("");
-      setMerchant("");
-      setFileName("");
-      setHasFile(false);
-      setReceiptUrl(null);
-      setViewUrl(null);
-      setExtracted(null);
-      setOcrFields(new Set());
-      setDetails({});
-      setCategoryTouched(false);
+      resetForm();
     } catch (err) {
       addToast({
         variant: "error",
@@ -448,7 +452,22 @@ export default function Employee() {
   };
 
   const allClaims = Object.values(latestMap);
-  const distinctClaims = allClaims.slice(0, 5);
+  // A claim an approver has sent back is the one thing on this page that is
+  // waiting on the employee, so it leads the list ahead of ordinary pending
+  // claims. sort() is stable, so everything else keeps the API's order.
+  const distinctClaims = [...allClaims]
+    .sort(
+      (a, b) =>
+        (correctionRequestOf(b) ? 1 : 0) - (correctionRequestOf(a) ? 1 : 0),
+    )
+    // Eight, not four: the list is a table inside a panel that scrolls its own
+    // body now, so rows no longer decide whether the page clears the fold.
+    // This is still "Recent claims", not the archive.
+    .slice(0, 8);
+
+  // The references waiting on the employee, named once above the table so the
+  // work is visible even when the panel is scrolled down.
+  const claimsNeedingFix = distinctClaims.filter((c) => correctionRequestOf(c));
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -476,17 +495,39 @@ export default function Employee() {
     };
   }, [allClaims]);
 
-  // Count-up the headline figures so they animate as data loads/changes.
-  const countSubmitted = useCountUp(stats.submittedThisMonth);
-  const countInFlight = useCountUp(stats.inFlight);
-  const countPaid = useCountUp(stats.paidThisMonth, { decimals: 2 });
+  // Which of the base fields the receipt read filled, in display order — used
+  // for the step-2 summary line ("Read from your receipt: merchant, amount…").
+  const readFieldLabels = useMemo(() => {
+    const order = ["merchant", "expenseDate", "category", "amount", "gstAmount"];
+    return order
+      .filter((k) => ocrFields.has(k))
+      .map((k) => OCR_FIELD_LABELS[k].toLowerCase());
+  }, [ocrFields]);
+
+  // Per-category detail rows for the review summary, using the same labels
+  // the details step shows.
+  const detailRows = useMemo(() => {
+    const fields = categoryFieldSpecs[category]?.fields || [];
+    return fields
+      .filter((f) => {
+        const v = details?.[f.key];
+        return v !== undefined && v !== null && v !== "";
+      })
+      .map((f) => ({ key: f.key, label: f.label, value: String(details[f.key]) }));
+  }, [category, details]);
+
+  // Shows "Type this in" next to a base field the receipt read didn't fill.
+  // Only once a receipt has been processed — before that, nothing was read
+  // by definition and the tags would be noise.
+  const needsInput = (key, value) =>
+    extracted && !ocrFields.has(key) && !value;
 
   return (
     <section id="view-employee" className="role-workspace">
       <PageHeader
         eyebrow="Employee"
         title="Submit & track your claims"
-        subtitle="Snap a receipt — we extract the merchant, amount, GST and date so you only confirm. Claims under S$50 in standard categories auto-approve; anything larger routes to a manager."
+        subtitle="Attach a receipt, confirm the details read from it, and follow each claim through your approver."
       />
 
       {error && (
@@ -499,79 +540,172 @@ export default function Employee() {
         </div>
       )}
 
-      <div className="mt-6 mb-6">
-        <div className="metric-strip">
-          <div className="metric-card">
-            <span className="metric-label">Submitted</span>
-            <span className="metric-value">{countSubmitted}</span>
-            <span className="metric-sub">claims this month</span>
-          </div>
-          <div className="metric-card">
-            <span className="metric-label">In flight</span>
-            <span className="metric-value">{countInFlight}</span>
-            <span className="metric-sub">
-              {stats.pending} pending · {stats.endorsed} endorsed
-            </span>
-          </div>
-          <div className="metric-card">
-            <span className="metric-label">Paid</span>
-            <span className="metric-value text-success-text">{formatSGD(countPaid).replace("S$", "")}</span>
-            <span className="metric-sub">SGD this month</span>
-          </div>
+      {/* One ruled band of figures — the same band the approval queue reads
+          from, so the two workspaces are visibly one product. */}
+      <div className="metric-strip mb-4">
+        <div className="metric-item">
+          <span className="metric-item-label">Submitted</span>
+          <span className="metric-item-value">{stats.submittedThisMonth}</span>
+          <span className="metric-item-sub">claims this month</span>
+        </div>
+        <div className="metric-item">
+          <span className="metric-item-label">In flight</span>
+          <span className="metric-item-value">{stats.inFlight}</span>
+          <span className="metric-item-sub">
+            {stats.pending} pending · {stats.endorsed} endorsed
+          </span>
+        </div>
+        <div className="metric-item">
+          <span className="metric-item-label">Paid</span>
+          <span className="metric-item-value">
+            {formatSGD(stats.paidThisMonth).replace("S$", "")}
+          </span>
+          <span className="metric-item-sub">SGD this month</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8">
-          <div className="workspace-card p-6">
-            <h2 className="workspace-card-title mb-3 flex items-center gap-2">
-              <span className="plus-icon-badge">
-                <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-              </span>
-              Submit new claim
-            </h2>
+      {/* Two columns, not one stacked column. A form and a ledger want
+          different widths: stretched to the same ~1180px the dropzone became
+          a giant empty box with its label floating mid-air and Continue ended
+          up far from the sentence it follows, while the ledger below showed a
+          single row. Side by side each gets the width it wants. */}
+      <div className="employee-band">
+      <form onSubmit={handleSubmit} className="data-panel submit-panel">
+        <div className="data-panel-head">
+          <span className="data-panel-title">Submit new claim</span>
+          {/* Quiet text step indicator — completed steps are clickable. */}
+          <ol className="wizard-steps" aria-label="Claim submission steps">
+            {WIZARD_STEPS.map((s, i) => (
+              <li key={s.key}>
+                {i < step ? (
+                  <button
+                    type="button"
+                    className="wizard-step wizard-step-done"
+                    onClick={() => setStep(i)}
+                  >
+                    {s.label}
+                  </button>
+                ) : (
+                  <span
+                    className={`wizard-step ${
+                      i === step ? "wizard-step-current" : "wizard-step-upcoming"
+                    }`}
+                    aria-current={i === step ? "step" : undefined}
+                  >
+                    {s.label}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
 
-            <form onSubmit={handleSubmit}>
-              {extracted && <OcrSourceBadge source={extracted.source} />}
+        <div className="submit-panel-body">
+          {/* File input lives outside the panels so an attached file
+              survives step changes. */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*,.pdf"
+            onChange={handleFileChange}
+          />
 
-              {categoryDisallowed && (
-                <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-sm bg-danger-bg text-danger-text border border-border-subtle" role="alert">
-                  <Ban className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <strong>This category cannot be claimed.</strong>
-                    <div className="text-xs mt-1">
-                      {policies.rules.find((r) => r.id === "block-disallowed-category")?.message}
+          {step === 0 && (
+            <div className="wizard-panel">
+              <p className="wizard-intro">
+                Start with your receipt — we read the merchant, amount, GST
+                and date from it, so the next step is mostly confirming.
+              </p>
+
+              <button
+                type="button"
+                className={`file-dropzone block w-full ${isDragOver ? "dragover" : ""} ${parsing ? "parsing" : ""}`}
+                onClick={() => !parsing && fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                aria-label={fileName ? `Receipt ${fileName} attached. Click to replace.` : "Upload receipt"}
+                disabled={parsing}
+              >
+                {parsing ? (
+                  <OcrProgress />
+                ) : (
+                  <>
+                    <div className="flex justify-center mb-2">
+                      <UploadCloud className="h-6 w-6 text-text-tertiary" strokeWidth={1.5} />
                     </div>
-                    <div className="text-xs text-text-tertiary mt-1">
-                      Rule: <code>block-disallowed-category</code> — see{" "}
-                      <Link to="/policies">approval policy</Link>.
-                    </div>
-                  </div>
+                    <p className="m-0 text-sm">
+                      {fileName ? (
+                        <>
+                          <span className="text-accent font-medium">
+                            {escapeHtml(fileName)}
+                          </span>{" "}
+                          attached — click to replace
+                        </>
+                      ) : (
+                        "Drop a receipt here or click to browse"
+                      )}
+                    </p>
+                    <span className="dropzone-subtext">
+                      Photos, Grab / PayNow / SimplyGo screenshots. JPG, PNG, PDF up to 10&nbsp;MB.
+                    </span>
+                  </>
+                )}
+              </button>
+
+              {receiptMissing && !parsing && (
+                <div className="text-text-tertiary text-[0.8125rem] mt-2 flex items-start gap-1.5">
+                  <XCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                  <span>
+                    Every claim needs a receipt before it can be submitted.
+                    Rule: <code>block-missing-receipt</code>.
+                  </span>
                 </div>
               )}
 
-              {fullTaxInvoiceRequired && !categoryDisallowed && (
-                <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-sm bg-warning-bg text-warning-text border border-border-subtle" role="alert">
-                  <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <strong>Full tax invoice required.</strong>
-                    <div className="text-xs mt-1">
-                      Claims above {formatSGD(FULL_TAX_INVOICE_OVER)} need the supplier's GST
-                      registration number and tax invoice serial number per IRAS rules. Please
-                      attach the full tax invoice as your receipt — finance will verify the fields
-                      before approval.
-                    </div>
-                    <div className="text-xs text-text-tertiary mt-1">
-                      Rule: <code>route-tax-invoice-required</code> — see{" "}
-                      <Link to="/policies">approval policy</Link>.
-                    </div>
-                  </div>
+              {extracted && <div className="mt-3"><OcrSourceBadge source={extracted.source} /></div>}
+
+              {viewUrl && (
+                <div className="text-success-text text-xs mt-2 flex items-start gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                  <span>
+                    Receipt stored.{" "}
+                    <a href={viewUrl} target="_blank" rel="noreferrer" className="underline">
+                      View uploaded image
+                    </a>{" "}
+                    <span className="text-text-tertiary">(link valid 15 minutes)</span>
+                  </span>
                 </div>
+              )}
+            </div>
+          )}
+
+          {step === 1 && (
+            <div className="wizard-panel">
+              {extracted && (
+                <p className="wizard-read-note">
+                  {readFieldLabels.length > 0 ? (
+                    <>
+                      Read from your receipt: {readFieldLabels.join(", ")}.
+                      Tagged fields below came from the receipt — check
+                      them, then fill in the rest yourself.
+                    </>
+                  ) : (
+                    <>
+                      We couldn't read details from this receipt. It's
+                      attached to the claim — please type each field below.
+                    </>
+                  )}
+                </p>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
                 <div>
-                  <label className="form-label">Claim Title</label>
+                  <label className="form-label">
+                    Claim Title
+                    {needsInput("title", title) && <ManualEntryTag />}
+                  </label>
                   <input
                     type="text"
                     className="form-control"
@@ -585,6 +719,7 @@ export default function Employee() {
                   <label className="form-label">
                     Merchant
                     {ocrFields.has("merchant") && <OcrFieldTag live={ocrLive} />}
+                    {needsInput("merchant", merchant) && <ManualEntryTag />}
                   </label>
                   <input
                     type="text"
@@ -604,6 +739,7 @@ export default function Employee() {
                   <label className="form-label">
                     Expense Date
                     {ocrFields.has("expenseDate") && <OcrFieldTag live={ocrLive} />}
+                    {needsInput("expenseDate", date) && <ManualEntryTag />}
                   </label>
                   <input
                     type="date"
@@ -627,7 +763,7 @@ export default function Employee() {
                     {ocrFields.has("category") && <OcrFieldTag live={ocrLive} />}
                   </label>
                   <select
-                    className={`form-select ${categoryDisallowed ? "border-danger" : ""}`}
+                    className="form-select"
                     value={category}
                     onChange={(e) => {
                       setCategory(e.target.value);
@@ -638,10 +774,14 @@ export default function Employee() {
                     {CATEGORY_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
-                        {opt.disallowed ? " — not claimable" : ""}
                       </option>
                     ))}
                   </select>
+                  <div className="mt-1 text-xs text-text-tertiary">
+                    Only categories the{" "}
+                    <Link to="/policies">approval policy</Link> allows are
+                    listed.
+                  </div>
                 </div>
               </div>
 
@@ -649,13 +789,17 @@ export default function Employee() {
                 category={category}
                 details={details}
                 onChange={setDetails}
+                ocrFields={ocrFields}
+                ocrLive={ocrLive}
+                clearError={clearOcrField}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-1">
                 <div className="md:col-span-7">
                   <label className="form-label">
                     Total amount (incl. GST)
                     {ocrFields.has("amount") && <OcrFieldTag live={ocrLive} />}
+                    {needsInput("amount", amount) && <ManualEntryTag />}
                   </label>
                   <div className="input-group">
                     <span className="input-group-text bg-card border-r-0 text-text-secondary">
@@ -705,253 +849,394 @@ export default function Employee() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
 
-              <div className="mb-3">
-                <label className="form-label">
-                  Receipt{" "}
-                  {receiptRequired ? (
-                    <span className="text-danger text-xs">required for this amount</span>
-                  ) : (
-                    <span className="form-label-hint">we auto-fill the form from this</span>
-                  )}
-                </label>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  accept="image/*,.pdf"
-                  onChange={handleFileChange}
-                />
-                <button
-                  type="button"
-                  className={`file-dropzone block w-full ${isDragOver ? "dragover" : ""} ${parsing ? "parsing" : ""} ${
-                    receiptMissing ? "!border-danger" : ""
-                  }`}
-                  onClick={() => !parsing && fileInputRef.current?.click()}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  aria-label={fileName ? `Receipt ${fileName} attached. Click to replace.` : "Upload receipt"}
-                  disabled={parsing}
-                >
-                  {parsing ? (
-                    <OcrProgress />
-                  ) : (
-                    <>
-                      <div className="flex justify-center mb-2">
-                        <UploadCloud className="h-6 w-6 text-text-tertiary" strokeWidth={1.5} />
-                      </div>
-                      <p className="m-0 text-sm">
-                        {fileName ? (
-                          <>
-                            <span className="text-accent font-medium">
-                              {escapeHtml(fileName)}
-                            </span>{" "}
-                            attached
-                          </>
-                        ) : (
-                          "Drop a receipt here or click to browse"
-                        )}
-                      </p>
-                      <span className="dropzone-subtext">
-                        Photos, Grab / PayNow / SimplyGo screenshots. JPG, PNG, PDF up to 10&nbsp;MB.
-                      </span>
-                    </>
-                  )}
-                </button>
-                {receiptMissing && (
-                  <div className="text-danger-text text-xs mt-2 flex items-start gap-1.5">
-                    <XCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                    <span>
-                      A receipt image is required to submit this claim.
-                      Rule: <code>block-missing-receipt</code>.
-                    </span>
-                  </div>
-                )}
-                {viewUrl && (
-                  <div className="text-success-text text-xs mt-2 flex items-start gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                    <span>
-                      Receipt stored.{" "}
-                      <a href={viewUrl} target="_blank" rel="noreferrer" className="underline">
-                        View uploaded image
-                      </a>{" "}
-                      <span className="text-text-tertiary">(link valid 15 minutes)</span>
-                    </span>
-                  </div>
-                )}
+          {step === 2 && (
+            <div className="wizard-panel">
+              <div className="wizard-review-head">
+                <p className="wizard-intro m-0">
+                  Check everything reads right, then submit.
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    className="wizard-review-edit"
+                    onClick={() => setStep(0)}
+                  >
+                    Change receipt
+                  </button>
+                  <button
+                    type="button"
+                    className="wizard-review-edit"
+                    onClick={() => setStep(1)}
+                  >
+                    Edit details
+                  </button>
+                </div>
               </div>
 
-              {/* compliance preflight */}
-              {formHasMinFields && (
-                <div
-                  className={`preflight preflight-${preflight.outcome}`}
-                  role="status"
-                  aria-live="polite"
-                >
-                  <div className="preflight-icon">
-                    {preflight.outcome === "auto-approve" ? (
-                      <ShieldCheck className="h-4 w-4" />
-                    ) : preflight.outcome === "block" ? (
-                      <Ban className="h-4 w-4" />
-                    ) : (
-                      <AlertTriangle className="h-4 w-4" />
+              <dl className="wizard-review">
+                <div className="wizard-review-row">
+                  <dt>Receipt</dt>
+                  <dd>
+                    {escapeHtml(fileName)}
+                    {viewUrl && (
+                      <>
+                        {" "}
+                        <a href={viewUrl} target="_blank" rel="noreferrer" className="underline">
+                          view
+                        </a>
+                      </>
                     )}
+                  </dd>
+                </div>
+                <div className="wizard-review-row">
+                  <dt>Title</dt>
+                  <dd>{escapeHtml(title)}</dd>
+                </div>
+                <div className="wizard-review-row">
+                  <dt>Merchant</dt>
+                  <dd>{merchant ? escapeHtml(merchant) : "—"}</dd>
+                </div>
+                <div className="wizard-review-row">
+                  <dt>Date</dt>
+                  <dd>{date}</dd>
+                </div>
+                <div className="wizard-review-row">
+                  <dt>Category</dt>
+                  <dd>{category}</dd>
+                </div>
+                {detailRows.map((row) => (
+                  <div className="wizard-review-row" key={row.key}>
+                    <dt>{row.label}</dt>
+                    <dd>{escapeHtml(row.value)}</dd>
                   </div>
-                  <div className="preflight-body">
-                    <div className="preflight-headline">
-                      <strong>
-                        {preflight.outcome === "auto-approve" &&
-                          "Will auto-approve on submit"}
-                        {preflight.outcome === "route-to-human" &&
-                          "Goes to your approving officer"}
-                        {preflight.outcome === "block" &&
-                          "Won't submit — policy blocks this"}
-                      </strong>
-                      <span className="preflight-rule">{preflight.ruleId}</span>
+                ))}
+                <div className="wizard-review-row wizard-review-money">
+                  <dt>Amount (incl. GST)</dt>
+                  <dd>{formatSGD(numericAmount)}</dd>
+                </div>
+                <div className="wizard-review-row wizard-review-money">
+                  <dt>GST</dt>
+                  <dd>
+                    {gstAmount !== "" && Number.isFinite(parseFloat(gstAmount))
+                      ? formatSGD(parseFloat(gstAmount))
+                      : "—"}
+                  </dd>
+                </div>
+              </dl>
+
+              {fullTaxInvoiceRequired && (
+                <div className="flex items-start gap-2 p-3 mb-3 rounded-ds-sm bg-warning-bg text-warning-text border border-border-subtle" role="alert">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <strong>Full tax invoice required.</strong>
+                    <div className="text-xs mt-1">
+                      Claims above {formatSGD(FULL_TAX_INVOICE_OVER)} need the supplier's GST
+                      registration number and tax invoice serial number per IRAS rules. Please
+                      attach the full tax invoice as your receipt — finance will verify the fields
+                      before approval.
                     </div>
-                    <p className="preflight-message">{preflight.message}</p>
-                    {preflight.outcome === "block" && (
-                      <p className="preflight-hint">
-                        Fix the issue above or see{" "}
-                        <Link to="/policies">the company approval policy</Link>{" "}
-                        for the full rule list.
-                      </p>
-                    )}
+                    <div className="text-xs text-text-tertiary mt-1">
+                      Rule: <code>route-tax-invoice-required</code> — see{" "}
+                      <Link to="/policies">approval policy</Link>.
+                    </div>
                   </div>
                 </div>
               )}
 
+              {/* compliance preflight — the policy engine recommends, a
+                  human approver always decides */}
+              <div
+                className={`preflight preflight-${preflight.outcome}`}
+                role="status"
+                aria-live="polite"
+              >
+                <div className="preflight-icon">
+                  {preflight.outcome === "auto-approve" ? (
+                    <ShieldCheck className="h-4 w-4" />
+                  ) : preflight.outcome === "block" ? (
+                    <Ban className="h-4 w-4" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4" />
+                  )}
+                </div>
+                <div className="preflight-body">
+                  <div className="preflight-headline">
+                    <strong>
+                      {preflight.outcome === "auto-approve" &&
+                        "Within policy — will be marked ready to approve"}
+                      {preflight.outcome === "route-to-human" &&
+                        "Goes to your approving officer"}
+                      {preflight.outcome === "block" &&
+                        "Won't submit — policy blocks this"}
+                    </strong>
+                    {/* The recommend rules are named auto-approve-* in
+                        policies.json; surfacing that id would contradict
+                        the advisory copy ("the engine recommends, a human
+                        decides"), so the chip is shown only for routing
+                        and block outcomes. */}
+                    {preflight.outcome !== "auto-approve" && (
+                      <span className="preflight-rule">{preflight.ruleId}</span>
+                    )}
+                  </div>
+                  <p className="preflight-message">{preflight.message}</p>
+                  {preflight.outcome === "auto-approve" && (
+                    <p className="preflight-hint">
+                      Your approver still gives the final decision.
+                    </p>
+                  )}
+                  {preflight.outcome === "block" && (
+                    <p className="preflight-hint">
+                      Fix the issue above or see{" "}
+                      <Link to="/policies">the company approval policy</Link>{" "}
+                      for the full rule list.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="wizard-footer">
+            {step > 0 ? (
               <button
+                type="button"
+                className="btn-secondary wizard-back"
+                onClick={() => setStep(step - 1)}
+              >
+                Back
+              </button>
+            ) : (
+              <span aria-hidden="true" />
+            )}
+            {step < 2 ? (
+              // Distinct keys matter here: without them React reuses the
+              // same <button> DOM node for Continue and Submit, and the
+              // click that advances to Review re-types the node to
+              // "submit" before the browser runs the click's default
+              // action — submitting the form in the same click.
+              <button
+                key="wizard-continue"
+                type="button"
+                className="btn-primary wizard-continue"
+                disabled={step === 0 ? !stepOneValid : !stepTwoValid}
+                onClick={() => goToStep(step + 1)}
+              >
+                Continue
+              </button>
+            ) : (
+              <button
+                key="wizard-submit"
                 type="submit"
-                className="btn-primary w-full py-2 font-medium"
+                className="btn-primary wizard-continue"
                 disabled={submitting || formInvalid}
               >
                 {submitting ? "Submitting…" : "Submit claim"}
               </button>
-
-              <p className="text-xs text-text-tertiary mt-3 mb-0 text-center">
-                By submitting, you confirm the claim is accurate and consent to the{" "}
-                <Link to="/privacy">Privacy notice</Link> and the{" "}
-                <Link to="/policies">Approval policy</Link>.
-              </p>
-            </form>
+            )}
           </div>
+
+          {step === 2 && (
+            <p className="text-xs text-text-tertiary mt-3 mb-0 text-center">
+              By submitting, you confirm the claim is accurate and consent to the{" "}
+              <Link to="/privacy">Privacy notice</Link> and the{" "}
+              <Link to="/policies">Approval policy</Link>.
+            </p>
+          )}
+        </div>
+      </form>
+
+      {/* Recent claims as a ledger, not a stack of cards. The columns an
+          employee compares — reference, category, amount, where it sits — line
+          up on shared axes, the same table the approver reads their queue in.
+          The panel body scrolls on its own so the page keeps the fold. */}
+      <div className="data-panel claims-panel">
+        <div className="data-panel-head">
+          <span className="data-panel-title">Recent claims</span>
+          <span className="claims-panel-count">
+            {distinctClaims.length === allClaims.length
+              ? `${allClaims.length} claims`
+              : `${distinctClaims.length} of ${allClaims.length} claims`}
+          </span>
         </div>
 
-        <div className="lg:col-span-4">
-          <div className="workspace-card p-6 h-full">
+        {/* Named above the table as well as on the row: a correction is the
+            one thing here that is waiting on the employee, and the panel body
+            scrolls, so the reference has to be readable without scrolling. */}
+        {claimsNeedingFix.length > 0 && (
+          <div className="claims-fix-banner" role="status">
+            <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+            <span>
+              Waiting on you:{" "}
+              {claimsNeedingFix.map((c, i) => (
+                <Fragment key={c.id}>
+                  {i > 0 && ", "}
+                  <span className="data-ref">{c.id}</span>
+                </Fragment>
+              ))}
+              {" — "}
+              {claimsNeedingFix.length === 1
+                ? "your approver asked for a correction before this can be approved."
+                : "your approver asked for corrections before these can be approved."}
+            </span>
+          </div>
+        )}
 
-            <details className="mb-3 group">
-              <summary className="cursor-pointer text-[11px] font-medium text-text-tertiary hover:text-text-primary inline-flex items-center gap-1.5 select-none">
-                <FlaskConical className="h-3 w-3" />
-                Demo fixtures · {DEMO_RECEIPTS.length} test receipts
-              </summary>
-              <ul className="mt-2 flex flex-col gap-1 text-[11px]">
-                {DEMO_RECEIPTS.map((r) => (
-                  <li
-                    key={r.href}
-                    className="flex items-start justify-between gap-2 px-2 py-1.5 rounded-ds-sm border border-border-subtle bg-subtle/40"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <a
-                        href={r.href}
-                        download
-                        className="inline-flex items-center gap-1 font-medium text-text-primary hover:text-accent"
+        {distinctClaims.length === 0 ? (
+          <div className="claims-panel-empty">
+            <EmptyState
+              variant="documents"
+              title="No claims yet"
+              message="Submitted claims will appear here once you upload a receipt."
+            />
+          </div>
+        ) : (
+          <div className="data-panel-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Reference</th>
+                  <th scope="col">Category</th>
+                  <th scope="col" className="num">Amount</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="num">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {distinctClaims.map((item) => {
+                  const fix = correctionRequestOf(item);
+                  const open = () => navigate(`/claim/${item.id}`);
+                  return (
+                    <Fragment key={item.id}>
+                      <tr
+                        className={fix ? "claim-row-fix" : undefined}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${item.type} claim ${item.id}, ${item.date}, ${formatSGD(item.amount)}, ${fix ? "correction requested" : item.status}`}
+                        onClick={open}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            open();
+                          }
+                        }}
+                        style={{ cursor: "pointer" }}
                       >
-                        <Download className="h-2.5 w-2.5" />
-                        {r.label}
-                      </a>
-                      <p className="text-text-tertiary mt-0.5 truncate">
-                        {r.expect}
-                      </p>
-                    </div>
-                    <span className="text-[9px] font-mono text-text-tertiary border border-border-subtle px-1 py-0.5 rounded">
-                      {r.ext}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </details>
-
-            <h3 className="panel-subtitle mb-3 text-sm">Recent claims</h3>
-            <div className="flex flex-col gap-3">
-              {distinctClaims.length === 0 ? (
-                <EmptyState
-                  variant="documents"
-                  title="No claims yet"
-                  message="Submitted claims will appear here once you upload a receipt."
-                />
-              ) : (
-                distinctClaims.map((item, i) => (
-                  <div
-                    key={item.id}
-                    className={`claim-mini-card clickable stagger-item ${item.status.toLowerCase()}`}
-                    style={{ animationDelay: `${i * 55}ms` }}
-                  >
-                    <div
-                      className="flex justify-between items-start gap-2 cursor-pointer"
-                      onClick={() => navigate(`/claim/${item.id}`)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ")
-                          navigate(`/claim/${item.id}`);
-                      }}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <CategoryIcon category={item.type} size={34} />
-                        <div className="min-w-0">
-                          <h4 className="font-semibold text-text-primary m-0 text-sm mb-0.5">
-                            {escapeHtml(item.type)} Claim
-                          </h4>
-                          <span className="text-text-secondary block text-xs">{item.date}</span>
-                        </div>
-                      </div>
-                      <div className="text-right flex flex-col items-end gap-1">
-                        <span className={`badge-custom badge-${item.status.toLowerCase()}`}>
-                          {item.status}
-                        </span>
-                        <span className="block font-bold text-text-primary text-sm">
-                          {formatSGD(item.amount)}
-                        </span>
-                        <PolicyFlag claim={item} variant="chip" />
-                      </div>
-                    </div>
-                    {item.status === "Pending" && (
-                      <div className="flex justify-end gap-1 mt-2 pt-2 border-t border-border-subtle">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingClaim(item);
-                          }}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-ds-sm text-[11px] font-medium text-text-secondary hover:bg-subtle hover:text-foreground transition-colors"
-                          title="Edit claim details"
+                        <td data-label="Reference">
+                          <span className="data-ref">{item.id}</span>
+                          <span className="claim-row-date">{item.date}</span>
+                        </td>
+                        <td data-label="Category">
+                          <span className="claim-row-cat">
+                            <CategoryIcon category={item.type} size={18} />
+                            {escapeHtml(item.type)}
+                          </span>
+                        </td>
+                        <td className="num" data-label="Amount">
+                          <span className="claim-row-total">
+                            {formatSGD(item.amount)}
+                          </span>
+                        </td>
+                        <td data-label="Status">
+                          <span className="claim-row-status">
+                            {fix ? (
+                              <span className="claim-chip claim-chip-fix">
+                                Correction requested
+                              </span>
+                            ) : (
+                              <span
+                                className={`badge-custom badge-${item.status.toLowerCase()}`}
+                              >
+                                {item.status}
+                              </span>
+                            )}
+                            {!fix && (
+                              <PolicyFlag
+                                claim={item}
+                                variant="chip"
+                                hideAutoApproved
+                                className="policy-flag-chip"
+                              />
+                            )}
+                          </span>
+                        </td>
+                        {/* Quiet text actions, right-aligned with the numbers.
+                            Colour on a per-row button would put four coloured
+                            controls on a ledger and mean nothing. */}
+                        <td
+                          className="num claim-row-actions"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <Pencil className="h-3 w-3" />
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setWithdrawingClaim(item);
-                          }}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-ds-sm text-[11px] font-medium text-danger-text hover:bg-danger-bg transition-colors"
-                          title="Withdraw claim"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          Withdraw
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
+                          {fix ? (
+                            <button
+                              type="button"
+                              className="row-action row-action-fix"
+                              onClick={() => setEditingClaim(item)}
+                            >
+                              Fix and resend
+                            </button>
+                          ) : (
+                            item.status === "Pending" && (
+                              <button
+                                type="button"
+                                className="row-action"
+                                onClick={() => setEditingClaim(item)}
+                                title="Edit claim details"
+                              >
+                                Edit
+                              </button>
+                            )
+                          )}
+                          {item.status === "Pending" && (
+                            <button
+                              type="button"
+                              className="row-action row-action-danger"
+                              onClick={() => setWithdrawingClaim(item)}
+                              title="Withdraw claim"
+                            >
+                              Withdraw
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                      {fix && (
+                        // The approver named the exact fields; a row that only
+                        // said "does not match" would leave the chase where it
+                        // was. The note keeps its own line under the row.
+                        <tr className="claim-row-fix-note">
+                          <td colSpan={5}>
+                            <div className="fix-request">
+                              <ul className="fix-fields">
+                                {fix.labels.map((label) => (
+                                  <li className="fix-field" key={label}>
+                                    {label}
+                                  </li>
+                                ))}
+                              </ul>
+                              <p className="fix-note">
+                                <span className="fix-who">
+                                  {escapeHtml(fix.requestedBy)}
+                                </span>
+                                {fix.note
+                                  ? `: ${escapeHtml(fix.note)}`
+                                  : " checked your receipt and these do not match."}
+                              </p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
+        )}
+      </div>
       </div>
 
       <ConfirmModal
@@ -997,13 +1282,26 @@ export default function Employee() {
         open={!!editingClaim}
         claim={editingClaim}
         onSave={async (updates) => {
+          // Saving a claim that was sent back closes the loop on the backend:
+          // the request is cleared and the approver is notified. The toast has
+          // to say that, otherwise "saved" leaves the user wondering whether
+          // they still need to message anyone.
+          const fix = correctionRequestOf(editingClaim);
           try {
             await editClaim(editingClaim.id, updates);
-            addToast({
-              variant: "success",
-              title: "Claim updated",
-              message: `${editingClaim.id} saved — still pending review.`,
-            });
+            addToast(
+              fix
+                ? {
+                    variant: "success",
+                    title: "Sent back for approval",
+                    message: `${editingClaim.id} is back with ${fix.requestedBy}, who will re-check ${fix.labels.join(", ")}. Nothing else to do.`,
+                  }
+                : {
+                    variant: "success",
+                    title: "Claim updated",
+                    message: `${editingClaim.id} saved — still pending review.`,
+                  },
+            );
             setEditingClaim(null);
           } catch (err) {
             addToast({

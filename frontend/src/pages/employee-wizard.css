@@ -1,0 +1,673 @@
+/* ==========================================================================
+   EMPLOYEE WORKSPACE — submit panel (Receipt · Details · Review) and the
+   recent-claims ledger. Scoped to pages/employee.jsx only; every colour,
+   radius and shadow comes from the tokens and shared classes in index.css.
+   ========================================================================== */
+
+/* --- Page frame ---------------------------------------------------------
+   The workspace is a screen, not a document: the header, the figures and the
+   submit panel take the height they need and the ledger takes what is left,
+   scrolling its own body. That is what keeps the page on one 1440x900 screen
+   without the workspace itself scrolling. Below 1024px the page stacks and
+   grows normally — a phone scrolls, and should. */
+@media (min-width: 1024px) {
+  /* The app shell centres every page in a plain block wrapper, so a page
+     cannot pick up the workspace height by percentage on its own. :has scopes
+     the frame to the wrapper that actually holds this page — nothing else in
+     the shell is touched, and where :has is unsupported the page simply
+     scrolls as before. */
+  :has(> #view-employee) {
+    height: 100%;
+  }
+
+  #view-employee {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #view-employee > * {
+    flex: 0 0 auto;
+  }
+
+  #view-employee .claims-panel {
+    flex: 1 1 auto;
+    /* Never squeezed below head + column titles + two rows; past that the
+       workspace scrolls rather than crushing the ledger. */
+    min-height: 9.25rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #view-employee .claims-panel .data-panel-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+/* --- Submit panel — a data panel, so the two panels on this page and the
+       approval queue share one frame. --- */
+.submit-panel {
+  margin-bottom: 1rem;
+  /* The panel holds a form, not a table: it must not clip a focus ring. */
+  overflow: visible;
+}
+
+.submit-panel .data-panel-head {
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.submit-panel-body {
+  padding: 1rem 1.15rem 1.15rem;
+}
+
+/* --- Step indicator — quiet text, dot-separated, current step emphasised --- */
+.wizard-steps {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  font-size: 0.75rem;
+}
+
+.wizard-steps li {
+  display: flex;
+  align-items: center;
+}
+
+.wizard-steps li + li::before {
+  content: "\00b7";
+  color: var(--text-tertiary);
+  margin: 0 0.5rem;
+}
+
+.wizard-step {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.125rem;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.01em;
+}
+
+.wizard-step-current {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.wizard-step-upcoming {
+  color: var(--text-tertiary);
+}
+
+/* Completed steps are buttons — the user can hop back to them. */
+button.wizard-step-done {
+  background: none;
+  border: none;
+  font: inherit;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+button.wizard-step-done:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* --- Step panels — a soft entrance, disabled under reduced motion --- */
+.wizard-panel {
+  animation: wizard-panel-in 0.18s var(--ease);
+}
+
+@keyframes wizard-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wizard-panel {
+    animation: none;
+  }
+}
+
+/* --- Copy inside panels --- */
+.wizard-intro {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+/* Step 2 note: which fields were read from the receipt vs still needed. */
+.wizard-read-note {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  background-color: var(--surface-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+/* --- Review summary --- */
+.wizard-review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.625rem;
+}
+
+.wizard-review-edit {
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.wizard-review-edit:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-subtle);
+}
+
+.wizard-review {
+  margin: 0 0 0.875rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+  overflow: hidden;
+}
+
+.wizard-review-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.wizard-review-row + .wizard-review-row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.wizard-review-row dt {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.wizard-review-row dd {
+  margin: 0;
+  color: var(--text-primary);
+  text-align: right;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.wizard-review-money dd {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* --- Footer: Back on the left, Continue / Submit on the right --- */
+.wizard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.wizard-continue {
+  min-width: 10rem;
+}
+
+/* Comfortable touch targets on small screens. */
+@media (max-width: 768px) {
+  .wizard-footer .wizard-back,
+  .wizard-footer .wizard-continue {
+    min-height: 44px;
+  }
+
+  .wizard-continue {
+    flex: 1;
+  }
+
+  button.wizard-step-done,
+  .wizard-review-edit {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* ==========================================================================
+   RECENT CLAIMS LEDGER — the shared .data-panel / .data-table do the frame,
+   the rows and the numbers. Only the per-cell detail lives here.
+   ========================================================================== */
+
+.claims-panel-count {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.claims-panel-empty {
+  padding: 1.25rem;
+}
+
+/* Reference over its date, so the row keeps one line of primary text while
+   the date stays available — the approval queue reads the same way. */
+.claim-row-date {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+
+.claim-row-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+}
+
+.claim-row-total {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.claim-row-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.claim-row-actions {
+  white-space: nowrap;
+}
+
+/* Row actions are text, not buttons in colour. Four coloured controls down a
+   ledger would be four claims of importance and no meaning. */
+.row-action {
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--radius-chip);
+  transition: var(--transition-fast);
+}
+
+.row-action + .row-action {
+  margin-left: 0.1rem;
+}
+
+.row-action:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-subtle);
+}
+
+.row-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.row-action-danger {
+  color: var(--danger-text);
+}
+
+.row-action-danger:hover {
+  color: var(--danger-text);
+  background-color: var(--danger-bg);
+}
+
+/* ==========================================================================
+   CORRECTION REQUESTED — the approver named the fields that do not match, so
+   the fix is a task in the portal instead of a message to answer.
+
+   Shared by the ledger row (pages/employee.jsx) and the edit modal
+   (components/editclaimmodal.jsx), which only ever renders from this page.
+   Warning tone throughout: the colour means "waiting on you", nothing else.
+   ========================================================================== */
+
+/* Named above the table too: the panel body scrolls, and the one row that is
+   waiting on the reader must not depend on where the scroll happens to be. */
+.claims-fix-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--warning-text);
+  background-color: var(--warning-bg);
+  border-bottom: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+}
+
+.claims-fix-banner .data-ref {
+  color: inherit;
+  font-weight: 600;
+}
+
+/* The flagged row itself: warning ground plus a rule down its leading edge,
+   so it is distinct from the ordinary rows without lifting off the table. */
+.data-table tbody tr.claim-row-fix > td,
+.data-table tbody tr.claim-row-fix-note > td {
+  background-color: var(--warning-bg);
+  border-bottom-color: color-mix(in srgb, var(--warning) 25%, transparent);
+}
+
+.data-table tbody tr.claim-row-fix > td:first-child {
+  box-shadow: inset 2px 0 0 var(--warning);
+}
+
+.data-table tbody tr.claim-row-fix:hover > td {
+  background-color: color-mix(in srgb, var(--warning) 12%, var(--bg-card));
+}
+
+.row-action-fix {
+  color: var(--warning-text);
+  font-weight: 600;
+}
+
+.row-action-fix:hover {
+  color: var(--warning-text);
+  background-color: color-mix(in srgb, var(--warning) 18%, var(--bg-card));
+}
+
+/* Scoped by id so it beats the shared .claim-chip ground regardless of which
+   stylesheet the bundler emits first. */
+#view-employee .claim-chip-fix {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--warning-text);
+  background-color: var(--bg-card);
+  border-color: color-mix(in srgb, var(--warning) 45%, transparent);
+}
+
+/* The note keeps its own line under the row — exact fields, named person,
+   what they said. A row that only said "does not match" would leave the
+   chase exactly where it was. */
+.data-table tbody tr.claim-row-fix > td {
+  border-bottom-width: 0;
+}
+
+.claim-row-fix-note > td {
+  padding-top: 0;
+}
+
+.fix-request {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.5rem;
+}
+
+/* The named fields, spelled out — the difference between this and a chat
+   message is that the list is exact. */
+.fix-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fix-field {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-chip);
+  color: var(--warning-text);
+  background-color: var(--bg-card);
+  border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent);
+}
+
+.fix-note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.fix-who {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* --- Edit modal: the note once at the top, then the named fields --- */
+.fix-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0 0.9rem;
+  padding: 0.65rem 0.75rem;
+  background-color: var(--warning-bg);
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+  border-radius: var(--radius-control);
+  color: var(--warning-text);
+}
+
+.fix-callout-text {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.fix-field-tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--radius-chip);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--warning-text);
+  background-color: var(--warning-bg);
+  border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent);
+}
+
+.field-asked .form-label {
+  color: var(--warning-text);
+}
+
+.field-asked .form-control,
+.field-asked .form-select {
+  border-color: var(--warning);
+  background-color: var(--warning-bg);
+}
+
+.fix-hint {
+  color: var(--warning-text);
+}
+
+/* ==========================================================================
+   RADII — inside the workspace the geometry tightens: panels 10px, controls
+   8px, chips 5px. Scoped to this page so index.css stays shared.
+   ========================================================================== */
+
+#view-employee .form-control,
+#view-employee .form-select,
+#view-employee .input-group-text,
+#view-employee .btn-primary,
+#view-employee .btn-secondary,
+#view-employee .file-dropzone,
+#view-employee .wizard-read-note {
+  border-radius: var(--radius-control);
+}
+
+/* Re-flatten the seam after the radii above, or S$ and the amount stop
+   reading as one control. */
+#view-employee .input-group > :not(:first-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+#view-employee .input-group > :not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+#view-employee .wizard-review,
+#view-employee .modal-sheet,
+#view-employee .preflight {
+  border-radius: var(--radius-panel);
+}
+
+#view-employee .badge-custom,
+#view-employee .claim-chip,
+#view-employee .fix-field,
+#view-employee .fix-field-tag,
+#view-employee .policy-flag-chip {
+  border-radius: var(--radius-chip);
+}
+
+/* The shared policy chip is a 10px pill; on the ledger it joins the type
+   ladder and the tightened chip geometry like every other chip here. */
+#view-employee .policy-flag-chip {
+  font-size: 0.6875rem;
+}
+
+/* ==========================================================================
+   SMALL SCREENS — the shared table collapses to card rows below 768px; the
+   correction row keeps its warning frame there and every action stays a
+   44px target.
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* As card rows the warning belongs to the whole card, not to each cell, and
+     the note stays welded to the claim it belongs to. */
+  .data-table tbody tr.claim-row-fix,
+  .data-table tbody tr.claim-row-fix-note {
+    background-color: var(--warning-bg);
+    border-color: color-mix(in srgb, var(--warning) 55%, var(--border-subtle));
+    border-left: 2px solid var(--warning);
+  }
+
+  .data-table tbody tr.claim-row-fix > td,
+  .data-table tbody tr.claim-row-fix:hover > td,
+  .data-table tbody tr.claim-row-fix-note > td {
+    background-color: transparent;
+  }
+
+  .data-table tbody tr.claim-row-fix {
+    margin-bottom: 0;
+    border-bottom: none;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .data-table tbody tr.claim-row-fix > td {
+    border-bottom-width: 1px;
+  }
+
+  .data-table tbody tr.claim-row-fix > td:first-child {
+    box-shadow: none;
+  }
+
+  .data-table tbody tr.claim-row-fix-note {
+    border-top: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    padding-top: 0.5rem;
+  }
+
+  .data-table tbody tr.claim-row-fix-note > td {
+    display: block;
+    padding-top: 0;
+    text-align: left;
+  }
+
+  .claim-row-actions {
+    white-space: normal;
+  }
+
+  .row-action {
+    min-height: 44px;
+    padding: 0 0.65rem;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-action {
+    transition: none;
+  }
+}
+
+/* --- the workspace band: form beside ledger ---------------------------
+   A claim form and a claims ledger are different objects with different
+   natural widths. Stacked in one full-width column the form was stretched
+   to a table's measure — a 1180px dropzone with its label floating in the
+   middle — while the ledger showed a single row above the fold. Side by
+   side each gets the width it actually wants, and the page fills. */
+.employee-band {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .employee-band {
+    grid-template-columns: minmax(0, 30rem) minmax(0, 1fr);
+    align-items: stretch;
+  }
+  /* Both panels take the band's height so their feet line up and the ledger
+     scrolls internally rather than pushing the page. */
+  .employee-band > .submit-panel,
+  .employee-band > .claims-panel {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .employee-band > .claims-panel .data-panel-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  /* The band starts ~295px down (topbar, page header, figures band), so this
+     is the room left to the fold. A measured constant for the same reason the
+     approval queue needs one: percentage heights do not resolve against the
+     workspace scroller. */
+  .employee-band > .claims-panel {
+    max-height: calc(100vh - 19rem);
+  }
+  /* The form is only as tall as the step it is showing — stretching it to the
+     ledger's height left a void under Continue. The ledger fills instead,
+     because a list genuinely has more to show. */
+  .employee-band > .submit-panel {
+    align-self: start;
+    max-height: calc(100vh - 19rem);
+    overflow-y: auto;
+  }
+}

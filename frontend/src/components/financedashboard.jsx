@@ -15,17 +15,6 @@ import {
   Cell,
 } from "recharts";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
-  CheckCircle2,
-  Clock,
-  ListChecks,
-  Receipt,
-  ShieldAlert,
-  Sparkles,
-  TrendingUp,
-  Users,
-  Wallet,
   Car,
   Utensils,
   Wine,
@@ -34,16 +23,24 @@ import {
   GraduationCap,
   Heart,
   Dumbbell,
+  Users,
   Tag,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "./ui/card.jsx";
 import { Badge } from "./ui/badge.jsx";
 import { categoryColor } from "../lib/categoryColors.js";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select.jsx";
+import { Skeleton } from "./ui/skeleton.jsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs.jsx";
+import { Sheet, SheetContent, SheetTitle } from "./ui/sheet.jsx";
+import { useFinanceInsights } from "../hooks/useFinanceInsights.js";
+import { formatSGD } from "../utils/helpers.js";
+import "./finance-workspace.css";
 
 // Maps the icon keys from categoryColors.js to lucide components.
 const CAT_ICON = {
@@ -82,18 +79,6 @@ function CategorySpendRow({ category, amount, max }) {
     </div>
   );
 }
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select.jsx";
-import { Skeleton } from "./ui/skeleton.jsx";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs.jsx";
-import { Sheet, SheetContent, SheetTitle } from "./ui/sheet.jsx";
-import { useFinanceInsights } from "../hooks/useFinanceInsights.js";
-import { formatSGD } from "../utils/helpers.js";
 
 const RANGE_OPTIONS = [
   { value: "30d", label: "Last 30 days" },
@@ -103,7 +88,7 @@ const RANGE_OPTIONS = [
 ];
 
 const POLICY_LABELS = {
-  "auto-approve": "Auto-approved",
+  "auto-approve": "In policy",
   "route-to-human": "Routed to human",
   block: "Blocked",
 };
@@ -131,86 +116,59 @@ function formatPct(n) {
   return `${sign}${(n * 100).toFixed(0)}%`;
 }
 
-function StatTile({ icon: Icon, label, value, delta, hint, onClick, color }) {
-  const positive = delta != null && delta >= 0;
-  const interactive = typeof onClick === "function";
+/**
+ * One figure on the metric strip.
+ *
+ * Was a floating card with a tinted icon chip and a 2xl number — four of them
+ * in a row, which is how a marketing dashboard opens, not how a finance team
+ * reads a statement header. The figures now sit on one ruled band and keep
+ * every behaviour they had: each one drills into the claims behind it, by
+ * pointer or by keyboard, because it is a real <button>.
+ */
+function MetricItem({ label, value, delta, hint, onClick }) {
+  const pct = formatPct(delta);
   return (
-    <div
-      onClick={interactive ? onClick : undefined}
-      role={interactive ? "button" : undefined}
-      tabIndex={interactive ? 0 : undefined}
-      onKeyDown={
-        interactive
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-      className={`stat-color-card ${interactive ? "clickable" : ""} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1`}
-      style={color ? { "--cat": color } : undefined}
+    <button
+      type="button"
+      className="metric-item metric-item-action"
+      onClick={onClick}
+      title="See the contributing claims"
     >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          {label}
-        </span>
-        <span className="stat-color-icon">
-          <Icon className="h-4 w-4" />
-        </span>
-      </div>
-      <div className="text-2xl font-bold tracking-tight tabular-nums">
-        {value}
-      </div>
-      {delta != null && (
-        <div
-          className={`mt-1 flex items-center gap-1 text-xs font-medium ${
-            positive ? "text-success-text" : "text-danger-text"
-          }`}
-        >
-          {positive ? (
-            <ArrowUpRight className="h-3 w-3" />
-          ) : (
-            <ArrowDownRight className="h-3 w-3" />
-          )}
-          <span>{formatPct(delta)}</span>
-          <span className="text-muted-foreground font-normal">
+      <span className="metric-item-label">{label}</span>
+      <span className="metric-item-value">{value}</span>
+      <span className="metric-item-sub">
+        {pct ? (
+          <>
+            <span
+              className={`metric-delta ${
+                delta >= 0 ? "metric-delta-up" : "metric-delta-down"
+              }`}
+            >
+              {pct}
+            </span>{" "}
             vs previous period
-          </span>
-        </div>
-      )}
-      {hint && !delta && (
-        <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
-      )}
-      {interactive && (
-        <div className="mt-1 text-[10px] text-text-tertiary">
-          Click to see contributing claims
-        </div>
-      )}
-    </div>
+          </>
+        ) : (
+          hint || ""
+        )}
+      </span>
+    </button>
   );
 }
 
-function PolicyBar({ label, value, total, variant }) {
+function PolicyMeter({ label, value, total, tone }) {
   const pct = total ? Math.round((value / total) * 100) : 0;
-  const barColor =
-    variant === "success"
-      ? "bg-success"
-      : variant === "warning"
-        ? "bg-warning"
-        : "bg-destructive";
   return (
-    <div>
-      <div className="flex items-baseline justify-between mb-1">
-        <span className="text-sm font-medium">{label}</span>
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {value} <span className="opacity-60">· {pct}%</span>
+    <div className="fin-meter">
+      <div className="fin-meter-head">
+        <span>{label}</span>
+        <span className="fin-meter-value">
+          {value} · {pct}%
         </span>
       </div>
-      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+      <div className="fin-meter-track">
         <div
-          className={`h-full ${barColor} transition-all`}
+          className={`fin-meter-fill fin-meter-fill-${tone}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -221,20 +179,30 @@ function PolicyBar({ label, value, total, variant }) {
 function ChartTooltip({ active, payload, label, formatter }) {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="rounded-ds-md border border-border-subtle bg-popover shadow-ds-md p-3 text-xs">
-      {label && <div className="font-semibold mb-1">{label}</div>}
+    <div className="fin-tooltip">
+      {label && <div className="fin-tooltip-label">{label}</div>}
       {payload.map((entry) => (
-        <div key={entry.dataKey || entry.name} className="flex items-center gap-2">
+        <div key={entry.dataKey || entry.name} className="fin-tooltip-row">
           <span
-            className="h-2 w-2 rounded-full"
+            className="fin-tooltip-swatch"
             style={{ background: entry.color }}
           />
-          <span className="text-muted-foreground">{entry.name}:</span>
-          <span className="font-medium tabular-nums">
+          <span className="fin-tooltip-name">{entry.name}</span>
+          <span className="fin-tooltip-value">
             {formatter ? formatter(entry.value) : entry.value}
           </span>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** A panel head: title on the left, an optional plain note on the right. */
+function PanelHead({ title, note }) {
+  return (
+    <div className="data-panel-head">
+      <h3 className="data-panel-title">{title}</h3>
+      {note && <span className="data-panel-note">{note}</span>}
     </div>
   );
 }
@@ -273,7 +241,6 @@ export default function FinanceDashboard({ claims, loading }) {
   const [range, setRange] = useState("30d");
   const [subTab, setSubTab] = useState("overview");
   const [drillKey, setDrillKey] = useState(null);
-  const insights = useFinanceInsights(claims, range);
 
   // unique claims only (latest record per id)
   const uniqueClaims = useMemo(() => {
@@ -307,34 +274,31 @@ export default function FinanceDashboard({ claims, loading }) {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
-        </div>
-        <Skeleton className="h-80" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Skeleton className="h-80" />
-          <Skeleton className="h-80" />
+      <div className="finance-ws">
+        <Skeleton className="h-9" />
+        <Skeleton className="h-20" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* range selector + SG context strip */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center rounded-full border border-border-subtle bg-subtle px-2 py-0.5 font-medium text-text-secondary">
-            SGD · GST 9%
+    <div className="finance-ws">
+      {/* Scope of the figures on the left, the range they cover on the right —
+          the two things you check before you trust a number. */}
+      <div className="fin-contextbar">
+        <div className="flex items-center gap-2">
+          <span className="fin-chip">SGD · GST 9%</span>
+          <span className="fin-context-note">
+            Figures include GST where applicable
           </span>
-          <span>Figures include GST where applicable</span>
         </div>
         <div className="w-44">
           <Select value={range} onValueChange={setRange}>
-            <SelectTrigger>
+            <SelectTrigger className="fin-select-trigger" aria-label="Date range">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -356,462 +320,393 @@ export default function FinanceDashboard({ claims, loading }) {
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatTile
-          icon={Receipt}
-          label="Total claims"
-          value={view.totals.count.toLocaleString()}
-          delta={view.totals.countDelta}
-          onClick={() => setDrillKey("count")}
-        />
-        <StatTile
-          icon={TrendingUp}
-          label="Total spend"
-          value={formatSGD(view.totals.spend)}
-          delta={view.totals.spendDelta}
-          onClick={() => setDrillKey("spend")}
-        />
-        <StatTile
-          icon={Wallet}
-          label="Disbursed"
-          value={formatSGD(view.totals.disbursed)}
-          hint={`${view.totals.disbursedCount} paid claims`}
-          onClick={() => setDrillKey("disbursed")}
-        />
-        <StatTile
-          icon={Clock}
-          label="In flight"
-          value={(view.totals.pendingEndorsement + view.totals.awaitingPayout).toString()}
-          hint={`${view.totals.pendingEndorsement} pending · ${view.totals.awaitingPayout} awaiting payout`}
-          onClick={() => setDrillKey("inflight")}
-        />
-      </div>
-
-      {/* Spend by category — ranked bars (length encodes magnitude) */}
-      {view.byCategory && view.byCategory.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-baseline justify-between">
-              <CardTitle>Spend by category</CardTitle>
-              <span className="text-xs text-muted-foreground">
-                Total per category in range
-              </span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-3">
-              {view.byCategory.slice(0, 8).map((c) => (
-                <CategorySpendRow
-                  key={c.category}
-                  category={c.category}
-                  amount={c.amount}
-                  max={view.byCategory[0].amount}
-                />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* submission trend */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Submission &amp; disbursement trend</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">
-                Weekly volume across the selected range
-              </p>
-            </div>
-            <Sparkles className="h-4 w-4 text-muted-foreground" />
+        <TabsContent value="overview" className="space-y-3">
+          <div className="metric-strip">
+            <MetricItem
+              label="Total claims"
+              value={view.totals.count.toLocaleString()}
+              delta={view.totals.countDelta}
+              onClick={() => setDrillKey("count")}
+            />
+            <MetricItem
+              label="Total spend"
+              value={formatSGD(view.totals.spend)}
+              delta={view.totals.spendDelta}
+              onClick={() => setDrillKey("spend")}
+            />
+            <MetricItem
+              label="Disbursed"
+              value={formatSGD(view.totals.disbursed)}
+              hint={`${view.totals.disbursedCount} paid claims`}
+              onClick={() => setDrillKey("disbursed")}
+            />
+            <MetricItem
+              label="In flight"
+              value={(
+                view.totals.pendingEndorsement + view.totals.awaitingPayout
+              ).toString()}
+              hint={`${view.totals.pendingEndorsement} pending · ${view.totals.awaitingPayout} awaiting payout`}
+              onClick={() => setDrillKey("inflight")}
+            />
           </div>
-        </CardHeader>
-        <CardContent>
-          {view.submissionTrend.length === 0 ? (
-            <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
-              No data in this range yet
-            </div>
-          ) : (
-            <div className="h-48 -ml-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={view.submissionTrend}>
-                  <defs>
-                    <linearGradient id="grad-sub" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="grad-dis" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--success)" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="var(--success)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                  <XAxis
-                    dataKey="week"
-                    fontSize={11}
-                    tick={{ fill: "var(--text-tertiary)" }}
-                    axisLine={{ stroke: "var(--border-subtle)" }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    fontSize={11}
-                    tick={{ fill: "var(--text-tertiary)" }}
-                    axisLine={{ stroke: "var(--border-subtle)" }}
-                    tickLine={false}
-                  />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Legend
-                    wrapperStyle={{ fontSize: 12, paddingTop: 4 }}
-                    iconType="circle"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="submitted"
-                    name="Submitted"
-                    stroke="var(--accent)"
-                    strokeWidth={2}
-                    fill="url(#grad-sub)"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="disbursed"
-                    name="Disbursed"
-                    stroke="var(--success)"
-                    strokeWidth={2}
-                    fill="url(#grad-dis)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-        </TabsContent>
-
-        <TabsContent value="spend" className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Spend by department</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              Top {Math.min(8, view.byDepartment.length)} departments by total spend
-            </p>
-          </CardHeader>
-          <CardContent>
-            {view.byDepartment.length === 0 ? (
-              <div className="h-56 flex items-center justify-center text-sm text-muted-foreground">
-                No spend in this range
-              </div>
-            ) : (
-              <div className="h-56 -ml-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={view.byDepartment.slice(0, 8)}
-                    layout="vertical"
-                    margin={{ left: 8, right: 16, top: 4, bottom: 4 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="var(--border-subtle)"
-                      horizontal={false}
-                    />
-                    <XAxis
-                      type="number"
-                      fontSize={11}
-                      tick={{ fill: "var(--text-tertiary)" }}
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(v) =>
-                        v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v
-                      }
-                    />
-                    <YAxis
-                      dataKey="department"
-                      type="category"
-                      fontSize={11}
-                      tick={{ fill: "var(--text-secondary)" }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={92}
-                    />
-                    <Tooltip
-                      cursor={{ fill: "var(--bg-subtle)" }}
-                      content={
-                        <ChartTooltip formatter={(v) => formatSGD(v)} />
-                      }
-                    />
-                    <Bar
-                      dataKey="amount"
-                      name="Spend"
-                      fill="var(--accent)"
-                      radius={[0, 4, 4, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Category mix</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              Share of total spend by claim category
-            </p>
-          </CardHeader>
-          <CardContent>
-            {view.byCategory.length === 0 ? (
-              <div className="h-56 flex items-center justify-center text-sm text-muted-foreground">
-                No spend in this range
-              </div>
-            ) : (
-              <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={view.byCategory}
-                      dataKey="amount"
-                      nameKey="category"
-                      innerRadius={48}
-                      outerRadius={88}
-                      paddingAngle={1}
-                      stroke="var(--bg-card)"
-                      strokeWidth={2}
-                    >
-                      {view.byCategory.map((_, idx) => (
-                        <Cell
-                          key={idx}
-                          fill={CHART_COLORS[idx % CHART_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      content={
-                        <ChartTooltip formatter={(v) => formatSGD(v)} />
-                      }
-                    />
-                    <Legend
-                      wrapperStyle={{ fontSize: 11 }}
-                      iconType="circle"
-                      layout="vertical"
-                      verticalAlign="middle"
-                      align="right"
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-        </TabsContent>
-
-        <TabsContent value="policy" className="space-y-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Policy outcomes</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">
-                What the approval policy would do with each claim in this range
-              </p>
-            </div>
-            <ShieldAlert className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          {policyTotal === 0 ? (
-            <div className="text-sm text-muted-foreground py-6 text-center">
-              No claims to evaluate in this range
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-4">
-                <PolicyBar
-                  label="Auto-approved"
-                  value={view.policyCounts["auto-approve"] || 0}
-                  total={policyTotal}
-                  variant="success"
+          {/* Two panels side by side on a wide screen. Stacked full-width they
+              pushed the dashboard 150px past the fold while leaving half the row
+              empty — the composition and the fit were the same problem. */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {/* Spend by category — ranked bars (length encodes magnitude) */}
+            {view.byCategory && view.byCategory.length > 0 && (
+              <section className="data-panel">
+                <PanelHead
+                  title="Spend by category"
+                  note="Total per category in range"
                 />
-                <PolicyBar
-                  label="Routed to human"
-                  value={view.policyCounts["route-to-human"] || 0}
-                  total={policyTotal}
-                  variant="warning"
-                />
-                <PolicyBar
-                  label="Blocked"
-                  value={view.policyCounts.block || 0}
-                  total={policyTotal}
-                  variant="destructive"
-                />
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">
-                  Top rules hit
+                <div className="fin-panel-body">
+                  {/* Five, not eight: the long tail of tiny categories pushed
+                      the dashboard past the fold, and a category with S$12 in
+                      it is not what finance opens this page to see. */}
+                  <div className="fin-panel-rows">
+                    {view.byCategory.slice(0, 5).map((c) => (
+                      <CategorySpendRow
+                        key={c.category}
+                        category={c.category}
+                        amount={c.amount}
+                        max={view.byCategory[0].amount}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <ul className="space-y-2">
-                  {view.topPolicyReasons.map((r) => (
-                    <li
-                      key={`${r.outcome}-${r.ruleId}`}
-                      className="flex items-start justify-between gap-2 text-xs"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <code className="text-[11px] text-foreground">
-                          {r.ruleId}
-                        </code>
-                        <div className="mt-0.5">
-                          <Badge variant={POLICY_VARIANT[r.outcome]}>
-                            {POLICY_LABELS[r.outcome]}
-                          </Badge>
-                        </div>
-                      </div>
-                      <span className="tabular-nums font-medium pt-0.5">
-                        {r.count}
-                      </span>
-                    </li>
-                  ))}
+              </section>
+            )}
+
+            {/* submission trend */}
+            <section className="data-panel">
+              <PanelHead
+                title="Submission and disbursement trend"
+                note="Weekly volume in range"
+              />
+              <div className="fin-panel-body">
+                {view.submissionTrend.length === 0 ? (
+                  <div className="fin-panel-empty">No data in this range yet</div>
+                ) : (
+                  <div className="fin-chart">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={view.submissionTrend}>
+                        <defs>
+                          <linearGradient id="grad-sub" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.35} />
+                            <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="grad-dis" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--success)" stopOpacity={0.3} />
+                            <stop offset="100%" stopColor="var(--success)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                        <XAxis
+                          dataKey="week"
+                          fontSize={11}
+                          tick={{ fill: "var(--text-tertiary)" }}
+                          axisLine={{ stroke: "var(--border-subtle)" }}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          fontSize={11}
+                          tick={{ fill: "var(--text-tertiary)" }}
+                          axisLine={{ stroke: "var(--border-subtle)" }}
+                          tickLine={false}
+                          width={32}
+                        />
+                        <Tooltip content={<ChartTooltip />} />
+                        <Legend
+                          wrapperStyle={{ fontSize: 12, paddingTop: 4 }}
+                          iconType="circle"
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="submitted"
+                          name="Submitted"
+                          stroke="var(--accent)"
+                          strokeWidth={2}
+                          fill="url(#grad-sub)"
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="disbursed"
+                          name="Disbursed"
+                          stroke="var(--success)"
+                          strokeWidth={2}
+                          fill="url(#grad-dis)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="spend" className="space-y-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <section className="data-panel">
+              <PanelHead
+                title="Spend by department"
+                note={`Top ${Math.min(8, view.byDepartment.length)} by total spend`}
+              />
+              <div className="fin-panel-body">
+                {view.byDepartment.length === 0 ? (
+                  <div className="fin-panel-empty fin-panel-empty-tall">
+                    No spend in this range
+                  </div>
+                ) : (
+                  <div className="fin-chart fin-chart-tall">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={view.byDepartment.slice(0, 8)}
+                        layout="vertical"
+                        margin={{ left: 8, right: 16, top: 4, bottom: 4 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="var(--border-subtle)"
+                          horizontal={false}
+                        />
+                        <XAxis
+                          type="number"
+                          fontSize={11}
+                          tick={{ fill: "var(--text-tertiary)" }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(v) =>
+                            v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v
+                          }
+                        />
+                        <YAxis
+                          dataKey="department"
+                          type="category"
+                          fontSize={11}
+                          tick={{ fill: "var(--text-secondary)" }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={92}
+                        />
+                        <Tooltip
+                          cursor={{ fill: "var(--bg-subtle)" }}
+                          content={<ChartTooltip formatter={(v) => formatSGD(v)} />}
+                        />
+                        <Bar
+                          dataKey="amount"
+                          name="Spend"
+                          fill="var(--accent)"
+                          radius={[0, 4, 4, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="data-panel">
+              <PanelHead
+                title="Category mix"
+                note="Share of total spend by category"
+              />
+              <div className="fin-panel-body">
+                {view.byCategory.length === 0 ? (
+                  <div className="fin-panel-empty fin-panel-empty-tall">
+                    No spend in this range
+                  </div>
+                ) : (
+                  <div className="fin-chart fin-chart-tall">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={view.byCategory}
+                          dataKey="amount"
+                          nameKey="category"
+                          innerRadius={48}
+                          outerRadius={88}
+                          paddingAngle={1}
+                          stroke="var(--bg-card)"
+                          strokeWidth={2}
+                        >
+                          {view.byCategory.map((_, idx) => (
+                            <Cell
+                              key={idx}
+                              fill={CHART_COLORS[idx % CHART_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          content={<ChartTooltip formatter={(v) => formatSGD(v)} />}
+                        />
+                        <Legend
+                          wrapperStyle={{ fontSize: 11 }}
+                          iconType="circle"
+                          layout="vertical"
+                          verticalAlign="middle"
+                          align="right"
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="policy" className="space-y-3">
+          <section className="data-panel">
+            <PanelHead
+              title="Policy outcomes"
+              note="What the approval policy would do with each claim in range"
+            />
+            <div className="fin-panel-body">
+              {policyTotal === 0 ? (
+                <div className="fin-panel-empty">
+                  No claims to evaluate in this range
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <PolicyMeter
+                      label="In policy"
+                      value={view.policyCounts["auto-approve"] || 0}
+                      total={policyTotal}
+                      tone="success"
+                    />
+                    <PolicyMeter
+                      label="Routed to human"
+                      value={view.policyCounts["route-to-human"] || 0}
+                      total={policyTotal}
+                      tone="warning"
+                    />
+                    <PolicyMeter
+                      label="Blocked"
+                      value={view.policyCounts.block || 0}
+                      total={policyTotal}
+                      tone="danger"
+                    />
+                  </div>
+                  <div>
+                    <div className="fin-subhead">Top rules hit</div>
+                    <ul className="fin-list">
+                      {view.topPolicyReasons.map((r) => (
+                        <li key={`${r.outcome}-${r.ruleId}`}>
+                          <span className="min-w-0 flex items-center gap-2">
+                            <span className="fin-rule-id">{r.ruleId}</span>
+                            <Badge variant={POLICY_VARIANT[r.outcome]}>
+                              {POLICY_LABELS[r.outcome]}
+                            </Badge>
+                          </span>
+                          <span className="fin-num">{r.count}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        </TabsContent>
+
+        <TabsContent value="activity" className="space-y-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <section className="data-panel">
+              <PanelHead title="Top claimants" note="By total spend in range" />
+              <div className="fin-panel-body">
+                {view.topClaimants.length === 0 ? (
+                  <div className="fin-panel-empty">No claims in this range</div>
+                ) : (
+                  <ul className="fin-list">
+                    {view.topClaimants.map((c) => (
+                      <li key={c.name}>
+                        <span>{c.name}</span>
+                        <span className="flex items-baseline gap-2">
+                          <span className="fin-list-meta">
+                            {c.count} claim{c.count === 1 ? "" : "s"}
+                          </span>
+                          <span className="fin-num">{formatSGD(c.total)}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
+
+            <section className="data-panel">
+              <PanelHead title="Status distribution" note="Claims in range" />
+              <div className="fin-panel-body">
+                <ul className="fin-list">
+                  {view.statusDistribution.map((s) => {
+                    const variantMap = {
+                      Pending: "warning",
+                      Endorsed: "default",
+                      Paid: "success",
+                      Rejected: "destructive",
+                    };
+                    return (
+                      <li key={s.status}>
+                        <Badge variant={variantMap[s.status]}>{s.status}</Badge>
+                        <span className="fin-num">{s.count}</span>
+                      </li>
+                    );
+                  })}
+                  <li>
+                    <span className="fin-list-meta">Average claim value</span>
+                    <span className="fin-num">{formatSGD(view.totals.avgClaim)}</span>
+                  </li>
                 </ul>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-        </TabsContent>
-
-        <TabsContent value="activity" className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Top claimants</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            {view.topClaimants.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No data</div>
-            ) : (
-              <ul className="space-y-2">
-                {view.topClaimants.map((c) => (
-                  <li
-                    key={c.name}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span className="font-medium">{c.name}</span>
-                    <span className="flex items-baseline gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {c.count} claim{c.count === 1 ? "" : "s"}
-                      </span>
-                      <span className="tabular-nums font-semibold">
-                        {formatSGD(c.total)}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Status distribution</CardTitle>
-              <ListChecks className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {view.statusDistribution.map((s) => {
-                const variantMap = {
-                  Pending: "warning",
-                  Endorsed: "default",
-                  Paid: "success",
-                  Rejected: "destructive",
-                };
-                return (
-                  <li
-                    key={s.status}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <Badge variant={variantMap[s.status]}>{s.status}</Badge>
-                    <span className="tabular-nums font-semibold">
-                      {s.count}
-                    </span>
-                  </li>
-                );
-              })}
-              <li className="pt-2 border-t border-border-subtle flex items-center justify-between text-sm">
-                <span className="text-muted-foreground flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Avg claim value
-                </span>
-                <span className="tabular-nums font-semibold">
-                  {formatSGD(view.totals.avgClaim)}
-                </span>
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
+            </section>
+          </div>
         </TabsContent>
       </Tabs>
 
-      {/* drill-down sheet for stat tiles */}
+      {/* drill-down sheet for the metric strip */}
       <Sheet open={!!drillKey} onOpenChange={(o) => !o && setDrillKey(null)}>
         <SheetContent side="right" className="w-full sm:max-w-md p-0">
           {drillKey && (
-            <div className="flex h-full flex-col">
-              <div className="px-5 py-4 border-b border-border-subtle">
-                <div className="text-[10px] uppercase tracking-wider font-semibold text-text-tertiary">
-                  Breakdown
-                </div>
-                <SheetTitle className="text-base font-semibold tracking-tight mt-0.5">
-                  {DRILL_DEFS[drillKey].title}
+            <div className="finance-ws-drill">
+              <div className="fin-drill-head">
+                <div className="fin-drill-eyebrow">Breakdown</div>
+                <SheetTitle asChild>
+                  <h2 className="fin-drill-title">{DRILL_DEFS[drillKey].title}</h2>
                 </SheetTitle>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="fin-drill-sub">
                   {drillClaims.length} claim{drillClaims.length === 1 ? "" : "s"}
                   {" · "}
                   Total {formatSGD(drillTotal)}
                 </p>
               </div>
-              <div className="flex-1 overflow-y-auto px-5 py-3">
+              <div className="fin-drill-body">
                 {drillClaims.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No claims in this slice
-                  </p>
+                  <p className="fin-drill-empty">No claims in this slice</p>
                 ) : (
-                  <ul className="flex flex-col gap-2">
+                  <ul className="list-none m-0 p-0">
                     {drillClaims
                       .slice()
                       .sort((a, b) => (a.date < b.date ? 1 : -1))
                       .map((c) => (
-                        <li
-                          key={c.id}
-                          className="flex items-center justify-between rounded-ds-md border border-border-subtle bg-card px-3 py-2"
-                        >
+                        <li key={c.id} className="fin-drill-row">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold tabular-nums">
-                                {c.id}
-                              </span>
+                              <span className="data-ref">{c.id}</span>
                               <span
                                 className={`badge-custom badge-${c.status.toLowerCase()}`}
                               >
                                 {c.status}
                               </span>
                             </div>
-                            <div className="text-[11px] text-text-secondary truncate">
+                            <div className="fin-drill-meta">
                               {c.employee} · {c.type} · {c.date}
                             </div>
                           </div>
-                          <span className="text-sm font-bold tabular-nums">
+                          <span className="fin-drill-amount">
                             {formatSGD(c.amount)}
                           </span>
                         </li>

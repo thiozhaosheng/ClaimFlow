@@ -176,7 +176,7 @@ export default function ClaimDetail() {
             <div className="flex items-center gap-3 mb-4">
               <CategoryIcon category={claim.type} size={42} />
               <div className="min-w-0">
-                <div className="text-[11px] uppercase tracking-wider text-text-tertiary font-semibold">
+                <div className="text-[0.75rem] uppercase tracking-wider text-text-tertiary font-semibold">
                   {claim.type}
                 </div>
                 <div className="text-lg font-bold tabular-nums leading-tight">
@@ -218,7 +218,7 @@ export default function ClaimDetail() {
             <h2 className="panel-subtitle mb-4">Claim process</h2>
             <StageTracker stages={stages} />
 
-            <h3 className="text-[11px] uppercase tracking-[0.07em] font-semibold text-text-tertiary mt-5 mb-2">
+            <h3 className="text-[0.75rem] uppercase tracking-[0.07em] font-semibold text-text-tertiary mt-5 mb-2">
               Activity
             </h3>
             {history.length === 0 ? (
@@ -304,7 +304,7 @@ export default function ClaimDetail() {
                   <div className="preflight-headline">
                     <strong>
                       {policy.outcome === "auto-approve"
-                        ? "Meets every auto-approval check"
+                        ? "Within policy on every check"
                         : policy.outcome === "block"
                         ? "Blocked by policy"
                         : "Routed for review"}
@@ -338,7 +338,7 @@ export default function ClaimDetail() {
                 <div key={r.key} className="drawer-doc">
                   <div className="min-w-0">
                     <div className="text-[13px] font-medium">{r.label}</div>
-                    <div className="text-[11px] text-text-tertiary">{r.detail}</div>
+                    <div className="text-[0.75rem] text-text-tertiary">{r.detail}</div>
                   </div>
                   {staged[r.key] ? (
                     <span className="drawer-doc-done">

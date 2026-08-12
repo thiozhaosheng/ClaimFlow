@@ -1,40 +1,88 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   Check,
-  Filter,
   Search,
-  X,
   Paperclip,
   ChevronRight,
 } from "lucide-react";
 import { useClaims } from "../hooks/useclaims.js";
 import { useToast } from "../context/toastcontext.jsx";
+import { api } from "../utils/api.js";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
 import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
-import ReviewModal from "../components/reviewmodal.jsx";
+import ReviewModal, {
+  describeCorrectionFields,
+} from "../components/reviewmodal.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import PolicyFlag from "../components/policyflag.jsx";
 import CategoryIcon from "../components/categoryicon.jsx";
 import { useShortcuts } from "../hooks/useShortcuts.js";
+import "../components/review-flow.css";
+
+/**
+ * A pending claim carrying a correction request is waiting on the submitter,
+ * not on the approver — the queue has to say so rather than showing another
+ * Review button that would only re-read the same mismatched fields.
+ */
+const correctionOf = (claim) => claim?.details?.correctionRequest || null;
+
+/** Days a claim has been waiting — the thing an approver triages on. */
+const waitingDays = (claim) => {
+  const d = claim?.date ? new Date(claim.date) : null;
+  if (!d || Number.isNaN(d.getTime())) return null;
+  return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86_400_000));
+};
+const AWAITING_FILTER = "Awaiting correction";
 
 export default function Approving() {
   const navigate = useNavigate();
-  const { latestMap, updateClaimStatus, claimsDb, error } = useClaims();
+  const { latestMap, updateClaimStatus, claimsDb, error, refetch } = useClaims();
   const { addToast } = useToast();
   const [activeClaim, setActiveClaim] = useState(null);
-  const [filterStatus, setFilterStatus] = useState("Pending");
+  // The sidebar's saved views drive this through ?status= — one source of
+  // truth, so a view is a real link (shareable, back-button-able) rather than
+  // a second copy of the filter state.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStatus = searchParams.get("status");
+  const [filterStatus, setFilterStatusRaw] = useState(urlStatus || "Pending");
+  const setFilterStatus = (next) => {
+    setFilterStatusRaw(next);
+    const params = new URLSearchParams(searchParams);
+    if (next === "Pending") params.delete("status");
+    else params.set("status", next);
+    setSearchParams(params, { replace: true });
+  };
+  useEffect(() => {
+    if (urlStatus && urlStatus !== filterStatus) setFilterStatusRaw(urlStatus);
+    if (!urlStatus && filterStatus !== "Pending") setFilterStatusRaw("Pending");
+  }, [urlStatus]);
   const [filterDept, setFilterDept] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [reviewClaim, setReviewClaim] = useState(null);
   const [reviewAction, setReviewAction] = useState(null);
 
-  const handleReviewConfirm = async (actionType, reason) => {
+  const handleReviewConfirm = async (actionType, reason, fields = []) => {
     if (!reviewClaim) return;
     try {
-      if (actionType === "reject") {
+      if (actionType === "request-changes") {
+        // The claim stays Pending and keeps its receipt, its OCR result and
+        // its id — only the named fields go back to the submitter. This is
+        // the path that replaces chasing them outside the portal.
+        await api.patch(`/api/workflow/review/${reviewClaim.rawId}`, {
+          action: "request-changes",
+          remarks: reason || undefined,
+          fields,
+        });
+        await refetch();
+        addToast({
+          variant: "warning",
+          title: "Correction requested",
+          message: `${reviewClaim.id} went back to ${reviewClaim.employee} for ${describeCorrectionFields(fields)}.`,
+        });
+      } else if (actionType === "reject") {
         await updateClaimStatus(reviewClaim.id, "Rejected", "Lisa Wang", reason);
         addToast({
           variant: "error",
@@ -52,8 +100,11 @@ export default function Approving() {
     } catch (err) {
       addToast({
         variant: "error",
-        title: `${actionType === "reject" ? "Reject" : "Endorse"} failed`,
-        message: err?.message || `Could not ${actionType} this claim.`,
+        title:
+          actionType === "request-changes"
+            ? "Correction request failed"
+            : `${actionType === "reject" ? "Reject" : "Endorse"} failed`,
+        message: err?.message || "Could not record that decision on this claim.",
       });
     } finally {
       setReviewClaim(null);
@@ -69,8 +120,11 @@ export default function Approving() {
 
   const matchingClaims = Object.values(latestMap).filter((item) => {
     if (item.department !== "Sales") return false;
-    if (filterStatus !== "All Status" && item.status !== filterStatus)
+    if (filterStatus === AWAITING_FILTER) {
+      if (item.status !== "Pending" || !correctionOf(item)) return false;
+    } else if (filterStatus !== "All Status" && item.status !== filterStatus) {
       return false;
+    }
     if (filterDept !== "All" && item.department !== filterDept) return false;
     if (
       searchQuery &&
@@ -98,6 +152,7 @@ export default function Approving() {
     }, 0);
     return {
       pendingCount: pending.length,
+      awaitingCorrectionCount: pending.filter((c) => correctionOf(c)).length,
       pendingTotal: pending.reduce((s, c) => s + c.amount, 0),
       endorsedCount: endorsed.length,
       paidCount: paid.length,
@@ -111,7 +166,7 @@ export default function Approving() {
       <PageHeader
         eyebrow="Approving officer · Sales"
         title="Approval queue"
-        subtitle="Endorse claims from your department or send them back with a reason. Auto-extracted fields, policy hints, and full receipt context are surfaced inline so reviews stay under a minute."
+        subtitle="Every claim walks through the same three steps: verify the receipt against the typed fields, weigh the policy recommendation, then record your decision. The engine only recommends — the call is yours."
         actions={
           <div
             className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-3 py-1.5 min-h-[36px] rounded-ds-sm border border-border-subtle bg-card text-[12px] text-text-secondary tabular-nums"
@@ -150,27 +205,35 @@ export default function Approving() {
         </div>
       )}
 
-      <div className="mt-6 mb-4">
+      {/* mb-10 keeps the 40px that used to come from the wrapper plus the
+          component's own margin, now that the band owns no outer spacing. */}
+      <div className="mt-6 mb-10">
         <div className="metric-strip">
-          <div className="metric-card">
-            <span className="metric-label">Pending</span>
-            <span className="metric-value">{stats.pendingCount}</span>
-            <span className="metric-sub">claims</span>
+          <div className="metric-item">
+            <span className="metric-item-label">Pending</span>
+            <span className="metric-item-value">{stats.pendingCount}</span>
+            <span className="metric-item-sub">
+              {stats.awaitingCorrectionCount > 0
+                ? `claims · ${stats.awaitingCorrectionCount} awaiting correction`
+                : "claims"}
+            </span>
           </div>
-          <div className="metric-card">
-            <span className="metric-label">Queue</span>
-            <span className="metric-value">{formatSGD(stats.pendingTotal).replace("S$", "")}</span>
-            <span className="metric-sub">SGD</span>
+          <div className="metric-item">
+            <span className="metric-item-label">Queue</span>
+            <span className="metric-item-value">{formatSGD(stats.pendingTotal).replace("S$", "")}</span>
+            <span className="metric-item-sub">SGD</span>
           </div>
-          <div className="metric-card">
-            <span className="metric-label">Oldest</span>
-            <span className="metric-value">{stats.oldestPendingDays}</span>
-            <span className="metric-sub">days</span>
+          <div className="metric-item">
+            <span className="metric-item-label">Oldest</span>
+            <span className="metric-item-value">{stats.oldestPendingDays}</span>
+            <span className="metric-item-sub">days</span>
           </div>
-          <div className="metric-card" style={{ backgroundColor: 'var(--info-bg)', borderColor: 'var(--info)' }}>
-            <span className="metric-label" style={{ color: 'var(--info-text)' }}>Scope</span>
+          {/* Neutral like its siblings: a scope label is information, not a
+              signal, and tinting it brand-blue spent colour on decoration. */}
+          <div className="metric-item">
+            <span className="metric-item-label">Scope</span>
             <span className="text-sm font-medium mt-1">Sales Department</span>
-            <span className="metric-sub" style={{ color: 'var(--info-text)' }}>Review and endorse claims from Sales only.</span>
+            <span className="metric-item-sub">Review and endorse claims from Sales only.</span>
           </div>
         </div>
       </div>
@@ -181,10 +244,12 @@ export default function Approving() {
               className="form-select form-select-sm"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              style={{ width: '130px' }}
+              style={{ width: '168px' }}
+              aria-label="Filter by status"
             >
               <option value="All Status">All Status</option>
               <option value="Pending">Pending</option>
+              <option value={AWAITING_FILTER}>Awaiting correction</option>
               <option value="Endorsed">Endorsed</option>
               <option value="Rejected">Rejected</option>
               <option value="Paid">Paid</option>
@@ -221,74 +286,120 @@ export default function Approving() {
                 message="No claims match your filters right now. New submissions will appear here."
               />
             ) : (
-              <div className="claim-rows">
-                {matchingClaims.map((item) => (
-                  <div
+              /* A ledger, not a feed. Each claim used to be a floating card
+                 with an avatar and a shadow that lifted on hover — consumer
+                 furniture on the screen an approver spends their day in. A
+                 table puts the columns an approver compares (amount, category,
+                 age) on shared axes and fits three times as many rows on one
+                 screen. NOTE: a JSX-brace comment cannot sit directly inside
+                 a parenthesised ternary branch — Babel rejects it, so this is
+                 a plain block comment. */
+              <div className="data-panel-scroll">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Reference</th>
+                      <th scope="col">Employee</th>
+                      <th scope="col">Category</th>
+                      <th scope="col">Policy</th>
+                      <th scope="col" className="num">Waiting</th>
+                      <th scope="col" className="num">Amount</th>
+                      <th scope="col"><span className="sr-only">Action</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                {matchingClaims.map((item) => {
+                  const correction = correctionOf(item);
+                  const awaitingCorrection =
+                    item.status === "Pending" && !!correction;
+                  return (
+                  <tr
                     key={item.id}
-                    className="claim-row stagger-item"
                     role="button"
                     tabIndex={0}
                     onClick={() => navigate(`/claim/${item.id}`)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ")
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
                         navigate(`/claim/${item.id}`);
+                      }
                     }}
+                    style={{ cursor: "pointer" }}
                   >
-                    {/* identity */}
-                    <div className="claim-row-id">
-                      <div className="avatar-dot">{item.employee.charAt(0)}</div>
-                      <div className="min-w-0">
-                        <div className="claim-row-name">
-                          {escapeHtml(item.employee)}
-                        </div>
-                        <div className="claim-row-sub">
-                          {item.id} · {item.date} · {item.department}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* tags */}
-                    <div className="claim-row-tags">
-                      <span className="claim-chip">
-                        <CategoryIcon category={item.type} size={20} />
+                    <td>
+                      <span className="data-ref">{item.id}</span>
+                      <span className="queue-date">{item.date}</span>
+                    </td>
+                    <td>
+                      <span className="queue-name">{escapeHtml(item.employee)}</span>
+                      <span className="queue-dept">{item.department}</span>
+                    </td>
+                    <td>
+                      <span className="queue-cat">
+                        <CategoryIcon category={item.type} size={18} />
                         {escapeHtml(item.type)}
                       </span>
+                    </td>
+                    <td>
+                      {awaitingCorrection ? (
+                        /* The policy verdict is moot while the submitter is
+                           fixing the fields — a "needs review" flag here would
+                           point at the wrong person. */
+                        <span
+                          className="claim-chip claim-chip-awaiting"
+                          title={`Sent back for ${describeCorrectionFields(correction.fields)}`}
+                        >
+                          Awaiting correction
+                        </span>
+                      ) : (
+                        <PolicyFlag claim={item} variant="chip" hideAutoApproved />
+                      )}
+                    </td>
+                    {/* The queue's real triage axis. It existed only as an
+                        aggregate ("oldest 36 days") — per row it tells the
+                        approver which claim to open first, and it puts the
+                        table's spare width to work carrying information
+                        instead of air. */}
+                    <td className="num">
+                      {(() => {
+                        const d = waitingDays(item);
+                        if (d === null) return <span className="queue-wait">—</span>;
+                        return (
+                          <span
+                            className={`queue-wait${d >= 30 ? " queue-wait-old" : ""}`}
+                            title={`Submitted ${d} day${d === 1 ? "" : "s"} ago`}
+                          >
+                            {d}d
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td className="num">
+                      <span className="queue-amount">{formatSGD(item.amount)}</span>
                       {item.receiptUrl && (
-                        <span className="claim-chip claim-chip-file">
+                        <span className="queue-receipt" title="Receipt attached">
                           <Paperclip className="h-3 w-3" />
-                          Receipt
                         </span>
                       )}
-                      <PolicyFlag claim={item} variant="chip" hideAutoApproved />
-                    </div>
-
-                    {/* amount */}
-                    <div className="claim-row-amount">{formatSGD(item.amount)}</div>
-
-                    {/* action / status */}
-                    <div
-                      className="claim-row-action"
+                    </td>
+                    <td
+                      className="num"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {item.status === "Pending" ? (
-                        <>
-                          <button
-                            className="row-btn row-btn-approve"
-                            onClick={() => { setReviewClaim(item); setReviewAction("endorse"); }}
-                            title="Endorse"
-                          >
-                            <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
-                            <span>Endorse</span>
-                          </button>
-                          <button
-                            className="row-btn row-btn-reject"
-                            onClick={() => { setReviewClaim(item); setReviewAction("reject"); }}
-                            aria-label="Reject claim"
-                            title="Reject"
-                          >
-                            <X className="h-3.5 w-3.5" strokeWidth={2.5} />
-                          </button>
-                        </>
+                      {awaitingCorrection ? (
+                        /* No Review button: the next move belongs to the
+                           submitter, and the row says whose it is. */
+                        <span className="claim-row-waiting">
+                          Waiting on {item.employee.split(" ")[0]}
+                        </span>
+                      ) : item.status === "Pending" ? (
+                        <button
+                          className="row-btn row-btn-review"
+                          onClick={() => { setReviewClaim(item); setReviewAction(null); }}
+                          title="Review this claim step by step"
+                        >
+                          <span>Review</span>
+                        </button>
                       ) : (
                         <span
                           className={`badge-custom badge-${item.status.toLowerCase()}`}
@@ -296,10 +407,12 @@ export default function Approving() {
                           {item.status}
                         </span>
                       )}
-                      <ChevronRight className="h-4 w-4 claim-row-chevron" />
-                    </div>
-                  </div>
-                ))}
+                    </td>
+                  </tr>
+                  );
+                })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
