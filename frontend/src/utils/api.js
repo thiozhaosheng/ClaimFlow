@@ -1,4 +1,38 @@
-export const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
+import { humanMessage, technicalDetail } from "./apierrors.js";
+
+/**
+ * A connection failure in development almost always means one thing: the
+ * backend was never started, because `npm run dev` used to launch the
+ * frontend alone. The user-facing copy stays calm and generic; this is the
+ * line that saves the developer the re-diagnosis, printed once per session.
+ */
+let devHintShown = false;
+function devConnectionHint(url) {
+  if (devHintShown) return;
+  devHintShown = true;
+  console.warn(
+    [
+      `[ClaimFlow] Could not reach ${url}`,
+      "The API (:3000) and auth gateway (:4000) must both be running.",
+      "Start everything with:  npm run dev   (from the repo root)",
+    ].join("\n  "),
+  );
+}
+
+/**
+ * Where the API lives.
+ *
+ * Every call site already passes a path beginning with "/api", so the base
+ * must NOT also end in "/api" — the old fallback of "/api" produced
+ * "/api/api/auth/login" and a 404 on any machine without a .env file (it is
+ * gitignored, so that means every fresh clone). Empty is the correct default:
+ * requests stay relative and Vite's dev proxy — or a same-origin deployment —
+ * forwards them. A configured value that ends in /api is trimmed rather than
+ * silently doubled.
+ */
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || "")
+  .replace(/\/+$/, "")
+  .replace(/\/api$/, "");
 const TOKEN_KEY = "claimflow_token";
 
 export function getToken() {
@@ -10,14 +44,24 @@ export function setToken(token) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
+/**
+ * What the user reads vs what a developer needs.
+ *
+ * `message` is always a plain sentence safe to render in the UI. `detail`
+ * keeps the technical string (status line, server error, exception text) so
+ * it can be logged without ever reaching a person who just wanted to submit
+ * a claim. Nothing in the app should render `detail`.
+ */
 export class ApiError extends Error {
-  constructor(message, { status, body } = {}) {
+  constructor(message, { status, body, detail } = {}) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.body = body;
+    this.detail = detail || message;
   }
 }
+
 
 let onUnauthorizedHandler = null;
 
@@ -47,10 +91,9 @@ async function request(path, { method = "GET", body, headers = {} } = {}) {
       credentials: "include",
     });
   } catch (networkError) {
-    throw new ApiError(
-      "Network error - the ClaimFlow API is unreachable.",
-      { status: 0 },
-    );
+    const detail = technicalDetail({ status: 0, path, cause: networkError?.message });
+    if (import.meta.env.DEV) devConnectionHint(`${API_BASE}${path}`);
+    throw new ApiError(humanMessage({ status: 0, path }), { status: 0, detail });
   }
 
   if (response.status === 401) {
@@ -69,8 +112,12 @@ async function request(path, { method = "GET", body, headers = {} } = {}) {
   }
 
   if (!response.ok) {
-    const msg = payload?.message || `Request failed (${response.status})`;
-    throw new ApiError(msg, { status: response.status, body: payload });
+    const detail = technicalDetail({ status: response.status, payload, path });
+    if (import.meta.env.DEV) console.warn("[api]", detail);
+    throw new ApiError(
+      humanMessage({ status: response.status, payload, path }),
+      { status: response.status, body: payload, detail },
+    );
   }
 
   return payload;
@@ -90,7 +137,9 @@ async function requestForm(path, formData) {
       credentials: "include",
     });
   } catch (e) {
-    throw new ApiError("Network error - the ClaimFlow API is unreachable.", { status: 0 });
+    const detail = technicalDetail({ status: 0, path, cause: e?.message });
+    if (import.meta.env.DEV) devConnectionHint(`${API_BASE}${path}`);
+    throw new ApiError(humanMessage({ status: 0, path }), { status: 0, detail });
   }
 
   if (response.status === 401) {
@@ -103,10 +152,12 @@ async function requestForm(path, formData) {
     try { payload = await response.json(); } catch { payload = null; }
   }
   if (!response.ok) {
-    throw new ApiError(payload?.message || `Upload failed (${response.status})`, {
-      status: response.status,
-      body: payload,
-    });
+    const detail = technicalDetail({ status: response.status, payload, path });
+    if (import.meta.env.DEV) console.warn("[api]", detail);
+    throw new ApiError(
+      humanMessage({ status: response.status, payload, path }),
+      { status: response.status, body: payload, detail },
+    );
   }
   return payload;
 }
