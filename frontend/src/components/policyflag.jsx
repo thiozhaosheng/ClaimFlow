@@ -65,7 +65,9 @@ export default function PolicyFlag({
   if (hideAutoApproved && policy.outcome === "auto-approve") return null;
 
   const Icon = ICON[policy.outcome];
-  const tooltip = `${policy.ruleId}: ${policy.message}`;
+  const tooltip = policy.label
+    ? `${policy.label}: ${policy.message}`
+    : policy.message;
 
   if (variant === "dot") {
     const dotColor =

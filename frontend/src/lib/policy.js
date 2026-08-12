@@ -71,7 +71,13 @@ export function evaluateCondition(cond, ctx) {
 }
 
 // Walk the rules in order; first match wins.
-// Returns { outcome, ruleId, message } or default "route-to-human".
+// Returns { outcome, ruleId, label, message } or default "route-to-human".
+//
+// `label` is the rule's human name from policies.json ("Missing receipt over
+// S$50"). Screens were printing `ruleId` at the user instead — a chip reading
+// "default" or "block-disallowed-category" next to the verdict, which is the
+// engine's internal vocabulary and means nothing to the person reading it.
+// The id stays for code that branches on a specific rule.
 export function evaluatePolicies(ctx) {
   for (const rule of policies.rules) {
     const ok = rule.when.every((c) => evaluateCondition(c, ctx));
@@ -79,6 +85,7 @@ export function evaluatePolicies(ctx) {
       return {
         outcome: rule.then,
         ruleId: rule.id,
+        label: rule.label,
         message: rule.message,
       };
     }
@@ -86,6 +93,8 @@ export function evaluatePolicies(ctx) {
   return {
     outcome: "route-to-human",
     ruleId: "default",
+    // No label: there is no rule to name, and the message below says so.
+    label: null,
     message: "No rule matched; sending to a human reviewer.",
   };
 }
