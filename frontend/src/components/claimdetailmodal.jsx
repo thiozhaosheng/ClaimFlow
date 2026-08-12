@@ -181,7 +181,9 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
               <div className="preflight-body">
                 <div className="preflight-headline">
                   <strong>{POLICY_LABEL[policy.outcome]}</strong>
-                  <span className="preflight-rule">{policy.ruleId}</span>
+                  {policy.label && (
+                    <span className="preflight-rule">{policy.label}</span>
+                  )}
                 </div>
                 <p className="preflight-message">{policy.message}</p>
               </div>
@@ -254,10 +256,6 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
               <span className="claim-detail-meta-value">
                 {formatSGDate(claim.date)}
               </span>
-            </div>
-            <div className="claim-detail-meta-item">
-              <span className="claim-detail-meta-label">Bank account</span>
-              <span className="claim-detail-meta-value">{claim.bank}</span>
             </div>
             {claim.merchant && (
               <div className="claim-detail-meta-item">
