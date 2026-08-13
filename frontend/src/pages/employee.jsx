@@ -23,6 +23,7 @@ import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import SortHeader from "../components/sortheader.jsx";
+import AnimatedNumber from "../components/animatednumber.jsx";
 import TablePager from "../components/tablepager.jsx";
 import { useSort } from "../hooks/usesort.js";
 import { usePaging } from "../hooks/usepaging.js";
@@ -611,12 +612,16 @@ export default function Employee() {
       <div className="metric-strip mb-4">
         <div className="metric-item">
           <span className="metric-item-label">Submitted</span>
-          <span className="metric-item-value">{stats.submittedThisMonth}</span>
+          <span className="metric-item-value">
+            <AnimatedNumber value={stats.submittedThisMonth} />
+          </span>
           <span className="metric-item-sub">claims this month</span>
         </div>
         <div className="metric-item">
           <span className="metric-item-label">In flight</span>
-          <span className="metric-item-value">{stats.inFlight}</span>
+          <span className="metric-item-value">
+            <AnimatedNumber value={stats.inFlight} />
+          </span>
           <span className="metric-item-sub">
             {stats.pending} pending · {stats.endorsed} endorsed
           </span>
@@ -624,7 +629,11 @@ export default function Employee() {
         <div className="metric-item">
           <span className="metric-item-label">Paid</span>
           <span className="metric-item-value">
-            {formatSGD(stats.paidThisMonth).replace("S$", "")}
+            <AnimatedNumber
+              value={stats.paidThisMonth}
+              decimals={2}
+              format={(n) => formatSGD(n).replace("S$", "")}
+            />
           </span>
           <span className="metric-item-sub">SGD this month</span>
         </div>

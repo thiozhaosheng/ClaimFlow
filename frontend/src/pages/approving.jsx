@@ -19,6 +19,7 @@ import ReviewModal, {
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import PolicyFlag from "../components/policyflag.jsx";
 import SortHeader from "../components/sortheader.jsx";
+import AnimatedNumber from "../components/animatednumber.jsx";
 import { useSort } from "../hooks/usesort.js";
 import { useShortcuts } from "../hooks/useShortcuts.js";
 import "../components/review-flow.css";
@@ -253,7 +254,9 @@ export default function Approving() {
         <div className="metric-strip">
           <div className="metric-item">
             <span className="metric-item-label">Pending</span>
-            <span className="metric-item-value">{stats.pendingCount}</span>
+            <span className="metric-item-value">
+              <AnimatedNumber value={stats.pendingCount} />
+            </span>
             <span className="metric-item-sub">
               {stats.awaitingCorrectionCount > 0
                 ? `claims · ${stats.awaitingCorrectionCount} awaiting correction`
@@ -262,12 +265,20 @@ export default function Approving() {
           </div>
           <div className="metric-item">
             <span className="metric-item-label">Queue</span>
-            <span className="metric-item-value">{formatSGD(stats.pendingTotal).replace("S$", "")}</span>
+            <span className="metric-item-value">
+              <AnimatedNumber
+                value={stats.pendingTotal}
+                decimals={2}
+                format={(n) => formatSGD(n).replace("S$", "")}
+              />
+            </span>
             <span className="metric-item-sub">SGD</span>
           </div>
           <div className="metric-item">
             <span className="metric-item-label">Oldest</span>
-            <span className="metric-item-value">{stats.oldestPendingDays}</span>
+            <span className="metric-item-value">
+              <AnimatedNumber value={stats.oldestPendingDays} />
+            </span>
             <span className="metric-item-sub">days</span>
           </div>
           {/* Neutral like its siblings: a scope label is information, not a

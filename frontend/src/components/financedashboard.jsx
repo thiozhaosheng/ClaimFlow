@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -238,6 +239,7 @@ function claimInRange(claim, range, now = new Date()) {
 }
 
 export default function FinanceDashboard({ claims, loading }) {
+  const navigate = useNavigate();
   const [range, setRange] = useState("30d");
   const [subTab, setSubTab] = useState("overview");
   const [drillKey, setDrillKey] = useState(null);
@@ -688,11 +690,22 @@ export default function FinanceDashboard({ claims, loading }) {
                   <p className="fin-drill-empty">No claims in this slice</p>
                 ) : (
                   <ul className="list-none m-0 p-0">
+                    {/* Each row is the claim it names: the breakdown listed 72
+                        claims and opened none of them — a figure you could
+                        click into, and then a dead end. NOTE: this comment
+                        cannot sit inside the parenthesised map body below,
+                        which is the same trap already documented in
+                        approving.jsx. */}
                     {drillClaims
                       .slice()
                       .sort((a, b) => (a.date < b.date ? 1 : -1))
                       .map((c) => (
-                        <li key={c.id} className="fin-drill-row">
+                        <li key={c.id}>
+                          <button
+                            type="button"
+                            className="fin-drill-row fin-drill-row-open"
+                            onClick={() => navigate(`/claim/${c.id}`)}
+                          >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <span className="data-ref">{c.id}</span>
@@ -709,6 +722,7 @@ export default function FinanceDashboard({ claims, loading }) {
                           <span className="fin-drill-amount">
                             {formatSGD(c.amount)}
                           </span>
+                          </button>
                         </li>
                       ))}
                   </ul>

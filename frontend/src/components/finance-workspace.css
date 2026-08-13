@@ -590,3 +590,16 @@
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
+
+/* A breakdown row is the claim it names. */
+.fin-drill-row-open {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-chip);
+  transition: background-color 120ms ease;
+}
+.fin-drill-row-open:hover { background-color: var(--bg-subtle); }
+@media (prefers-reduced-motion: reduce) {
+  .fin-drill-row-open { transition: none; }
+}
