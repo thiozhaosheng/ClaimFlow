@@ -131,6 +131,42 @@ test.describe('Employee Claim Submission', () => {
     await expect(page.getByRole('button', { name: 'Submit claim' })).toHaveCount(0);
   });
 
+  test('GST above the total is caught at the field, not at submit', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: /Sign in as Employee/i }).click();
+    await expect(page.getByRole('heading', { name: 'Submit & track your claims' })).toBeVisible();
+
+    await page.setInputFiles('input[type="file"]', 'public/test-receipts/real-grab.png');
+    const continueButton = page.getByRole('button', { name: 'Continue', exact: true });
+    await expect(continueButton).toBeEnabled({ timeout: 15000 });
+    await continueButton.click();
+
+    await page.getByPlaceholder('e.g., Grab to client meeting').fill('GST check');
+    await page.getByPlaceholder('e.g., Grab, NTUC FairPrice, Toast Box').fill('GrabTest');
+    const today = new Date().toISOString().split('T')[0];
+    await page.locator('input[type="date"]').fill(today);
+    await page.getByPlaceholder('e.g., Office (Toa Payoh)').fill('Home');
+    await page.getByPlaceholder('e.g., Client (Marina Bay)').fill('Office');
+    await page.getByRole('combobox').nth(1).selectOption({ label: 'Client meeting' });
+    await page.getByRole('combobox').nth(2).selectOption({ label: 'Morning (06-12)' });
+
+    // Amount is the first number field, GST the second.
+    const numbers = page.locator('input[type="number"]');
+    await numbers.first().fill('20.00');
+    await numbers.nth(1).fill('50.00');
+
+    // The API refuses this (checkClaimAmounts). The point of the test is that
+    // the submitter is told here, beside the field, instead of filling the rest
+    // of the form and being refused after pressing Submit.
+    await expect(page.getByText('GST cannot be more than the total on the receipt.')).toBeVisible();
+    await expect(continueButton).toBeDisabled();
+
+    // Correcting it releases the step.
+    await numbers.nth(1).fill('1.63');
+    await expect(page.getByText('GST cannot be more than the total on the receipt.')).toHaveCount(0);
+    await expect(continueButton).toBeEnabled();
+  });
+
   test('an employee can submit a claim through the Receipt → Details → Review wizard', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Sign in as Employee/i }).click();

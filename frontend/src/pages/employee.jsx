@@ -22,6 +22,10 @@ import {
 import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
+import SortHeader from "../components/sortheader.jsx";
+import TablePager from "../components/tablepager.jsx";
+import { useSort } from "../hooks/usesort.js";
+import { usePaging } from "../hooks/usepaging.js";
 import EditClaimModal, {
   correctionRequestOf,
 } from "../components/editclaimmodal.jsx";
@@ -218,6 +222,18 @@ export default function Employee() {
     [category, details],
   );
   const detailsIncomplete = missingDetailKeys.length > 0;
+  // GST is part of the amount on a Singapore receipt, so it cannot exceed it.
+  // The API refuses this claim (checkClaimAmounts), and without the same check
+  // here the refusal arrived at the end: fill three steps, press Submit, get
+  // told the number two steps back is wrong. Caught at the field instead.
+  const gstProblem = useMemo(() => {
+    if (gstAmount === "" || gstAmount == null) return null;
+    const gst = parseFloat(gstAmount);
+    if (!Number.isFinite(gst) || gst < 0) return "Enter a GST amount of zero or more, or leave it blank.";
+    if (numericAmount > 0 && gst > numericAmount)
+      return "GST cannot be more than the total on the receipt.";
+    return null;
+  }, [gstAmount, numericAmount]);
   const formInvalid = categoryDisallowed || receiptMissing || detailsIncomplete;
   const today = todayIso();
   const minDate = minDateIso();
@@ -249,6 +265,7 @@ export default function Employee() {
     title.trim() &&
       date &&
       numericAmount > 0 &&
+      !gstProblem &&
       !detailsIncomplete &&
       !categoryDisallowed,
   );
@@ -460,10 +477,31 @@ export default function Employee() {
       (a, b) =>
         (correctionRequestOf(b) ? 1 : 0) - (correctionRequestOf(a) ? 1 : 0),
     )
-    // Eight, not four: the list is a table inside a panel that scrolls its own
-    // body now, so rows no longer decide whether the page clears the fold.
-    // This is still "Recent claims", not the archive.
-    .slice(0, 8);
+    ;
+
+  // No slice. The list used to stop at eight rows while the rail beside it
+  // offered "All claims 9" — so a submitter with more claims than that had no
+  // way to reach their own older ones from anywhere in the product. It pages
+  // now, like the queue and the audit trail.
+  //
+  // "natural" is not a column: useSort passes the rows through untouched, which
+  // keeps the correction-first order below as the default. The moment a header
+  // is clicked, the reader's choice takes over.
+  const CLAIM_COLUMNS = useMemo(
+    () => ({
+      id: (c) => c.id,
+      type: (c) => c.type,
+      amount: (c) => Number(c.amount),
+      status: (c) => c.status,
+    }),
+    [],
+  );
+
+  const claimSort = useSort(distinctClaims, CLAIM_COLUMNS, "natural");
+  // 25, matching the sizes the pager offers — a size that is not in the
+  // select renders as the first option, so the control said 25 while the table
+  // paged by 10.
+  const claimPaging = usePaging(claimSort.rows, 25);
 
   // The references waiting on the employee, named once above the table so the
   // work is visible even when the panel is scrolled down.
@@ -849,12 +887,19 @@ export default function Employee() {
                       className="form-control border-l-0 pl-1"
                       placeholder="0.00"
                       value={gstAmount}
+                      aria-invalid={gstProblem ? "true" : undefined}
+                      aria-describedby={gstProblem ? "gst-problem" : undefined}
                       onChange={(e) => {
                         setGstAmount(e.target.value);
                         clearOcrField("gstAmount");
                       }}
                     />
                   </div>
+                  {gstProblem && (
+                    <p className="form-error" id="gst-problem" role="alert">
+                      {gstProblem}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1064,9 +1109,7 @@ export default function Employee() {
         <div className="data-panel-head">
           <span className="data-panel-title">Recent claims</span>
           <span className="claims-panel-count">
-            {distinctClaims.length === allClaims.length
-              ? `${allClaims.length} claims`
-              : `${distinctClaims.length} of ${allClaims.length} claims`}
+            {allClaims.length === 1 ? "1 claim" : `${allClaims.length} claims`}
           </span>
         </div>
 
@@ -1105,17 +1148,17 @@ export default function Employee() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th scope="col">Reference</th>
-                  <th scope="col">Category</th>
-                  <th scope="col" className="num">Amount</th>
-                  <th scope="col">Status</th>
+                  <SortHeader label="Reference" sortKey="id" state={claimSort} />
+                  <SortHeader label="Category" sortKey="type" state={claimSort} />
+                  <SortHeader label="Amount" sortKey="amount" state={claimSort} className="num" />
+                  <SortHeader label="Status" sortKey="status" state={claimSort} />
                   <th scope="col" className="num">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {distinctClaims.map((item) => {
+                {claimPaging.rows.map((item) => {
                   const fix = correctionRequestOf(item);
                   const open = () => navigate(`/claim/${item.id}`);
                   return (
@@ -1244,6 +1287,7 @@ export default function Employee() {
             </table>
           </div>
         )}
+        <TablePager paging={claimPaging} noun="claims" />
       </div>
       </div>
 

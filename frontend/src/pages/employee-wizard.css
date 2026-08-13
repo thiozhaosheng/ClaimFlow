@@ -666,3 +666,10 @@ button.wizard-step-done:hover {
     overflow-y: auto;
   }
 }
+
+/* A field-level problem, said where the field is. */
+.form-error {
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--danger-text);
+}
