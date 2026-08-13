@@ -5,6 +5,7 @@ import * as notifModel from '../models/notification.model';
 import * as userModel from '../models/user.model';
 import { ClaimStatus, Role } from '@prisma/client';
 import { parseReceipt } from '../services/receiptParser';
+import { verifyParsedReceipt } from '../services/receiptChecks';
 import {
   isBlobStorageConfigured,
   uploadReceipt,
@@ -573,10 +574,17 @@ export const parseReceiptUpload = async (req: Request, res: Response) => {
         : Promise.resolve(null),
     ]);
 
+    // Nothing goes into the form unverified. A value that cannot be checked
+    // against the arithmetic or the calendar is withheld and named, so the
+    // submitter types that one field instead of the approver re-checking all
+    // of them afterwards.
+    const { parsed, checks } = verifyParsedReceipt(parseResult);
+
     return res.json({
       status: 'success',
       data: {
-        ...parseResult,
+        ...parsed,
+        checks,
         receiptUrl: uploadResult?.blobName ?? null,
         viewUrl: uploadResult?.viewUrl ?? null,
       },

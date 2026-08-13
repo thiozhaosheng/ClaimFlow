@@ -625,3 +625,21 @@
   color: var(--warning-text);
   font-weight: 600;
 }
+
+/* What the machine could already settle, and what it cannot.
+   The verified note is quiet: it exists so an approver knows which rows they
+   can tick without leaning into the image. The conflict is not quiet — it is
+   the one thing on the step that a person has to resolve. */
+.review-check-verified {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+.review-check-conflict {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--warning-text);
+}

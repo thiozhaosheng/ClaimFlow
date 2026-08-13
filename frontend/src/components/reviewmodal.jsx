@@ -45,6 +45,15 @@ export function describeCorrectionFields(fields) {
 // doesn't match — before the flow moves past Verify. `field` is the key the
 // review endpoint expects when a row is sent back for correction.
 function buildCheckItems(claim) {
+  // What the scan could prove at capture. GST is checked against the total
+  // (9/109) and the date against the claim window, both of which are
+  // arithmetic rather than judgement — so an approver who trusts them has to
+  // compare the two fields that remain, not all four. Absent on claims
+  // submitted before this existed, and on hand-typed ones, where every row is
+  // simply unmarked.
+  const checks = claim.details?.receiptChecks || null;
+  const verified = (key) => checks?.[key] === "verified";
+
   return [
     {
       key: "merchant",
@@ -52,6 +61,18 @@ function buildCheckItems(claim) {
       label: CORRECTION_FIELD_LABELS.merchant,
       value: claim.merchant || "Not recorded",
       muted: !claim.merchant,
+      // The scan read a name off the image. If the claim now says something
+      // else, the approver is told which is which rather than being left to
+      // spot it — the case this was built for is a claim reading "Cold
+      // Storage" against an NTUC FairPrice receipt, where the correction that
+      // was raised named the amount and the GST and both of those matched.
+      conflict:
+        checks?.scannedMerchant &&
+        claim.merchant &&
+        checks.scannedMerchant.trim().toLowerCase() !==
+          claim.merchant.trim().toLowerCase()
+          ? `The receipt reads ${checks.scannedMerchant}`
+          : null,
     },
     {
       key: "date",
@@ -59,6 +80,8 @@ function buildCheckItems(claim) {
       label: CORRECTION_FIELD_LABELS.expenseDate,
       value: claim.date ? formatSGDate(claim.date) : "Not recorded",
       muted: !claim.date,
+      verified: verified("expenseDate"),
+      verifiedNote: "within the claim window",
     },
     {
       key: "amount",
@@ -66,6 +89,8 @@ function buildCheckItems(claim) {
       label: CORRECTION_FIELD_LABELS.amount,
       value: formatSGD(claim.amount),
       num: true,
+      verified: verified("total"),
+      verifiedNote: "read off the receipt",
     },
     {
       key: "gst",
@@ -74,6 +99,8 @@ function buildCheckItems(claim) {
       value: claim.gstAmount != null ? formatSGD(claim.gstAmount) : "Not recorded",
       muted: claim.gstAmount == null,
       num: claim.gstAmount != null,
+      verified: verified("gstAmount"),
+      verifiedNote: "9% of the total, to the cent",
     },
   ];
 }
@@ -274,6 +301,16 @@ export default function ReviewModal({ open, claim, actionType, onConfirm, onCanc
                           >
                             {item.value}
                           </span>
+                          {item.conflict && (
+                            <span className="review-check-conflict">
+                              {item.conflict}
+                            </span>
+                          )}
+                          {item.verified && !item.conflict && (
+                            <span className="review-check-verified">
+                              Checked: {item.verifiedNote}
+                            </span>
+                          )}
                         </div>
                         <div
                           className="review-check-choices"

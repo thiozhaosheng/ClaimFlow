@@ -191,6 +191,9 @@ export default function Employee() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [extracted, setExtracted] = useState(null);
+  // What the API could verify at capture. Stored on the claim so the approver
+  // sees which figures were checked by arithmetic and which were typed.
+  const [receiptChecks, setReceiptChecks] = useState(null);
   // Which fields were read from the receipt, so we can mark them and clear the
   // mark once the user overrides the value. Holds top-level keys (merchant,
   // amount, …) plus any per-category detail keys the read prefliled.
@@ -327,6 +330,7 @@ export default function Employee() {
       if (data.receiptUrl) setReceiptUrl(data.receiptUrl);
       if (data.viewUrl) setViewUrl(data.viewUrl);
       setExtracted(data);
+      setReceiptChecks(data.checks || null);
       // Mark exactly the fields the read populated. If the user already chose
       // a category, don't claim the receipt filled it.
       const filled = new Set(extractedFieldKeys(data));
@@ -361,11 +365,28 @@ export default function Employee() {
             "The image was uploaded but we couldn't read details from it. Please fill in the fields manually.",
         });
       } else if (data.source === "azure") {
-        addToast({
-          variant: "success",
-          title: "Read by Azure Document Intelligence",
-          message: "We pre-filled the form — review each field before submitting.",
-        });
+        // The API withholds any field it could not verify against the
+        // arithmetic or the calendar, and says why. Repeating that here means
+        // the submitter fixes the one field in question instead of being told
+        // to "review each field" — which is the instruction that makes the
+        // scan worthless, because it is the same work as typing them.
+        const withheld = (data.checks?.notes || []).filter(
+          (n) => !n.includes('day-first'),
+        );
+        addToast(
+          withheld.length > 0
+            ? {
+                variant: "warning",
+                title: "Read, with one thing to check",
+                message: withheld[0],
+              }
+            : {
+                variant: "success",
+                title: "Read from your receipt",
+                message:
+                  "The amount, GST and date were checked against each other and match.",
+              },
+        );
       } else {
         addToast({
           variant: "info",
@@ -418,7 +439,14 @@ export default function Employee() {
         merchant: merchant || null,
         receiptUrl,
         ocrSource: extracted?.source || null,
-        details: Object.keys(details).length > 0 ? details : null,
+        // The verification verdicts ride with the claim: the approver's job is
+        // to check what was NOT verified, and they can only do that if the
+        // claim remembers which fields were.
+        details: (() => {
+          const merged = { ...details };
+          if (receiptChecks) merged.receiptChecks = receiptChecks;
+          return Object.keys(merged).length > 0 ? merged : null;
+        })(),
         email: session?.email || "",
       });
       const created = result?.claim;

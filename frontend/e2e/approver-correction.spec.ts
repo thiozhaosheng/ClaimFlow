@@ -45,7 +45,12 @@ async function seedPendingClaim(request: any) {
     data: {
       amount: 46.6,
       gstAmount: 3.85,
-      merchant: 'Cold Storage',
+      // The merchant has to be the shop on the receipt this claim carries.
+      // Seeding 'Cold Storage' against real-fairprice.png produced the claim
+      // that prompted this fix: a merchant that plainly disagreed with the
+      // image, while the correction raised on it named the amount and the GST,
+      // both of which matched.
+      merchant: 'NTUC FairPrice',
       category: 'Meal',
       expenseDate: new Date().toISOString().slice(0, 10),
       receiptUrl: '/test-receipts/real-fairprice.png',
