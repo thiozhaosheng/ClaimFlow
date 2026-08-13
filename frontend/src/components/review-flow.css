@@ -599,7 +599,9 @@
      scroller's height is not definite, so the cap is viewport-relative.
      Revisit if the header or the figures band grows. */
   #view-approving .data-panel-scroll {
-    max-height: calc(100vh - 32rem);
+    /* 32.25, not 32: at exactly 32 the workspace overran by a single pixel,
+       which is enough for Chrome to paint a scrollbar down the whole page. */
+    max-height: calc(100vh - 32.25rem);
     min-height: 9rem;
     overflow-y: auto;
   }

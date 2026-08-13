@@ -21,7 +21,6 @@ import {
 } from "../lib/policy.js";
 import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
-import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import SortHeader from "../components/sortheader.jsx";
 import AnimatedNumber from "../components/animatednumber.jsx";
 import TablePager from "../components/tablepager.jsx";
@@ -45,7 +44,6 @@ import {
   isLiveOcr,
   OCR_FIELD_LABELS,
 } from "../lib/ocr.js";
-import CategoryIcon from "../components/categoryicon.jsx";
 import "./employee-wizard.css";
 
 export const DISALLOWED_CATEGORIES = (() => {
@@ -164,14 +162,12 @@ export default function Employee() {
   const {
     latestMap,
     submitClaim,
-    claimsDb,
     error,
     editClaim,
     withdrawClaim,
   } = useClaims();
   const { addToast } = useToast();
   const navigate = useNavigate();
-  const [activeClaim, setActiveClaim] = useState(null);
   const [editingClaim, setEditingClaim] = useState(null);
   // The claim awaiting withdrawal confirmation, or null when the dialog is shut.
   const [withdrawingClaim, setWithdrawingClaim] = useState(null);
@@ -542,23 +538,33 @@ export default function Employee() {
       if (!d) return false;
       const dt = new Date(d);
       return (
+        !Number.isNaN(dt.getTime()) &&
         dt.getMonth() === now.getMonth() &&
         dt.getFullYear() === now.getFullYear()
       );
     };
     return {
-      submittedThisMonth: allClaims.filter((c) => thisMonth(c.date)).length,
+      // Submitted this month means filed this month. It was counting on
+      // `c.date`, the EXPENSE date, so a receipt from March filed this morning
+      // did not appear and a March claim already paid still did.
+      submittedThisMonth: allClaims.filter((c) => thisMonth(c.createdAt || c.date))
+        .length,
       pending: allClaims.filter((c) => c.status === "Pending").length,
       endorsed: allClaims.filter((c) => c.status === "Endorsed").length,
       inFlight: allClaims.filter(
         (c) => c.status === "Pending" || c.status === "Endorsed",
       ).length,
-      paidThisMonth: allClaims
-        .filter((c) => c.status === "Paid" && thisMonth(c.date))
-        .reduce((s, c) => s + c.amount, 0),
-      paidThisMonthCount: allClaims.filter(
-        (c) => c.status === "Paid" && thisMonth(c.date),
-      ).length,
+      // What the employee is actually owed: endorsed and not yet paid. The
+      // third figure used to be "Paid, SGD this month", which needed a payment
+      // date the claim list does not carry — it was summing paid claims by the
+      // month the expense fell in, so money banked in August could be reported
+      // under July. Both figures below need no date at all.
+      awaitingPayout: allClaims
+        .filter((c) => c.status === "Endorsed")
+        .reduce((sum, c) => sum + c.amount, 0),
+      reimbursedToDate: allClaims
+        .filter((c) => c.status === "Paid")
+        .reduce((sum, c) => sum + c.amount, 0),
     };
   }, [allClaims]);
 
@@ -627,15 +633,18 @@ export default function Employee() {
           </span>
         </div>
         <div className="metric-item">
-          <span className="metric-item-label">Paid</span>
+          <span className="metric-item-label">Owed to you</span>
           <span className="metric-item-value">
             <AnimatedNumber
-              value={stats.paidThisMonth}
+              value={stats.awaitingPayout}
               decimals={2}
               format={(n) => formatSGD(n).replace("S$", "")}
             />
           </span>
-          <span className="metric-item-sub">SGD this month</span>
+          <span className="metric-item-sub">
+            SGD endorsed, awaiting payout · {formatSGD(stats.reimbursedToDate)}{" "}
+            reimbursed so far
+          </span>
         </div>
       </div>
 
@@ -1355,17 +1364,6 @@ export default function Employee() {
             });
           }
         }}
-      />
-
-      <ClaimDetailModal
-        open={!!activeClaim}
-        claim={activeClaim}
-        history={
-          activeClaim
-            ? claimsDb.filter((log) => log.id === activeClaim.id)
-            : []
-        }
-        onClose={() => setActiveClaim(null)}
       />
 
       <EditClaimModal

@@ -388,7 +388,9 @@
   /* 470 -> 530: the pager bar and the range filters both sit outside this
      scroller, so the constant that keeps the workspace on one screen has to
      account for them. Measured, not guessed — the tab ran 59px long. */
-  max-height: calc(100vh - 530px);
+  /* 560, not 530: the audit toolbar carries six filter segments now (the three
+     it had matched nothing at all), which takes a second line at this width. */
+  max-height: calc(100vh - 560px);
   min-height: 260px;
   overflow-y: auto;
 }

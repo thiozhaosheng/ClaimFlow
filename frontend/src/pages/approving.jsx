@@ -16,7 +16,6 @@ import EmptyState from "../components/emptystate.jsx";
 import ReviewModal, {
   describeCorrectionFields,
 } from "../components/reviewmodal.jsx";
-import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import PolicyFlag from "../components/policyflag.jsx";
 import SortHeader from "../components/sortheader.jsx";
 import AnimatedNumber from "../components/animatednumber.jsx";
@@ -32,9 +31,18 @@ import "../components/review-flow.css";
  */
 const correctionOf = (claim) => claim?.details?.correctionRequest || null;
 
-/** Days a claim has been waiting — the thing an approver triages on. */
+/**
+ * Days a claim has been waiting — the thing an approver triages on.
+ *
+ * Measured from when it was SUBMITTED, not from the expense date. The column's
+ * own tooltip already said "Submitted N days ago" while the number underneath
+ * was the age of the receipt: a claim for a conference in May, filed this
+ * morning, sat at the top of the queue reading "94d" as though the approver had
+ * been ignoring it for three months.
+ */
 const waitingDays = (claim) => {
-  const d = claim?.date ? new Date(claim.date) : null;
+  const raw = claim?.createdAt || claim?.date;
+  const d = raw ? new Date(raw) : null;
   if (!d || Number.isNaN(d.getTime())) return null;
   return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86_400_000));
 };
@@ -42,9 +50,8 @@ const AWAITING_FILTER = "Awaiting correction";
 
 export default function Approving() {
   const navigate = useNavigate();
-  const { latestMap, updateClaimStatus, claimsDb, error, refetch } = useClaims();
+  const { latestMap, updateClaimStatus, error, refetch } = useClaims();
   const { addToast } = useToast();
-  const [activeClaim, setActiveClaim] = useState(null);
   // The sidebar's saved views drive this through ?status= — one source of
   // truth, so a view is a real link (shareable, back-button-able) rather than
   // a second copy of the filter state.
@@ -154,7 +161,10 @@ export default function Approving() {
       id: (c) => c.id,
       employee: (c) => c.employee,
       type: (c) => c.type,
-      date: (c) => c.date,
+      // The column is Waiting, so it sorts on the submission clock — sorting
+      // it by expense date put a freshly-filed old receipt above a claim that
+      // had genuinely been sitting there a fortnight.
+      date: (c) => c.createdAt || c.date,
       amount: (c) => Number(c.amount),
     }),
     [],
@@ -200,11 +210,11 @@ export default function Approving() {
     const endorsed = deptClaims.filter((c) => c.status === "Endorsed");
     const paid = deptClaims.filter((c) => c.status === "Paid");
     const rejected = deptClaims.filter((c) => c.status === "Rejected");
+    // Same clock as the Waiting column, so the aggregate is traceable to the
+    // row it came from.
     const oldestPendingDays = pending.reduce((max, c) => {
-      const d = c.date ? new Date(c.date) : null;
-      if (!d || Number.isNaN(d.getTime())) return max;
-      const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
-      return Math.max(max, days);
+      const days = waitingDays(c);
+      return days === null ? max : Math.max(max, days);
     }, 0);
     return {
       pendingCount: pending.length,
@@ -220,7 +230,7 @@ export default function Approving() {
   return (
     <section id="view-approving" className="role-workspace">
       <PageHeader
-        eyebrow="Approving officer · Sales"
+        eyebrow={`Approving officer${ownDepartment ? ` · ${ownDepartment}` : ""}`}
         title="Approval queue"
         subtitle="Every claim walks through the same three steps: verify the receipt against the typed fields, weigh the policy recommendation, then record your decision. The engine only recommends — the call is yours."
         actions={
@@ -229,7 +239,9 @@ export default function Approving() {
             aria-label="Sales department pipeline"
           >
             <span>
-              <b className="font-semibold text-warning-text">{stats.pendingCount}</b>{" "}
+              {/* Not amber: pending is the ordinary state, and colouring it
+                  put a warning tint on the biggest number on the page. */}
+              <b className="font-semibold text-text-primary">{stats.pendingCount}</b>{" "}
               pending
             </span>
             <span className="h-3 w-px bg-border-subtle" aria-hidden="true" />
@@ -492,16 +504,6 @@ export default function Approving() {
         onCancel={() => { setReviewClaim(null); setReviewAction(null); }}
       />
 
-      <ClaimDetailModal
-        open={!!activeClaim}
-        claim={activeClaim}
-        history={
-          activeClaim
-            ? claimsDb.filter((log) => log.id === activeClaim.id)
-            : []
-        }
-        onClose={() => setActiveClaim(null)}
-      />
     </section>
   );
 }
