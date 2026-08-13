@@ -426,9 +426,32 @@ async function main() {
       );
       const merchant = pick(recipe.merchants);
       const expenseDate = daysAgo(ageDays);
-      // All submissions have a real receipt now
-      const realReceipts = ['/test-receipts/real-grab.png', '/test-receipts/real-fairprice.png', '/test-receipts/real-paynow.png'];
-      const receiptUrl = pick(realReceipts);
+      // The receipt has to belong to the claim it is attached to. This picked
+      // one of the three photographs at random, so a Grab ride showed an NTUC
+      // FairPrice till slip and a supermarket run showed a taxi receipt — in a
+      // product whose review step asks the approver to compare the merchant on
+      // the claim against the merchant on the receipt. Two thirds of the demo
+      // data failed that comparison on sight.
+      //
+      // What each photograph actually says:
+      //   real-grab.png      GrabTaxi Holdings, SGD 24.50, GST 2.02, 18 Jul
+      //   real-paynow.png    PayNow to Jumbo Seafood (Riverside), SGD 135.00
+      //   real-fairprice.png NTUC FairPrice, SGD 46.60, GST 3.85
+      //
+      // Matching by category keeps the merchant plausible. The printed total
+      // still will not equal every claim's amount — there are three images and
+      // 140-odd claims — so an approver checking amounts closely will find
+      // those differ. Fixing that needs either one receipt per claim or a
+      // dataset with three distinct amounts, which is a trade against the
+      // spend charts and a decision to make deliberately.
+      const receiptForCategory: Record<string, string> = {
+        Transport: '/test-receipts/real-grab.png',
+        Meal: '/test-receipts/real-paynow.png',
+        'Client Entertainment': '/test-receipts/real-paynow.png',
+        'Office Supplies': '/test-receipts/real-fairprice.png',
+      };
+      const receiptUrl =
+        receiptForCategory[recipe.category] ?? '/test-receipts/real-fairprice.png';
       
       // 4% had OCR fail (Azure unavailable / manual entry)
       const ocrSource = chance(0.04) ? 'unavailable' : 'azure';
