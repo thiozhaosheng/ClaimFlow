@@ -55,10 +55,10 @@ const html = `<!doctype html>
     <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="a" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-          <stop stop-color="#4f46e5"/><stop offset="1" stop-color="#8b5cf6"/>
+          <stop stop-color="#26456e"/><stop offset="1" stop-color="#4a6da3"/>
         </linearGradient>
         <linearGradient id="b" x1="0" y1="50" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-          <stop stop-color="#4f46e5" stop-opacity="0.9"/><stop offset="1" stop-color="#8b5cf6" stop-opacity="0.4"/>
+          <stop stop-color="#26456e" stop-opacity="0.9"/><stop offset="1" stop-color="#4a6da3" stop-opacity="0.4"/>
         </linearGradient>
       </defs>
       <path d="M50 18 L82 36 L50 54 L18 36 Z" fill="url(#a)"/>

@@ -5,15 +5,17 @@
     and strokeWidth, which a browser silently ignores — so the tab icon
     rendered as a hairline black wireframe instead of the brand mark.
 
-    Colours are the same blue-violet as --brand / --brand-2 in index.css, and
+    Colours are the same ink blue as --brand / --brand-2 in index.css, and
     lighten under a dark UA theme so the mark stays visible in a dark tab strip.
+    Keep these in step with index.css by hand — a raw .svg cannot read a CSS
+    custom property from the document that embeds it.
   -->
   <style>
-    .cf-from { stop-color: #4f46e5; }
-    .cf-to   { stop-color: #8b5cf6; }
+    .cf-from { stop-color: #26456e; }
+    .cf-to   { stop-color: #4a6da3; }
     @media (prefers-color-scheme: dark) {
-      .cf-from { stop-color: #a5b4fc; }
-      .cf-to   { stop-color: #c4b5fd; }
+      .cf-from { stop-color: #9db8de; }
+      .cf-to   { stop-color: #c3d2e9; }
     }
   </style>
   <defs>

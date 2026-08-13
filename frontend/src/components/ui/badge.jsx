@@ -2,7 +2,10 @@ import { cva } from "class-variance-authority";
 import { cn } from "../../lib/utils.js";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-[4px] border px-2 py-0.5 text-[11px] font-medium tabular-nums tracking-tight transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+  // 12px, not 11: nothing rendered inside the workspace may compute below the
+  // floor the rest of the app is measured against. Radius is the workspace chip
+  // rung (5px) rather than a one-off 4.
+  "inline-flex items-center rounded-ds-chip border px-2 py-0.5 text-[12px] font-medium tabular-nums tracking-tight transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
   {
     variants: {
       variant: {

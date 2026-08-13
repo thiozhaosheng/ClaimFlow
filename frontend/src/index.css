@@ -3,9 +3,18 @@
 @tailwind utilities;
 
 /* ==========================================================================
-   DESIGN TOKENS — "Editorial Ledger"
-   Linear × Mercury × Vercel restraint. Cool slate neutrals, a MONOCHROME
-   accent, borders over shadows, tabular numerals, one typeface (Geist).
+   DESIGN TOKENS — "Editorial Ledger", and its colour is INK ON LEDGER PAPER
+
+   The system is a paper record: cool neutrals, a MONOCHROME accent, borders
+   over shadows, tabular numerals, one typeface (Geist). The colour vocabulary
+   comes from the same place — the marks an accounts office actually makes on
+   a page — and there are only four of them:
+
+     ink        near-black type, which is nearly everything
+     ink blue   the brand: a fountain pen, used for the mark and for focus
+     chop red   refused or blocked
+     ochre      a pencil annotation: someone must act
+     ledger green  settled; the money has left
 
    Two different things are called "accent" here, and they are not
    interchangeable:
@@ -14,14 +23,19 @@
                 on light, near-white on dark). Primary buttons, links and
                 emphasis use it. This is what keeps the product quiet.
 
-     --brand    ClaimFlow blue-violet, taken from the logo gradient. Spent
+     --brand    ClaimFlow ink blue, taken from the logo gradient. Spent
                 sparingly and only where colour carries meaning — focus,
                 hover, the numbered flow, the ambient wash behind the hero.
                 If it starts appearing on ordinary surfaces it has stopped
                 being a signal, so add it deliberately or not at all.
 
-   An earlier revision of this comment described "warm stone neutrals + deep
-   indigo accent". Neither was true of the tokens below.
+   Two revisions of this file have now had their palette replaced for the same
+   reason. The first claimed "warm stone neutrals + deep indigo" and was
+   neither. The second WAS what it said, but what it said was Tailwind's
+   defaults verbatim — indigo-600, emerald-600, amber-600, rose-600 — which is
+   the fingerprint of a palette that was never chosen. Every value here is now
+   picked for what it means and checked for contrast, and anything added later
+   has to answer both questions too.
    ========================================================================== */
 
 :root {
@@ -53,13 +67,18 @@
   --accent-subtle: #f3f4f6; /* gray-100 */
   --accent-ring: rgba(17, 24, 39, 0.18);
 
-  /* Brand — the logo's blue-violet. --brand is the text-safe end (6.5:1 on
-     white, so it is legal on small type); --brand-2 is the violet end of the
-     logo gradient and is DECORATIVE ONLY — never put text in it. */
-  --brand: #4f46e5;         /* indigo-600 */
-  --brand-2: #8b5cf6;       /* violet-500 */
-  --brand-subtle: #eef2ff;  /* indigo-50 */
-  --brand-ring: rgba(79, 70, 229, 0.22);
+  /* Brand — INK BLUE, the colour of a fountain pen on a ledger, not a UI hue.
+     The previous value was #4f46e5: Tailwind's indigo-600, comment included,
+     paired with emerald-600 / amber-600 / rose-600 below. That is the default
+     set every generated app ships with, and it reads as a palette nobody chose.
+     This one is chosen, and it is chosen from the same place the rest of the
+     system comes from — a paper record. --brand is the text-safe end (9.7:1 on
+     white); --brand-2 is the lighter end of the logo gradient and is
+     DECORATIVE ONLY — never put text in it. */
+  --brand: #26456e;
+  --brand-2: #4a6da3;
+  --brand-subtle: #eef2f8;
+  --brand-ring: rgba(38, 69, 110, 0.24);
 
   /* An inset surface — a well pressed INTO a card, for inputs and list rows.
      Not the same as --bg-subtle, which is a raised tint on the canvas. The
@@ -67,22 +86,48 @@
      than the card while --bg-subtle goes lighter. */
   --surface-inset: #f4f6f9;
 
-  /* Status — desaturated premium pastels (emerald / amber / rose) */
-  --success: #059669;        /* emerald-600 */
-  --success-bg: #ecfdf5;     /* emerald-50 */
-  --success-text: #047857;   /* emerald-700 */
+  /* Status — three marks an accounts office actually makes on paper, and each
+     one means exactly one thing in this app:
 
-  --warning: #d97706;        /* amber-600 */
-  --warning-bg: #fffbeb;     /* amber-50 */
-  --warning-text: #b45309;   /* amber-700 */
+       --success  SETTLED. Money has left. A ledger green, not mint.
+       --warning  SOMEONE MUST ACT. An ochre pencil annotation, not a highlighter.
+       --danger   REFUSED or BLOCKED. The red of a company chop.
 
-  --danger: #e11d48;         /* rose-600 */
-  --danger-bg: #fff1f2;      /* rose-50 */
-  --danger-text: #be123c;    /* rose-700 */
+     Pending, Endorsed and "needs review" carry no colour at all — they are
+     where two thirds of claims sit, and tinting them spends the signal on the
+     ordinary case. Every value below is measured, not picked: the -text pairs
+     clear 4.5:1 on both their own -bg and the card, and the solid marks clear
+     3:1 on the card. */
+  --success: #146c43;
+  --success-bg: #eaf4ee;
+  --success-text: #0f5132;
 
-  --info: #4f46e5;           /* indigo-600 */
-  --info-bg: #eef2ff;        /* indigo-50 */
-  --info-text: #4338ca;      /* indigo-700 */
+  --warning: #9a5b06;
+  --warning-bg: #fbf3e6;
+  --warning-text: #7a4705;
+
+  --danger: #a72b23;
+  --danger-bg: #fbeceb;
+  --danger-text: #8a231c;
+
+  --info: #26456e;
+  --info-bg: #eef2f8;
+  --info-text: #1e3758;
+
+  /* Chart ramp — ONE hue, six steps, dark to light.
+     Share of a total is a magnitude, so lightness carries it; a different hue
+     per category would encode identity the reader is not being asked to track,
+     and eight of them is the rainbow this system exists to avoid. The old
+     array mixed four design tokens (including --success and --warning, which
+     mean something) with four hardcoded iOS system colours. Each step clears
+     3:1 on the card and is separable from its neighbour; slices additionally
+     carry a 2px card-coloured gap. */
+  --chart-1: #1e3758;
+  --chart-2: #2b4e7c;
+  --chart-3: #3764a0;
+  --chart-4: #4076bc;
+  --chart-5: #5787c5;
+  --chart-6: #6c96cd;
 
   /* Radii — generous, modern (cards 2xl/3xl, controls xl/lg) */
   --radius-sm: 8px;
@@ -146,32 +191,43 @@
   --accent-subtle: rgba(249, 250, 251, 0.14);
   --accent-ring: rgba(249, 250, 251, 0.28);
 
-  /* Brand lightens on dark so it stays legible against near-black (indigo-600
-     would sit at ~2:1 here and fail). */
-  --brand: #a5b4fc;         /* indigo-300 */
-  --brand-2: #c4b5fd;       /* violet-300 */
-  --brand-subtle: rgba(129, 140, 248, 0.16);
-  --brand-ring: rgba(165, 180, 252, 0.30);
+  /* Brand lightens on dark so it stays legible against near-black (the light
+     ink blue would sit near 2:1 here and fail). Same hue, other end. */
+  --brand: #9db8de;
+  --brand-2: #c3d2e9;
+  --brand-subtle: rgba(157, 184, 222, 0.16);
+  --brand-ring: rgba(157, 184, 222, 0.30);
 
   /* Darker than --bg-card here, not lighter: on a dark UI a recess is a hole,
      not a highlight. */
   --surface-inset: #0e0e11;
 
-  --success: #34d399;
-  --success-bg: rgba(16, 185, 129, 0.14);
-  --success-text: #6ee7b7;
+  /* The same three marks, lifted for a dark ground. Measured against
+     --bg-card: every -text clears 4.5:1, every solid mark clears 3:1. */
+  --success: #5fbc8a;
+  --success-bg: rgba(95, 188, 138, 0.14);
+  --success-text: #8fd6b0;
 
-  --warning: #fbbf24;
-  --warning-bg: rgba(245, 158, 11, 0.14);
-  --warning-text: #fcd34d;
+  --warning: #e0a94e;
+  --warning-bg: rgba(224, 169, 78, 0.14);
+  --warning-text: #eec483;
 
-  --danger: #fb7185;
-  --danger-bg: rgba(244, 63, 94, 0.14);
-  --danger-text: #fda4af;
+  --danger: #e58279;
+  --danger-bg: rgba(229, 130, 121, 0.14);
+  --danger-text: #f0a89f;
 
-  --info: #a5b4fc;
-  --info-bg: rgba(129, 140, 248, 0.14);
-  --info-text: #c7d2fe;
+  --info: #9db8de;
+  --info-bg: rgba(157, 184, 222, 0.14);
+  --info-text: #c3d2e9;
+
+  /* Ramp runs the other way on a dark ground — the largest share is the
+     lightest mark, because light is what advances against near-black. */
+  --chart-1: #c8d6e8;
+  --chart-2: #9cb6d7;
+  --chart-3: #7599c7;
+  --chart-4: #5a84bc;
+  --chart-5: #4774af;
+  --chart-6: #3f679b;
 
   --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.3);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -1539,18 +1595,6 @@ code {
   font-variant-numeric: tabular-nums;
 }
 
-/* round, tinted category icon badge (used on claim rows/cards) */
-.cat-dot {
-  --cat: var(--accent);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border-radius: 999px;
-  color: var(--cat);
-  background: color-mix(in srgb, var(--cat) 16%, var(--bg-card));
-}
-
 /* Pending and Endorsed are not events, they are where most claims sit. Amber
    on Pending painted the ordinary state in the colour that means attention,
    on every row of every queue — so the colour marked nothing, and the one
@@ -1579,6 +1623,16 @@ code {
   background-color: var(--danger-bg);
   color: var(--danger-text);
   border-color: color-mix(in srgb, var(--danger) 22%, transparent);
+}
+
+/* Amber is reserved for "someone must act", and a claim sent back for a
+   correction is the clearest case of it: it sits in nobody's queue until the
+   submitter saves the fix. Matches .claim-chip-awaiting in the approval queue,
+   so one state has one colour and one name across the app. */
+.badge-awaiting {
+  background-color: var(--warning-bg);
+  color: var(--warning-text);
+  border-color: color-mix(in srgb, var(--warning) 30%, transparent);
 }
 
 .badge-role {
@@ -3371,129 +3425,12 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 .dark .bg-blobs::before,
 .dark .bg-blobs::after { opacity: 0.28; }
 
-/* --- category tile: two-tone, rounded, colorful (the Fundly signature) --- */
-.cat-tile {
-  --cat: var(--accent);
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 168px;
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  background: color-mix(in srgb, var(--cat) 14%, var(--bg-card));
-  border: 1px solid color-mix(in srgb, var(--cat) 26%, transparent);
-  text-decoration: none;
-  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
-}
-
-.cat-tile:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 18px 36px -18px color-mix(in srgb, var(--cat) 60%, transparent);
-}
-
-.cat-tile-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 1rem 1rem 0.5rem;
-}
-
-.cat-tile-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: var(--cat);
-  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--cat) 70%, transparent);
-}
-
-.cat-tile-arrow {
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--cat);
-  background: color-mix(in srgb, var(--cat) 18%, var(--bg-card));
-  transition: var(--transition-base);
-}
-.cat-tile:hover .cat-tile-arrow { background: var(--cat); color: #fff; }
-
-.cat-tile-label {
-  padding: 0 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: color-mix(in srgb, var(--cat) 72%, var(--text-secondary));
-}
-.cat-tile-name {
-  padding: 0.1rem 1rem 0;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  color: color-mix(in srgb, var(--cat) 60%, var(--text-primary));
-}
-
-.cat-tile-strip {
-  margin-top: auto;
-  background: var(--cat);
-  color: #fff;
-  padding: 0.7rem 1rem;
-  font-size: 1.3rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-}
-.cat-tile-strip small {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  opacity: 0.85;
-}
-
-/* --- colored stat card: white card with a tinted icon + colored value --- */
-.stat-color-card {
-  --cat: var(--accent);
-  position: relative;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
-  padding: 1rem 1.1rem;
-  overflow: hidden;
-  transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease);
-}
-/* No accent rail across the card top — a coloured cap bar on a rounded card
-   is a template device, and the category colour already lives in the icon
-   chip. The card is its numbers. */
-.stat-color-card.clickable { cursor: pointer; }
-.stat-color-card.clickable:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-.stat-color-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-md);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--cat);
-  background: color-mix(in srgb, var(--cat) 16%, var(--bg-card));
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cat-tile, .stat-color-card { transition: none; }
-  .cat-tile:hover, .stat-color-card:hover { transform: none; }
-}
+/* The two-tone "category tile" and the tinted "colored stat card" that used to
+   live here are gone. Both were driven by a `--cat` custom property fed from an
+   eleven-hue category palette, and both lifted on hover; the palette, the last
+   component that read it and the markup for these have all been removed, so
+   ~110 lines of rules for classes that appear nowhere went with them. Rows
+   highlight, they never levitate — and a category is a word, not a colour. */
 
 
 /* ==========================================================================
@@ -3753,17 +3690,6 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 
 /* ranked spend-by-category rows (single accent; bar length = magnitude) */
 .spend-row { display: flex; align-items: center; gap: 0.7rem; }
-.spend-row-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-sm);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: var(--bg-subtle);
-  color: var(--text-secondary);
-}
 .spend-row-main { flex: 1; min-width: 0; }
 .spend-row-head {
   display: flex;
