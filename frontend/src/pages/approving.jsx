@@ -18,7 +18,8 @@ import ReviewModal, {
 } from "../components/reviewmodal.jsx";
 import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import PolicyFlag from "../components/policyflag.jsx";
-import CategoryIcon from "../components/categoryicon.jsx";
+import SortHeader from "../components/sortheader.jsx";
+import { useSort } from "../hooks/usesort.js";
 import { useShortcuts } from "../hooks/useShortcuts.js";
 import "../components/review-flow.css";
 
@@ -132,14 +133,34 @@ export default function Approving() {
     }
   };
 
+  // What an approver actually sorts by: how long it has waited, how much it
+  // is for, whose it is.
+  const QUEUE_COLUMNS = useMemo(
+    () => ({
+      id: (c) => c.id,
+      employee: (c) => c.employee,
+      type: (c) => c.type,
+      date: (c) => c.date,
+      amount: (c) => Number(c.amount),
+    }),
+    [],
+  );
+
   useShortcuts({
     onSearch: () => {
       document.getElementById("manager-search-input")?.focus();
     }
   });
 
+  // The department this officer approves for, read from the claims the API
+  // returns them — which is now scoped server-side. It was the literal string
+  // "Sales" in four places, so an approver in Marketing or Engineering got an
+  // empty queue, a scope tile naming someone else's department, and a filter
+  // offering one option that was not theirs.
+  const ownDepartment =
+    Object.values(latestMap).find((c) => c.department)?.department || null;
+
   const matchingClaims = Object.values(latestMap).filter((item) => {
-    if (item.department !== "Sales") return false;
     if (filterStatus === AWAITING_FILTER) {
       if (item.status !== "Pending" || !correctionOf(item)) return false;
     } else if (filterStatus !== "All Status" && item.status !== filterStatus) {
@@ -155,9 +176,10 @@ export default function Approving() {
     return true;
   });
 
-  const deptClaims = Object.values(latestMap).filter(
-    (c) => c.department === "Sales",
-  );
+  const deptClaims = Object.values(latestMap);
+
+  const sort = useSort(matchingClaims, QUEUE_COLUMNS, "date");
+  const sortedClaims = sort.rows;
 
   const stats = useMemo(() => {
     const pending = deptClaims.filter((c) => c.status === "Pending");
@@ -252,8 +274,14 @@ export default function Approving() {
               signal, and tinting it brand-blue spent colour on decoration. */}
           <div className="metric-item">
             <span className="metric-item-label">Scope</span>
-            <span className="text-sm font-medium mt-1">Sales Department</span>
-            <span className="metric-item-sub">Review and endorse claims from Sales only.</span>
+            <span className="text-sm font-medium mt-1">
+              {ownDepartment ? `${ownDepartment} Department` : "Your department"}
+            </span>
+            <span className="metric-item-sub">
+              {ownDepartment
+                ? `Review and endorse claims from ${ownDepartment} only.`
+                : "Review and endorse claims from your department."}
+            </span>
           </div>
         </div>
       </div>
@@ -274,15 +302,9 @@ export default function Approving() {
               <option value="Rejected">Rejected</option>
               <option value="Paid">Paid</option>
             </select>
-            <select
-              className="form-select form-select-sm"
-              value={filterDept}
-              onChange={(e) => setFilterDept(e.target.value)}
-              style={{ width: '120px' }}
-            >
-              <option value="All">All Depts</option>
-              <option value="Sales">Sales</option>
-            </select>
+            {/* Dropped: a department filter whose only option was the one
+                department this officer can already see. A control with one
+                choice is not a control. */}
          </div>
          <div className="search-input-wrapper m-0 w-full sm:w-auto" style={{ maxWidth: "280px" }}>
            <Search className="h-3.5 w-3.5 search-leading-icon" />
@@ -318,17 +340,17 @@ export default function Approving() {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th scope="col">Reference</th>
-                      <th scope="col">Employee</th>
-                      <th scope="col">Category</th>
+                      <SortHeader label="Reference" sortKey="id" state={sort} />
+                      <SortHeader label="Employee" sortKey="employee" state={sort} />
+                      <SortHeader label="Category" sortKey="type" state={sort} />
                       <th scope="col">Policy</th>
-                      <th scope="col" className="num">Waiting</th>
-                      <th scope="col" className="num">Amount</th>
+                      <SortHeader label="Waiting" sortKey="date" state={sort} className="num" />
+                      <SortHeader label="Amount" sortKey="amount" state={sort} className="num" />
                       <th scope="col"><span className="sr-only">Action</span></th>
                     </tr>
                   </thead>
                   <tbody>
-                {matchingClaims.map((item) => {
+                {sortedClaims.map((item) => {
                   const correction = correctionOf(item);
                   const awaitingCorrection =
                     item.status === "Pending" && !!correction;
@@ -355,10 +377,10 @@ export default function Approving() {
                       <span className="queue-dept">{item.department}</span>
                     </td>
                     <td>
-                      <span className="queue-cat">
-                        <CategoryIcon category={item.type} size={18} />
-                        {escapeHtml(item.type)}
-                      </span>
+                      {/* No icon tile in the cell. A ledger names the category;
+                          a coloured glyph per row is decoration that repeats
+                          the word beside it. */}
+                      <span className="queue-cat">{escapeHtml(item.type)}</span>
                     </td>
                     <td>
                       {awaitingCorrection ? (

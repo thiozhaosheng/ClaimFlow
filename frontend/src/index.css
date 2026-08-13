@@ -3987,3 +3987,20 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 .notfound-page .btn-primary { margin-top: 0.5rem; }
 
 
+
+/* Sortable column headers. The button carries the header's own type — a
+   header that sorts should look like a header, not like a control dropped
+   into a table. */
+.data-table th .col-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.data-table th.num .col-sort { flex-direction: row-reverse; }
+.data-table th .col-sort:hover { color: var(--text-primary); }
+.data-table th .col-sort-active { color: var(--text-primary); }

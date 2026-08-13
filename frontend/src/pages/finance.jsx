@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
+import SortHeader from "../components/sortheader.jsx";
+import { useSort } from "../hooks/usesort.js";
 import { useClaims } from "../hooks/useclaims.js";
 import { useShortcuts } from "../hooks/useShortcuts.js";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
@@ -62,6 +64,21 @@ export default function Finance() {
       return false;
     return true;
   });
+
+  // 341 entries in one order was the whole audit trail. Finance chases the
+  // largest disbursements and reads the newest first; both are one click now.
+  const AUDIT_COLUMNS = useMemo(
+    () => ({
+      when: (l) => `${l.date} ${l.time}`,
+      id: (l) => l.id,
+      employee: (l) => l.employee,
+      amount: (l) => Number(l.amount),
+      action: (l) => l.action,
+      actor: (l) => l.actor,
+    }),
+    [],
+  );
+  const auditSort = useSort(filteredLogs, AUDIT_COLUMNS, "when");
 
   const uniqueClaimIds = new Set(claimsDb.map((c) => c.id));
 
@@ -199,12 +216,12 @@ export default function Finance() {
             <table className="data-table">
             <thead>
               <tr>
-                <th scope="col">Timestamp</th>
-                <th scope="col">Claim ID</th>
-                <th scope="col">Employee</th>
-                <th scope="col" className="num">Amount</th>
-                <th scope="col">Action</th>
-                <th scope="col">Actor</th>
+                <SortHeader label="Timestamp" sortKey="when" state={auditSort} />
+                <SortHeader label="Claim ID" sortKey="id" state={auditSort} />
+                <SortHeader label="Employee" sortKey="employee" state={auditSort} />
+                <SortHeader label="Amount" sortKey="amount" state={auditSort} className="num" />
+                <SortHeader label="Action" sortKey="action" state={auditSort} />
+                <SortHeader label="Actor" sortKey="actor" state={auditSort} />
                 <th scope="col">Role</th>
               </tr>
             </thead>
@@ -220,7 +237,7 @@ export default function Finance() {
                   </td>
                 </tr>
               ) : (
-                filteredLogs.map((log, idx) => (
+                auditSort.rows.map((log, idx) => (
                   <tr
                     key={`${log.id}-${idx}`}
                     role="button"
