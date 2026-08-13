@@ -43,6 +43,12 @@
 
   /* Accent — Sleek minimalist monochrome (premium B2B aesthetic) */
   --accent: #111827;        /* gray-900 */
+  /* What goes ON the accent. The accent inverts between themes — near-black in
+     light, near-white in dark — and everything drawn on it hardcoded `white`.
+     In dark mode that put white initials on a white avatar, white text on the
+     mark-as-paid button, and a white tick inside a white checkbox: all of it
+     invisible, at a contrast ratio of 1.02:1. */
+  --accent-foreground: #ffffff;
   --accent-hover: #374151;  /* gray-700 */
   --accent-subtle: #f3f4f6; /* gray-100 */
   --accent-ring: rgba(17, 24, 39, 0.18);
@@ -135,6 +141,7 @@
   --border-strong: #3f3f46; /* zinc-700 */
 
   --accent: #f9fafb;        /* gray-50 */
+  --accent-foreground: #111827;
   --accent-hover: #e5e7eb;  /* gray-200 */
   --accent-subtle: rgba(249, 250, 251, 0.14);
   --accent-ring: rgba(249, 250, 251, 0.28);
@@ -330,7 +337,7 @@ code {
   width: 32px;
   height: 32px;
   background-color: var(--accent);
-  color: white;
+  color: var(--accent-foreground);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1196,7 +1203,7 @@ code {
   height: 24px;
   border-radius: var(--radius-sm);
   background-color: var(--accent);
-  color: white;
+  color: var(--accent-foreground);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1263,7 +1270,7 @@ code {
   justify-content: center;
   flex-shrink: 0;
   margin-top: 1px;
-  color: white;
+  color: var(--accent-foreground);
 }
 
 .ocr-result-accent .ocr-result-icon { background-color: var(--accent); }
@@ -1827,7 +1834,7 @@ code {
   width: 28px;
   height: 28px;
   background-color: var(--accent);
-  color: white;
+  color: var(--accent-foreground);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1933,7 +1940,7 @@ code {
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: var(--accent-foreground);
 }
 .dark .btn-primary {
   color: #09090b; /* zinc-950 */
@@ -1949,7 +1956,7 @@ code {
 
 .btn-mark-paid {
   background: var(--accent);
-  color: white;
+  color: var(--accent-foreground);
   border: 1px solid var(--accent);
   padding: 0.5rem 1.1rem;
   border-radius: var(--radius-sm);
@@ -2080,7 +2087,7 @@ code {
 .form-check-input:checked {
   background-color: var(--accent);
   border-color: var(--accent);
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: center;
   background-size: 12px;
