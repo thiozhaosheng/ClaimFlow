@@ -14,8 +14,8 @@ import { escapeHtml, formatSGD } from "../utils/helpers.js";
 import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
 import { exportAuditLogToCsv } from "../utils/export.js";
-import ClaimDetailModal from "../components/claimdetailmodal.jsx";
 import FinanceDashboard from "../components/financedashboard.jsx";
+import { actionInGroup } from "../lib/auditTrail.js";
 import {
   AlertTriangle,
   Building2,
@@ -37,7 +37,6 @@ export default function Finance() {
   const [activeTab, setActiveTab] = useState(session?.financeTab || "dashboard");
   const [searchAudit, setSearchAudit] = useState("");
   const [auditFilter, setAuditFilter] = useState("All");
-  const [activeClaim, setActiveClaim] = useState(null);
 
   useShortcuts({
     onSearch: () => {
@@ -62,6 +61,30 @@ export default function Finance() {
   const [paying, setPaying] = useState(false);
   const [payoutRange, setPayoutRange] = useState(EMPTY_RANGE);
 
+  // When each claim was endorsed, read from the audit trail. The payout table
+  // has a column headed "Endorsed" that printed `claim.date` — the EXPENSE
+  // date. Finance was being told when the taxi ride happened and reading it as
+  // when the approver signed off, on the screen where money is released.
+  // There is no endorsedAt column, but MANAGER_APPROVAL is written by exactly
+  // one code path and finance already holds the whole log.
+  const endorsedOn = useMemo(() => {
+    const map = new Map();
+    for (const entry of claimsDb) {
+      if (entry.actionKey !== "MANAGER_APPROVAL") continue;
+      const d = entry.createdAt ? new Date(entry.createdAt) : null;
+      if (!d || Number.isNaN(d.getTime())) continue;
+      const seen = map.get(entry.id);
+      // Latest wins: a claim sent back and endorsed again was endorsed the
+      // second time.
+      if (!seen || d > seen) map.set(entry.id, d);
+    }
+    return map;
+  }, [claimsDb]);
+  const endorsedDate = (claim) => {
+    const d = endorsedOn.get(claim.id);
+    return d ? d.toLocaleDateString("en-CA") : null;
+  };
+
   const awaitingPayment = useMemo(
     () =>
       Object.values(latestMap).filter(
@@ -77,14 +100,18 @@ export default function Finance() {
     () => ({
       id: (c) => c.id,
       employee: (c) => c.employee,
-      date: (c) => c.date,
+      // Sorts on the same date the column shows.
+      date: (c) => endorsedDate(c) || "",
       amount: (c) => Number(c.amount),
     }),
-    [],
+    [endorsedOn],
   );
   const payoutSort = useSort(awaitingPayment, PAYOUT_COLUMNS, "date");
   const payoutPaging = usePaging(payoutSort.rows, 25);
 
+  // What the whole run is worth, before anything is selected — the figure a
+  // finance admin needs to reconcile a GIRO batch against.
+  const awaitingTotal = awaitingPayment.reduce((sum, c) => sum + Number(c.amount), 0);
   const selectedClaims = awaitingPayment.filter((c) => selected.has(c.id));
   const selectedTotal = selectedClaims.reduce((sum, c) => sum + Number(c.amount), 0);
 
@@ -142,14 +169,11 @@ export default function Finance() {
 
   const filteredLogs = claimsDb.filter((log) => {
     if (!withinRange(auditRange, { date: log.date, amount: log.amount })) return false;
-    if (auditFilter !== "All") {
-      if (auditFilter === "Submitted" && log.action !== "Claim submitted")
-        return false;
-      if (auditFilter === "Endorsed" && !log.action.includes("Endorsed"))
-        return false;
-      if (auditFilter === "Paid" && log.action !== "Marked as paid")
-        return false;
-    }
+    // Grouped on the raw action, not on the rendered label. The three buttons
+    // used to compare against strings the app never produces ("Claim
+    // submitted", "Marked as paid"), so Submitted, Endorsed and Paid each
+    // emptied the table and only All worked.
+    if (!actionInGroup(log.actionKey, auditFilter)) return false;
     if (
       searchAudit &&
       !log.id.toLowerCase().includes(searchAudit.toLowerCase()) &&
@@ -164,7 +188,11 @@ export default function Finance() {
   // largest disbursements and reads the newest first; both are one click now.
   const AUDIT_COLUMNS = useMemo(
     () => ({
-      when: (l) => `${l.date} ${l.time}`,
+      // The instant, not the printed string. This was `${l.date} ${l.time}`,
+      // and the time is a 12-hour clock — so "12:39 PM" sorted above "10:49 AM"
+      // which sorted above "08:27 PM", and the log's own default order, newest
+      // first, put the afternoon before the morning before the evening.
+      when: (l) => (l.createdAt ? new Date(l.createdAt).getTime() : null),
       id: (l) => l.id,
       employee: (l) => l.employee,
       amount: (l) => Number(l.amount),
@@ -259,6 +287,7 @@ export default function Finance() {
       {activeTab === "dashboard" && (
         <FinanceDashboard
           claims={Object.values(latestMap)}
+          auditLog={claimsDb}
           loading={loading}
         />
       )}
@@ -335,7 +364,11 @@ export default function Finance() {
                             {claim.department || "No department"}
                           </span>
                         </td>
-                        <td>{claim.date}</td>
+                        <td>
+                          {endorsedDate(claim) || (
+                            <span className="fin-audit-sub">Not recorded</span>
+                          )}
+                        </td>
                         <td className="num">{formatSGD(claim.amount)}</td>
                         <td className="num">
                           <button
@@ -362,7 +395,15 @@ export default function Finance() {
           <div className="payout-bar">
             <span className="payout-bar-count">
               {selectedClaims.length === 0
-                ? "Select claims to release"
+                ? /* What the whole run is worth, before anything is picked —
+                     the figure a finance admin reconciles a GIRO batch
+                     against, and there was nowhere on this screen to read it.
+                     It sits on the bar rather than in the paragraph above, so
+                     it costs no height and sits beside the button that acts on
+                     it. */
+                  awaitingPayment.length === 0
+                  ? "Nothing to release"
+                  : `${awaitingPayment.length} awaiting release · ${formatSGD(awaitingTotal)} — select to pay`
                 : `${selectedClaims.length} selected · ${formatSGD(selectedTotal)}`}
             </span>
             <button
@@ -402,15 +443,17 @@ export default function Finance() {
         <div className="data-toolbar">
           <div className="data-toolbar-filters">
             <div className="segmented-control" role="group">
-              {["All", "Submitted", "Endorsed", "Paid"].map((status) => (
-                <button
-                  key={status}
-                  className={`segment-btn ${auditFilter === status ? "active" : ""}`}
-                  onClick={() => setAuditFilter(status)}
-                >
-                  {status}
-                </button>
-              ))}
+              {["All", "Submitted", "Corrections", "Endorsed", "Paid", "Rejected"].map(
+                (status) => (
+                  <button
+                    key={status}
+                    className={`segment-btn ${auditFilter === status ? "active" : ""}`}
+                    onClick={() => setAuditFilter(status)}
+                  >
+                    {status}
+                  </button>
+                ),
+              )}
             </div>
             <RangeFilters value={auditRange} onChange={setAuditRange} />
           </div>
@@ -465,11 +508,19 @@ export default function Finance() {
                     key={`${log.id}-${idx}`}
                     role="button"
                     tabIndex={0}
-                    onClick={() => setActiveClaim(log)}
+                    /* Opens the claim, not a reconstruction of it. This used to
+                       hand the audit ROW to the claim detail modal, and an
+                       audit row has no receipt, no merchant, no GST and no
+                       details — so the modal announced "No receipt attached"
+                       on claims that have one, priced them without their tax,
+                       and ran the policy engine over the gaps. The record is
+                       where a claim is read, and the dashboard's own drill-down
+                       already goes there. */
+                    onClick={() => navigate(`/claim/${log.id}`)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        setActiveClaim(log);
+                        navigate(`/claim/${log.id}`);
                       }
                     }}
                   >
@@ -517,16 +568,6 @@ export default function Finance() {
         </div>
       </div>
 
-      <ClaimDetailModal
-        open={!!activeClaim}
-        claim={activeClaim}
-        history={
-          activeClaim
-            ? claimsDb.filter((log) => log.id === activeClaim.id)
-            : []
-        }
-        onClose={() => setActiveClaim(null)}
-      />
     </section>
   );
 }

@@ -74,8 +74,9 @@
 .claim-section {
   /* Five sections at 1.1rem top and bottom spent 176px on air and put the
      compliance line under the fold. Tighter is also denser, which is the
-     direction a finance record wants anyway. */
-  padding: 0.65rem 1.5rem;
+     direction a finance record wants anyway. 0.55 rather than 0.65 buys back
+     the height the real audit trail costs, without touching the type ladder. */
+  padding: 0.55rem 1.5rem;
   border-bottom: 1px solid var(--border-subtle);
 }
 .claim-section:last-child { border-bottom: none; }
@@ -97,18 +98,49 @@
    next to and it can be a size someone can read. */
 .claim-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 20rem;
+  /* 23rem, not 20: the exhibit column now carries the amount table under the
+     receipt, and a two-column sum needs room to stay on one line. The left
+     column has the width to give. */
+  grid-template-columns: minmax(0, 1fr) 23rem;
   align-items: stretch;
 }
 .claim-record-col { min-width: 0; }
 .claim-record-col .claim-section:last-child { border-bottom: none; }
 
 .claim-exhibit {
-  padding: 0.65rem 1.5rem;
+  padding: 0.55rem 1.5rem;
   /* A rule, not a fill. A second surface colour behind the receipt said
      nothing about the receipt — the system's own line is borders over
      shadows, and the same applies to tints. */
   border-left: 1px solid var(--border-subtle);
+}
+
+.claim-exhibit-money {
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+/* Stacked, not side by side: 23rem is not two columns. */
+.claim-exhibit-money .claim-amounts {
+  display: block;
+}
+.claim-exhibit-money .claim-facts-single {
+  margin-top: 0.5rem;
+}
+
+/* An audit trail has no natural length — a claim that was sent back twice and
+   re-endorsed carries eight entries — so it is framed and scrolls inside
+   itself, the same device the approval queue uses on its ledger. Without it the
+   sheet grows by a row every time something happens to the claim. */
+.claim-trail-scroll {
+  max-height: 8.5rem;
+  overflow-y: auto;
+}
+.claim-trail-scroll thead th {
+  position: sticky;
+  top: 0;
+  background-color: var(--bg-card);
+  z-index: 1;
 }
 
 @media (max-width: 1000px) {
@@ -220,7 +252,13 @@
   display: block;
   width: 100%;
   height: auto;
-  max-height: 16.5rem;
+  /* A thumbnail, not the document. It is here so the reader can see at a
+     glance that a receipt exists and roughly what it is; "Open the full image"
+     below it is how anyone actually reads the figures. Sized so the fullest
+     claim in the system — over S$1,000 AND sent back for a correction, so it
+     carries both the tax-invoice line and the correction bar — still fits one
+     screen. */
+  max-height: 13.5rem;
   object-fit: contain;
   background-color: var(--bg-card);
 }
@@ -301,8 +339,8 @@
 
 /* The correction request, when one is open. */
 .claim-correction-bar {
-  margin-bottom: 0.45rem;
-  padding: 0.35rem 0 0.35rem 0.7rem;
+  margin-bottom: 0.4rem;
+  padding: 0.25rem 0 0.25rem 0.7rem;
   border-left: 2px solid var(--warning);
   color: var(--text-secondary);
   font-size: 0.8125rem;
@@ -370,6 +408,7 @@
    and timestamps, on paper that carries no application chrome.
    ====================================================================== */
 @media print {
+  .claim-trail-scroll { max-height: none; overflow: visible; }
   /* Paper is white whatever the screen was. Printing the dark theme costs a
      cartridge and produces a page nobody can read once photocopied, so the
      tokens the record draws from are pinned to their paper values here —

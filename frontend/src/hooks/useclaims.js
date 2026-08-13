@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { api, mapRoleFromApi } from "../utils/api.js";
 import { useAuth } from "../context/authcontext.jsx";
+import { actionLabel, remarkText } from "../lib/auditTrail.js";
 
 // Adapt a backend Claim (with user include) into the frontend's row shape.
-function adaptClaim(claim) {
+// Exported so a single claim fetched on its own (the record page, for one that
+// is not in the current list) goes through exactly the same mapping.
+export function adaptClaim(claim) {
   if (!claim) return null;
   const user = claim.user || {};
   const expenseDate = claim.expenseDate
@@ -45,6 +48,13 @@ function adaptClaim(claim) {
     supplierGstRegNumber: claim.supplierGstRegNumber || null,
     taxInvoiceNumber: claim.taxInvoiceNumber || null,
     details: claim.details || null,
+    // Never mapped, because every list endpoint filters withdrawn claims out —
+    // so it was always undefined and nothing noticed. The record page can now
+    // open a claim that is not in the list, and a withdrawn one arrived reading
+    // "Pending / With the approving officer" over an audit trail whose only
+    // entry said Withdrawn.
+    withdrawn: claim.withdrawn === true,
+    withdrawnAt: claim.withdrawnAt || null,
     createdAt: claim.createdAt || null,
     updatedAt: claim.updatedAt || null,
   };
@@ -87,8 +97,14 @@ function adaptAuditLog(log) {
     status: log.newStatus,
     actor: executor.name || "System",
     role: mapRoleFromApi(executor.role || "FinanceAdmin"),
-    action: log.action.replace(/_/g, " ").toLowerCase(),
-    reason: log.remarks || undefined,
+    // The raw action travels alongside the label. Filtering on the rendered
+    // string is how the audit trail's Submitted / Endorsed / Paid buttons came
+    // to match nothing at all — no action has ever rendered as "Claim
+    // submitted" or "Marked as paid", so all three emptied the table.
+    actionKey: log.action,
+    action: actionLabel(log.action),
+    createdAt: log.createdAt || null,
+    reason: remarkText(log.remarks) || undefined,
   };
 }
 
