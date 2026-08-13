@@ -1,6 +1,9 @@
 import { PrismaClient, Role, ClaimStatus } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { receiptSvg, ReceiptSpec } from './receiptImage';
 
 dotenv.config();
 
@@ -11,6 +14,28 @@ const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'claimflow-demo';
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// Generated receipts live with the other fixtures the frontend serves. The
+// seed is deterministic, so these files are stable across runs and are
+// committed; the directory is emptied first so a changed dataset cannot leave
+// orphans behind.
+const SEED_RECEIPT_DIR = path.resolve(
+  __dirname,
+  '../../../frontend/public/test-receipts/seed',
+);
+
+function resetSeedReceipts() {
+  fs.rmSync(SEED_RECEIPT_DIR, { recursive: true, force: true });
+  fs.mkdirSync(SEED_RECEIPT_DIR, { recursive: true });
+}
+
+function writeSeedReceipt(index: number, spec: ReceiptSpec) {
+  fs.writeFileSync(
+    path.join(SEED_RECEIPT_DIR, `${String(index).padStart(4, '0')}.svg`),
+    receiptSvg(spec),
+    'utf8',
+  );
+}
 
 const rng = (() => {
   let s = 0xc0ffee;
@@ -409,6 +434,7 @@ async function main() {
 
   // ------ claims + audit + notifications --------------------------------
   console.log('Generating claims spread over 60 days…');
+  resetSeedReceipts();
 
   let auditCount = 0;
   let notifCount = 0;
@@ -426,37 +452,27 @@ async function main() {
       );
       const merchant = pick(recipe.merchants);
       const expenseDate = daysAgo(ageDays);
-      // The receipt has to belong to the claim it is attached to. This picked
-      // one of the three photographs at random, so a Grab ride showed an NTUC
-      // FairPrice till slip and a supermarket run showed a taxi receipt — in a
-      // product whose review step asks the approver to compare the merchant on
-      // the claim against the merchant on the receipt. Two thirds of the demo
-      // data failed that comparison on sight.
-      //
-      // What each photograph actually says:
-      //   real-grab.png      GrabTaxi Holdings, SGD 24.50, GST 2.02, 18 Jul
-      //   real-paynow.png    PayNow to Jumbo Seafood (Riverside), SGD 135.00
-      //   real-fairprice.png NTUC FairPrice, SGD 46.60, GST 3.85
-      //
-      // Matching by category keeps the merchant plausible. The printed total
-      // still will not equal every claim's amount — there are three images and
-      // 140-odd claims — so an approver checking amounts closely will find
-      // those differ. Fixing that needs either one receipt per claim or a
-      // dataset with three distinct amounts, which is a trade against the
-      // spend charts and a decision to make deliberately.
-      const receiptForCategory: Record<string, string> = {
-        Transport: '/test-receipts/real-grab.png',
-        Meal: '/test-receipts/real-paynow.png',
-        'Client Entertainment': '/test-receipts/real-paynow.png',
-        'Office Supplies': '/test-receipts/real-fairprice.png',
-      };
-      const receiptUrl =
-        receiptForCategory[recipe.category] ?? '/test-receipts/real-fairprice.png';
-      
+      // The receipt is drawn from this claim, so the image and the fields
+      // cannot disagree. Category-matched photographs were the previous fix
+      // and they were not enough: three images cannot carry 140 claims, so a
+      // Scoot flight still showed a S$24.50 taxi slip while the claim was
+      // marked as read by the scanner. See prisma/receiptImage.ts.
+      const receiptIndex = claimCount;
+      const receiptUrl = `/test-receipts/seed/${String(receiptIndex).padStart(4, '0')}.svg`;
+
       // 4% had OCR fail (Azure unavailable / manual entry)
       const ocrSource = chance(0.04) ? 'unavailable' : 'azure';
       // 9% GST captured (since GST rate 9% in SG; we record gst amount when known)
       const gstAmount = chance(0.65) ? round2(amount * 0.09 / 1.09) : null;
+
+      writeSeedReceipt(receiptIndex, {
+        merchant,
+        date: expenseDate.toISOString().slice(0, 10),
+        category: recipe.category,
+        total: amount,
+        gst: gstAmount,
+        reference: `R-${String(receiptIndex).padStart(4, '0')}`,
+      });
 
       // Decide final status using the same logic as production:
       // - block conditions never make it to the DB (we just skip them)
