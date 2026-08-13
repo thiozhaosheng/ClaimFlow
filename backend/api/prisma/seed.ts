@@ -785,6 +785,167 @@ async function main() {
     }
   }
 
+  // ---- scenarios ---------------------------------------------------------
+  // The volume above is generated, so a run can produce none of a given
+  // situation and the demo silently loses a journey — "the user scenarios
+  // coverage is not wide enough". These eight are created explicitly, always,
+  // on the demo employee so they are one click from the login: every state a
+  // claim can be in, and the two journeys that span several.
+  const demoEmployee = users.find((u) => u.email === 'demo.employee@claimflow.com')!;
+  const demoManager = users.find((u) => u.email === 'demo.manager@claimflow.com')!;
+  const demoFinance = users.find((u) => u.email === 'demo.finance@claimflow.com')!;
+
+  let scenarioCount = 0;
+  const scenarioClaim = async (opts: {
+    merchant: string;
+    category: string;
+    amount: number;
+    gst: number | null;
+    ageDays: number;
+    status: ClaimStatus;
+    withdrawn?: boolean;
+    ocrSource?: string;
+    details?: Record<string, unknown>;
+  }) => {
+    const index = 9000 + scenarioCount;
+    const expenseDate = daysAgo(opts.ageDays);
+    const receiptUrl = `/test-receipts/seed/${String(index).padStart(4, '0')}.svg`;
+    writeSeedReceipt(index, {
+      merchant: opts.merchant,
+      date: expenseDate.toISOString().slice(0, 10),
+      category: opts.category,
+      total: opts.amount,
+      gst: opts.gst,
+      reference: `R-${String(index).padStart(4, '0')}`,
+    });
+    const claim = await db.claim.create({
+      data: {
+        userId: demoEmployee.id,
+        amount: opts.amount,
+        gstAmount: opts.gst,
+        merchant: opts.merchant,
+        category: opts.category,
+        expenseDate,
+        receiptUrl,
+        ocrSource: opts.ocrSource ?? 'azure',
+        status: opts.status,
+        withdrawn: opts.withdrawn ?? false,
+        withdrawnAt: opts.withdrawn ? daysAgo(Math.max(0, opts.ageDays - 1)) : null,
+        details: (opts.details ?? {}) as any,
+      },
+    });
+    scenarioCount++;
+    claimCount++;
+    return claim;
+  };
+
+  const log = async (
+    claimId: number,
+    action: string,
+    by: number,
+    from: ClaimStatus,
+    to: ClaimStatus,
+    remarks: string,
+    ageDays: number,
+  ) => {
+    await db.auditLog.create({
+      data: {
+        claimId,
+        action,
+        performedBy: by,
+        oldStatus: from,
+        newStatus: to,
+        remarks,
+        createdAt: daysAgo(ageDays),
+      },
+    });
+    auditCount++;
+  };
+
+  // 1 — straight through: submitted, recommended, endorsed, paid.
+  const settled = await scenarioClaim({
+    merchant: 'Grab', category: 'Transport', amount: 18.5, gst: 1.53,
+    ageDays: 12, status: ClaimStatus.Paid,
+  });
+  await log(settled.id, 'POLICY_RECOMMENDED_APPROVAL', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'auto-approve-transport', 12);
+  await log(settled.id, 'MANAGER_APPROVAL', demoManager.id, ClaimStatus.Pending, ClaimStatus.Endorsed, 'Within the transport allowance.', 11);
+  await log(settled.id, 'FINANCE_REIMBURSEMENT', demoFinance.id, ClaimStatus.Endorsed, ClaimStatus.Paid, 'Paid by PayNow.', 9);
+
+  // 2 — sent back, and still waiting on the submitter.
+  const awaitingFix = await scenarioClaim({
+    merchant: 'Jumbo Seafood', category: 'Client Entertainment', amount: 268.0, gst: 22.13,
+    ageDays: 3, status: ClaimStatus.Pending,
+    details: {
+      occasion: 'Client dinner',
+      attendees: '4',
+      correctionRequest: {
+        fields: ['amount'],
+        note: 'The receipt total reads S$168.00, not S$268.00.',
+        requestedAt: daysAgo(2).toISOString(),
+        requestedBy: demoManager.name,
+        requestedById: demoManager.id,
+      },
+    },
+  });
+  await log(awaitingFix.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'route-large-amount', 3);
+  await log(awaitingFix.id, 'CHANGES_REQUESTED', demoManager.id, ClaimStatus.Pending, ClaimStatus.Pending, 'Amount does not match the receipt.', 2);
+
+  // 3 — the same loop, completed: sent back, fixed, resubmitted, endorsed.
+  const corrected = await scenarioClaim({
+    merchant: 'NTUC FairPrice', category: 'Office Supplies', amount: 46.6, gst: 3.85,
+    ageDays: 20, status: ClaimStatus.Endorsed,
+    details: { itemSummary: 'Printer paper, filing boxes' },
+  });
+  await log(corrected.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'default', 20);
+  await log(corrected.id, 'CHANGES_REQUESTED', demoManager.id, ClaimStatus.Pending, ClaimStatus.Pending, 'GST looked wrong against the total.', 18);
+  await log(corrected.id, 'CORRECTION_SUBMITTED', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'GST corrected to S$3.85.', 17);
+  await log(corrected.id, 'MANAGER_APPROVAL', demoManager.id, ClaimStatus.Pending, ClaimStatus.Endorsed, 'Corrected and checked.', 16);
+
+  // 4 — refused, with the reason on the record.
+  const refused = await scenarioClaim({
+    merchant: 'Tipsy Collective', category: 'Client Entertainment', amount: 412.0, gst: 34.02,
+    ageDays: 25, status: ClaimStatus.Rejected,
+    details: { occasion: 'Team celebration', attendees: '9' },
+  });
+  await log(refused.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'block-entertainment-missing-client', 25);
+  await log(refused.id, 'MANAGER_REJECTION', demoManager.id, ClaimStatus.Pending, ClaimStatus.Rejected, 'No client named — this reads as a staff event, which is not claimable.', 24);
+
+  // 5 — withdrawn by the submitter before anyone acted.
+  const pulled = await scenarioClaim({
+    merchant: 'Daiso', category: 'Office Supplies', amount: 12.0, gst: 0.99,
+    ageDays: 30, status: ClaimStatus.Pending, withdrawn: true,
+    details: { itemSummary: 'Desk organisers' },
+  });
+  await log(pulled.id, 'WITHDRAWN_BY_SUBMITTER', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'Bought personally in the end.', 29);
+
+  // 6 — above S$1,000, where IRAS wants a full tax invoice and this product
+  //     does not yet capture the supplier GST number or the invoice serial.
+  const largeAmount = await scenarioClaim({
+    merchant: 'Singapore Airlines', category: 'Travel', amount: 1480.0, gst: 122.2,
+    ageDays: 6, status: ClaimStatus.Pending,
+    details: { mode: 'Flight', destination: 'Jakarta', purpose: 'Client onboarding' },
+  });
+  await log(largeAmount.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'route-large-amount', 6);
+
+  // 7 — the scan failed, so every field was typed by hand.
+  const typed = await scenarioClaim({
+    merchant: 'Kopitiam', category: 'Meal', amount: 8.4, gst: null,
+    ageDays: 4, status: ClaimStatus.Pending, ocrSource: 'unavailable',
+    details: { attendeeNotes: 'Working lunch, alone' },
+  });
+  await log(typed.id, 'RECOMMENDATION_WITHHELD_OCR_UNAVAILABLE', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'The receipt could not be read; fields entered by hand.', 4);
+
+  // 8 — near the end of the 90-day window, which is the last week it can be
+  //     claimed at all.
+  const nearlyStale = await scenarioClaim({
+    merchant: 'SMU Academy', category: 'Training', amount: 385.27, gst: 31.81,
+    ageDays: 86, status: ClaimStatus.Pending,
+    details: { provider: 'SMU Academy', justification: 'Data protection certification' },
+  });
+  await log(nearlyStale.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'default', 86);
+
+  console.log(`  created ${scenarioCount} scenario claims on the demo employee`);
+
   console.log(`  created ${claimCount} claims`);
   console.log(`  wrote ${auditCount} audit entries`);
   console.log(`  pushed ${notifCount} notifications`);

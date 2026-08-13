@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="356" viewBox="0 0 320 356" role="img" aria-label="Receipt from AWS Training">
+  <style>
+    .r { font: 13px ui-monospace, "SF Mono", Menlo, monospace; fill: #1f2937; }
+    .b { font: 700 14px ui-monospace, "SF Mono", Menlo, monospace; fill: #111827; }
+    .h { font: 700 16px ui-monospace, "SF Mono", Menlo, monospace; fill: #111827; }
+    .m { font: 11px ui-monospace, "SF Mono", Menlo, monospace; fill: #6b7280; }
+    .rule { stroke: #d1d5db; stroke-width: 1; }
+  </style>
+  <rect x="0" y="0" width="320" height="356" fill="#ffffff" />
+  <rect x="0.5" y="0.5" width="319" height="355" fill="none" stroke="#e5e7eb" />
+  <text x="160" y="46" text-anchor="middle" class="h">AWS Training</text>
+  <text x="160" y="66" text-anchor="middle" class="m">Singapore</text>
+  <line x1="28" y1="86" x2="292" y2="86" class="rule" />
+  <text x="28" y="110" class="m">Date</text>
+  <text x="292" y="110" text-anchor="end" class="m">23 Jun 2026</text>
+  <text x="28" y="130" class="m">Ref</text>
+  <text x="292" y="130" text-anchor="end" class="m">R-0010</text>
+  <line x1="28" y1="148" x2="292" y2="148" class="rule" />
+  <text x="28" y="176" class="r">Course fee</text><text x="292" y="176" text-anchor="end" class="r">124.64</text>
+  <text x="28" y="202" class="r">GST 9%</text><text x="292" y="202" text-anchor="end" class="r">11.22</text>
+  <line x1="28" y1="214" x2="292" y2="214" class="rule" />
+  <text x="28" y="234" class="b">TOTAL (SGD)</text><text x="292" y="234" text-anchor="end" class="b">135.86</text>
+  <text x="160" y="312" text-anchor="middle" class="m">Thank you</text>
+  <text x="160" y="334" text-anchor="middle" class="m">DEMO DATA — not a real receipt</text>
+</svg>
