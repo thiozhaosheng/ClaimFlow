@@ -411,6 +411,15 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
                         <Legend
                           wrapperStyle={{ fontSize: 12, paddingTop: 4 }}
                           iconType="circle"
+                          // Recharts paints the legend LABEL in the series
+                          // colour. The coloured dot beside it already says
+                          // which series this is, and the word inheriting the
+                          // fill left "Disbursed" at 3.1:1 once that fill was
+                          // lightened. The dot carries the colour; the word is
+                          // ordinary text.
+                          formatter={(value) => (
+                            <span style={{ color: "var(--text-secondary)" }}>{value}</span>
+                          )}
                         />
                         <Area
                           isAnimationActive={false}

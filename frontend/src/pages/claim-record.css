@@ -335,11 +335,11 @@
   background: var(--text-tertiary);
 }
 .claim-trail-action.is-settled { color: var(--success-text); font-weight: 500; }
-.claim-trail-action.is-settled .claim-trail-dot { background: var(--success); }
+.claim-trail-action.is-settled .claim-trail-dot { background: var(--success-text); }
 .claim-trail-action.is-refused { color: var(--danger-text); font-weight: 500; }
-.claim-trail-action.is-refused .claim-trail-dot { background: var(--danger); }
+.claim-trail-action.is-refused .claim-trail-dot { background: var(--danger-text); }
 .claim-trail-action.is-attention { color: var(--warning-text); font-weight: 500; }
-.claim-trail-action.is-attention .claim-trail-dot { background: var(--warning); }
+.claim-trail-action.is-attention .claim-trail-dot { background: var(--warning-text); }
 
 /* Checks read as one line of prose. Four rows of ticks is a widget; what a
    reader needs is whether anything is outstanding, and if so which. */
@@ -361,11 +361,13 @@
    passed is ledger green because passing IS the verdict; a check that is
    merely optional and unmet stays ink, because nothing is wrong. */
 .claim-check-done { color: var(--success-text); }
-.claim-check-done .claim-check-icon { color: var(--success); }
+/* A 6px dot and a 13px icon are small marks: they take the darker -text
+   value, which clears 4.5:1, rather than the fill value at 3:1. */
+.claim-check-done .claim-check-icon { color: var(--success-text); }
 .claim-check-warn { color: var(--warning-text); font-weight: 500; }
-.claim-check-warn .claim-check-icon { color: var(--warning); }
+.claim-check-warn .claim-check-icon { color: var(--warning-text); }
 .claim-check-block { color: var(--danger-text); font-weight: 500; }
-.claim-check-block .claim-check-icon { color: var(--danger); }
+.claim-check-block .claim-check-icon { color: var(--danger-text); }
 .claim-check em { font-style: normal; color: var(--text-tertiary); }
 
 /* The correction request, when one is open. */

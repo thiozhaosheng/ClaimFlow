@@ -95,20 +95,31 @@
 
      Pending, Endorsed and "needs review" carry no colour at all — they are
      where two thirds of claims sit, and tinting them spends the signal on the
-     ordinary case. Every value below is measured, not picked: the -text pairs
-     clear 4.5:1 on both their own -bg and the card, and the solid marks clear
-     3:1 on the card. */
-  --success: #146c43;
-  --success-bg: #eaf4ee;
-  --success-text: #0f5132;
+     ordinary case.
 
-  --warning: #9a5b06;
-  --warning-bg: #fbf3e6;
-  --warning-text: #7a4705;
+     LIGHTNESS, not just contrast. The first version of these sat at 19-33%
+     lightness, which clears 4.5:1 on white comfortably — and was still hard to
+     see, because the ink beside them is at 10%. A dark green next to near-black
+     reads as near-black; the eye separates colour by lightness, and there was
+     barely any to separate. Measured, the -text values were only 1.9-2.3x
+     apart from the body text they sat in. The dark theme never had the problem:
+     its values sit at 70-78% against a 9% ground.
 
-  --danger: #a72b23;
-  --danger-bg: #fbeceb;
-  --danger-text: #8a231c;
+     They now sit at 30-48% lightness at high chroma, which puts them 3.5-3.7x
+     from the ink and keeps every guarantee: each -text clears 4.5:1 on white,
+     on the app canvas AND on its own -bg tint, and each solid mark clears 3:1.
+     Anything small or carrying text uses the -text value, not the mark. */
+  --success: #19a664;
+  --success-bg: #eefcf5;
+  --success-text: #14834f;
+
+  --warning: #d57909;
+  --warning-bg: #fdf6ec;
+  --warning-text: #a65f07;
+
+  --danger: #e36c63;
+  --danger-bg: #fcefee;
+  --danger-text: #d03025;
 
   --info: #26456e;
   --info-bg: #eef2f8;
@@ -1338,7 +1349,7 @@ code {
 }
 
 .ocr-result-accent .ocr-result-icon { background-color: var(--accent); }
-.ocr-result-warning .ocr-result-icon { background-color: var(--warning); }
+.ocr-result-warning .ocr-result-icon { background-color: var(--warning-text); }
 .ocr-result-neutral .ocr-result-icon {
   background-color: var(--bg-card);
   color: var(--text-secondary);
@@ -1534,9 +1545,11 @@ code {
   animation: ocr-step-throb 1.1s var(--ease) infinite;
 }
 
+/* White on the fill value would sit at 3.1:1; on -text it is 4.8:1, and
+   this dot carries a glyph. */
 .ocr-step-done .ocr-step-dot {
-  background-color: var(--success);
-  border-color: var(--success);
+  background-color: var(--success-text);
+  border-color: var(--success-text);
   color: white;
 }
 
