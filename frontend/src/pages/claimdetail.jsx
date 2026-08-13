@@ -183,8 +183,11 @@ export default function ClaimDetail() {
       <section className="role-workspace">
         <div className="workspace-card p-6 text-center">
           <FileText className="h-8 w-8 mx-auto text-text-tertiary mb-3" />
+          {/* Deliberately non-committal: a refusal and a missing claim read
+              the same, so this page cannot be used to find out which claim
+              numbers exist in another department. */}
           <h2 className="text-lg font-semibold mb-1">
-            {fetchFailed ? "Claim not found" : "Opening claim…"}
+            {fetchFailed ? "Claim unavailable" : "Opening claim…"}
           </h2>
           <p className="text-sm text-text-secondary mb-4">
             {fetchFailed

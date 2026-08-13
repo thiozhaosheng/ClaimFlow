@@ -73,6 +73,45 @@ export const checkClaimAmounts = (
 
 const CLM = (id: number) => `CLM-${String(id).padStart(3, '0')}`;
 
+/**
+ * May this caller see this claim?
+ *
+ * The department rule lived only in the LIST query — getClaimsByDepartment —
+ * so every by-id route was open to any Manager in the company. A Sales
+ * approver could read a Marketing claim's record, its audit trail and a signed
+ * URL for its receipt, just by knowing the number, which increments. Verified
+ * against the running stack before this was written.
+ *
+ * The rule, in one place, applied by everything that reaches a claim by id:
+ *   Employee      their own claims only
+ *   Manager       their own department, which is what the queue promises
+ *   FinanceAdmin  everything — they settle every claim and file the GST, and
+ *                 the privacy notice says so
+ */
+export async function canAccessClaim(
+  user: { id: number; role: Role },
+  claim: { userId: number },
+): Promise<boolean> {
+  if (user.role === Role.FinanceAdmin) return true;
+  if (claim.userId === user.id) return true;
+  if (user.role !== Role.Manager) return false;
+
+  const [manager, submitter] = await Promise.all([
+    userModel.findById(user.id),
+    userModel.findById(claim.userId),
+  ]);
+  // An approver with no department has no department to approve for. Falling
+  // through to "allow" here would hand them the company.
+  if (!manager?.department) return false;
+  return manager.department === submitter?.department;
+}
+
+const DENIED = {
+  error: true,
+  code: 'FORBIDDEN',
+  message: 'You do not have access to this claim.',
+} as const;
+
 const parsePositiveIntegerParam = (value: string): number | null => {
   if (!/^\d+$/.test(value)) return null;
   const parsed = Number(value);
@@ -414,8 +453,8 @@ export const getClaimById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Claim not found'  });
     }
 
-    if (req.user!.role === Role.Employee && claim.userId !== req.user!.id) {
-      return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Access denied'  });
+    if (!(await canAccessClaim(req.user!, claim))) {
+      return res.status(403).json(DENIED);
     }
 
     res.status(200).json({ status: 'success', data: { claim } });
@@ -610,8 +649,8 @@ export const getReceiptViewUrl = async (req: Request, res: Response) => {
     const claim = await claimModel.findById(claimId);
     if (!claim) return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Claim not found'  });
 
-    if (req.user!.role === Role.Employee && claim.userId !== req.user!.id) {
-      return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Access denied'  });
+    if (!(await canAccessClaim(req.user!, claim))) {
+      return res.status(403).json(DENIED);
     }
     if (!claim.receiptUrl) {
       return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'No receipt attached to this claim'  });
@@ -653,8 +692,8 @@ export const getClaimActivity = async (req: Request, res: Response) => {
       return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Claim not found'  });
     }
 
-    if (req.user!.role === Role.Employee && claim.userId !== req.user!.id) {
-      return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Access denied'  });
+    if (!(await canAccessClaim(req.user!, claim))) {
+      return res.status(403).json(DENIED);
     }
 
     const logs = await auditModel.getAuditLogsByClaim(claimId);
@@ -682,8 +721,8 @@ export const addComment = async (req: Request, res: Response) => {
       return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Claim not found'  });
     }
 
-    if (req.user!.role === Role.Employee && claim.userId !== req.user!.id) {
-      return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Access denied'  });
+    if (!(await canAccessClaim(req.user!, claim))) {
+      return res.status(403).json(DENIED);
     }
 
     const log = await auditModel.createAuditLog({

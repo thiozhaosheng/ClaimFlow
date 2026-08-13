@@ -22,12 +22,28 @@ router.get(
   userController.getAllUsers,
 );
 
-// Unauthenticated by necessity: these two ARE the credential path. The auth
-// gateway calls /verify to check a login and /register to create an account,
-// in both cases before any token exists. Everything else on this router is
-// guarded — see the comment on /update-password.
+// Unauthenticated by necessity: /verify IS the credential path. The auth
+// gateway calls it to check a login, before any token exists.
 router.post('/verify', userController.verifyUser);
-router.post('/register', userController.registerUser);
+
+// Registration is an ADMIN action, not a public one.
+//
+// This route was open, and the gateway exposes it at POST /api/users/register
+// with nothing but a rate limit in front of it. The controller takes `role`
+// straight from the body, so an anonymous request could create itself a
+// FinanceAdmin and then read every claim in the company and the whole staff
+// directory. Verified against the running stack before this was written: one
+// unauthenticated POST, then 142 claims and 29 staff records.
+//
+// Nothing calls it — not the frontend, not the tests — so the guard costs
+// nothing. The sign-in page already says accounts are created by the finance
+// administrator; this makes that true.
+router.post(
+  '/register',
+  protect,
+  restrictTo(Role.FinanceAdmin),
+  userController.registerUser,
+);
 
 // `protect` here is load-bearing. Without it this endpoint reset any account's
 // password given only an email address: no token, no current-password check.

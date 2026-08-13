@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as claimModel from '../models/claim.model';
+import { canAccessClaim } from './claim.controller';
 import * as auditModel from '../models/auditLog.model';
 import * as notifModel from '../models/notification.model';
 import * as userModel from '../models/user.model';
@@ -152,6 +153,18 @@ export const reviewClaim = async (req: Request, res: Response) => {
   try {
     const claim = await claimModel.findById(claimId);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
+
+    // An approving officer decides for their own department. `restrictTo` on
+    // the route only checks the ROLE, so any Manager could endorse or reject
+    // any claim in the company by its number — the department rule existed
+    // only in the list query.
+    if (!(await canAccessClaim(req.user!, claim))) {
+      return res.status(403).json({
+        error: true,
+        code: 'FORBIDDEN',
+        message: 'You do not approve claims for this department.',
+      });
+    }
 
     const reviewer = await userModel.findById(req.user!.id);
     const reviewerName = reviewer?.name ?? 'Your approving officer';

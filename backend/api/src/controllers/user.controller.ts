@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import * as userModel from '../models/user.model';
 import { db } from '../config/database';
+import { Role } from '@prisma/client';
 import { logUtil } from '../utils/logUtil';
 
 /**
@@ -109,7 +110,12 @@ export const verifyUser = async (req: Request, res: Response) => {
       return res.status(401).json({ error: true, code: 'UNAUTHORIZED', message: 'Invalid credentials'  });
     }
 
-    res.status(200).json({ status: 'success', data: { user } });
+    // Without this the row goes out whole, and the gateway's POST
+    // /api/users/login relays it to the browser — so a successful sign-in
+    // answered with the account's own bcrypt hash. Verified against the
+    // running stack. getAllUsers already stripped it; this path did not.
+    const { passwordHash, ...safe } = user;
+    res.status(200).json({ status: 'success', data: { user: safe } });
   } catch (error: any) {
     res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
@@ -122,6 +128,17 @@ export const registerUser = async (req: Request, res: Response) => {
     const existing = await userModel.findByEmail(email);
     if (existing) return res.status(400).json({ status: 'error', message: 'User already exists' });
 
+    // The role has to be one of the three the schema knows. Without the check
+    // an unexpected value reaches Prisma as an enum error, and the message
+    // that comes back describes the database.
+    if (!Object.values(Role).includes(role)) {
+      return res.status(400).json({
+        error: true,
+        code: 'BAD_REQUEST',
+        message: `Role must be one of: ${Object.values(Role).join(', ')}`,
+      });
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await userModel.createUser({
       email,
@@ -131,7 +148,8 @@ export const registerUser = async (req: Request, res: Response) => {
       department
     });
 
-    res.status(201).json({ status: 'success', data: { user } });
+    const { passwordHash: _hash, ...safe } = user;
+    res.status(201).json({ status: 'success', data: { user: safe } });
   } catch (error: any) {
     res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
   }
@@ -231,6 +249,21 @@ export const exportUserData = async (req: Request, res: Response) => {
         createdAt: log.createdAt,
       };
     });
+
+    // A subject access request is the moment a complete copy of someone's
+    // personal data leaves the building, and it was the one action in the
+    // product that happened with no record at all.
+    //
+    // It is recorded here rather than in AuditLog because AuditLog hangs off a
+    // claim — claimId is required — and a data export is an event about an
+    // ACCOUNT, not about any one claim. Anchoring it to, say, the caller's
+    // most recent claim would put "Data exported" in that claim's history,
+    // where it does not belong and would read as something that happened to
+    // that claim. Account-level events belong in the application log until
+    // there is a table for them.
+    logUtil.info(
+      `[DSAR] user ${userId} exported their own data: ${claims.length} claim(s), ${sanitizedAuditLogs.length} history entries`,
+    );
 
     return res.status(200).json({
       status: 'success',
