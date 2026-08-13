@@ -395,6 +395,19 @@
   overflow-y: auto;
 }
 
+/* Below 1280 the audit toolbar takes a second line — six filter segments, the
+   date and amount ranges, and a search field that no longer collapses to make
+   room. The ledger gets that line's height back off its own cap rather than
+   the page scrolling. */
+@media (max-width: 1279px) {
+  /* Both classes, like the base rule — the comment above it says why, and a
+     single-class override here silently lost to it. */
+  .finance-audit-scroll.data-panel-scroll {
+    max-height: calc(100vh - 600px);
+    min-height: 0;
+  }
+}
+
 .finance-audit .fin-audit-time {
   white-space: nowrap;
   color: var(--text-secondary);

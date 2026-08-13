@@ -483,7 +483,7 @@ export default function Finance() {
               meant the box took the input's intrinsic 20-character size, so
               the max-width never applied and the placeholder needed 284px of
               the 142px it was given — cut off halfway, with no ellipsis. */}
-          <div className="search-input-wrapper m-0 w-full sm:w-[300px]">
+          <div className="search-input-wrapper m-0 w-full sm:w-[300px] sm:flex-shrink-0">
             <Search className="h-3.5 w-3.5 search-leading-icon" />
             <input
               id="finance-search-input"

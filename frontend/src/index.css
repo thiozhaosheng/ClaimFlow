@@ -3798,6 +3798,10 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-chip);
   padding: 0.2rem 0.6rem 0.2rem 0.25rem;
+  /* A status label is one label. At 1024 the queue's Employee and Policy
+     columns both narrow, and "Awaiting correction" broke across two lines,
+     taking the row to 44px and pushing the workspace past the fold. */
+  white-space: nowrap;
 }
 .claim-chip-file {
   padding: 0.2rem 0.6rem;

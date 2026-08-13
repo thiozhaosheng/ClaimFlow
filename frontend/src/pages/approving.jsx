@@ -356,7 +356,7 @@ export default function Approving() {
              the 170px left inside it and was cut off mid-word, with no
              ellipsis to show it. The toolbar is 1184px wide and was using 400
              of them. */}
-         <div className="search-input-wrapper m-0 w-full sm:w-[320px]">
+         <div className="search-input-wrapper m-0 w-full sm:w-[320px] sm:flex-shrink-0">
            <Search className="h-3.5 w-3.5 search-leading-icon" />
            <input
              id="manager-search-input"
@@ -425,7 +425,9 @@ export default function Approving() {
                       <span className="queue-date">{item.date}</span>
                     </td>
                     <td>
-                      <span className="queue-name">{escapeHtml(item.employee)}</span>
+                      <span className="queue-name" title={item.employee}>
+                        {escapeHtml(item.employee)}
+                      </span>
                       <span className="queue-dept">{item.department}</span>
                     </td>
                     <td>

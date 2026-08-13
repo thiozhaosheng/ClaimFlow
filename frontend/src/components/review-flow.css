@@ -531,6 +531,9 @@
   font-size: 0.75rem;
   color: var(--text-tertiary);
   margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .queue-name {
@@ -538,6 +541,14 @@
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-primary);
+  /* A person's name is not prose. "Jonathan Koh" broke after "Jonathan" once
+     the column narrowed, giving that row two lines where every other row had
+     one — and the ragged rhythm is what makes a ledger hard to scan. If the
+     column ever gets too tight for a long name, the name truncates with an
+     ellipsis and the full one stays in the title. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .queue-cat {
@@ -608,10 +619,12 @@
 }
 
 /* Between 1024 and 1200 the page header wraps to two lines and grows ~48px,
-   so the ledger has that much less room than the constant above assumes. */
+   so the ledger has that much less room than the constant above assumes.
+   36.25, not 35.5: the search field is 320px here rather than the 220 it used
+   to collapse to, which pushes the toolbar's own wrap point. */
 @media (min-width: 1024px) and (max-width: 1199px) {
   #view-approving .data-panel-scroll {
-    max-height: calc(100vh - 35.5rem);
+    max-height: calc(100vh - 36.5rem);
   }
 }
 

@@ -431,8 +431,19 @@ export default function ClaimDetail() {
                 {claim.description && (
                   <Fact label="Description" value={claim.description} wide />
                 )}
+                {/* A long value gets the whole row rather than half of one.
+                    "Contract renewal discussion ahead of the FY26 renewal
+                    date." in a half-width column wrapped to four lines and
+                    pushed the sheet past the fold; across the full width it
+                    takes one. The threshold is the value's own length, so it
+                    follows the content instead of naming particular fields. */}
                 {detailEntries.map((e, i) => (
-                  <Fact key={i} label={e.label} value={String(e.value)} />
+                  <Fact
+                    key={i}
+                    label={e.label}
+                    value={String(e.value)}
+                    wide={String(e.value).length > 38}
+                  />
                 ))}
               </dl>
             </div>

@@ -188,6 +188,15 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: 2rem;
 }
+/* Between 1000 and 1280 the squeeze came from the exhibit column, not from the
+   facts: it is a fixed 23rem, so everything it does not use is taken off the
+   record beside it. Narrowing the receipt to 18rem there gives the record ~80px
+   back, which is enough to keep the facts in two columns — stacking them
+   instead pushed the sheet 289px past the fold. The receipt is a thumbnail
+   with "Open the full image" under it either way. */
+@media (max-width: 1279px) {
+  .claim-body { grid-template-columns: minmax(0, 1fr) 18rem; }
+}
 /* Label then value, on a fixed axis — not label-left/value-right.
    Pushing values to the right edge of each half gave them a ragged left edge,
    so finding "Merchant" meant reading every line. With the label column fixed,
@@ -205,13 +214,18 @@
 }
 .claim-facts .claim-fact:nth-last-child(-n + 2) { border-bottom: none; }
 .claim-fact dt { color: var(--text-tertiary); flex-shrink: 0; }
+/* A value on a record is evidence; it does not get truncated.
+   At 1440 these all fit one line, so nothing changes there — but the exhibit
+   column is a fixed 23rem, so between 1000 and 1280 the record column narrows
+   and nearly every value was being cut: "Jumbo Seafood" lost 23px, "Jane Lim,
+   Marcus Wee" 62px, the business justification 293px. An ellipsis on a claim's
+   merchant is the page hiding the thing it exists to show. They wrap now, and
+   the sheet is allowed to be taller at narrow widths instead. */
 .claim-fact dd {
   color: var(--text-primary);
   font-weight: 500;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 /* The sum. Set as a sum, on its own rule. */
