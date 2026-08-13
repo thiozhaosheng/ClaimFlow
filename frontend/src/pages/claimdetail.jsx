@@ -1,27 +1,17 @@
 import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  ArrowLeft,
-  Check,
-  Clock,
-  AlertTriangle,
-  Ban,
-  CircleDashed,
-  FileText,
-} from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { useClaims } from "../hooks/useclaims.js";
 import { useReceipt } from "../hooks/usereceipt.js";
 import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
 import { formatSGD, formatSGDate } from "../utils/helpers.js";
 import { evaluatePolicies, claimContextFromForm } from "../lib/policy.js";
-import {
-  deriveStages,
-  deriveRequirements,
-} from "../lib/claimProgress.js";
+import { deriveRequirements } from "../lib/claimProgress.js";
 import categoryFields from "../data/categoryFields.json";
 import EditClaimModal, { correctionRequestOf } from "../components/editclaimmodal.jsx";
 import ConfirmModal from "../components/confirmmodal.jsx";
+import "./claim-record.css";
 
 const STATUS_KEY = {
   Pending: "pending",
@@ -30,39 +20,28 @@ const STATUS_KEY = {
   Rejected: "rejected",
 };
 
-// Requirement state → glyph. Tone carries MEANING and nothing else: a satisfied
-// check is stated in plain ink, because a column of green ticks is decoration
-// that makes the two rows which need attention harder to find.
-const REQ_PRESENTATION = {
-  done: { icon: Check, tone: "done" },
-  missing: { icon: AlertTriangle, tone: "warn" },
-  blocked: { icon: Ban, tone: "block" },
-  review: { icon: Clock, tone: "info" },
-  optional: { icon: CircleDashed, tone: "muted" },
-};
-
-function StageTracker({ stages }) {
-  return (
-    <ol className="stage-tracker" aria-label="Claim progress">
-      {stages.map((s, i) => (
-        <li key={s.key} className={`stage-node stage-${s.state}`}>
-          <span className="stage-dot">
-            {s.state === "done" ? (
-              <Check className="h-3 w-3" />
-            ) : s.state === "rejected" ? (
-              <Ban className="h-3 w-3" />
-            ) : s.state === "current" ? (
-              <Clock className="h-3 w-3" />
-            ) : (
-              <span className="stage-num">{i + 1}</span>
-            )}
-          </span>
-          <span className="stage-label">{s.label}</span>
-          {i < stages.length - 1 && <span className="stage-line" aria-hidden="true" />}
-        </li>
-      ))}
-    </ol>
-  );
+/**
+ * Where the claim stands, in a sentence.
+ *
+ * This was a three-node stepper: circles, a connecting line, a numbered node
+ * for the step not reached yet. It is the component every generated dashboard
+ * ships, and it told the reader less than one line of text can — while saying
+ * the same thing the history table underneath already records, in less detail.
+ */
+function standing(claim) {
+  if (claim.withdrawn) return "Withdrawn by the submitter, and in no queue.";
+  switch (claim.status) {
+    case "Pending":
+      return "With the approving officer. Nothing is owed until it is endorsed.";
+    case "Endorsed":
+      return "Endorsed. Waiting on finance to release the payment.";
+    case "Paid":
+      return "Paid by GIRO or PayNow to the claimant's account.";
+    case "Rejected":
+      return "Rejected. A new claim has to be submitted to try again.";
+    default:
+      return claim.status;
+  }
 }
 
 export default function ClaimDetail() {
@@ -99,7 +78,6 @@ export default function ClaimDetail() {
     );
   }, [claim]);
 
-  const stages = useMemo(() => (claim ? deriveStages(claim) : []), [claim]);
   const requirements = useMemo(
     () => (claim ? deriveRequirements(claim) : []),
     [claim],
@@ -131,28 +109,21 @@ export default function ClaimDetail() {
   }
 
   const statusKey = STATUS_KEY[claim.status] || "pending";
-
-  // What the person looking at this claim can actually do with it. The page
-  // used to offer nothing at all — you could open your own pending claim,
-  // read it, and go back to the list to act on it. The list's own row has had
-  // Edit and Withdraw the whole time.
   const isOwner = session?.role === "employee";
   const isOpen = claim.status === "Pending" && !claim.withdrawn;
-  const canAct = isOwner && isOpen;
-  // An approver reading a claim that is waiting on them needs the same way out
-  // as the submitter does. The decision itself stays in the gated review flow
-  // on the queue — this opens it against this claim rather than duplicating it.
-  const canReview = session?.role === "approving" && isOpen && !correctionRequestOf(claim);
   const correction = correctionRequestOf(claim);
+  const canAct = isOwner && isOpen;
+  const canReview = session?.role === "approving" && isOpen && !correction;
 
-  // The arithmetic an expense record is supposed to show. Prices here are
-  // GST-inclusive, which is how they are printed on a Singapore receipt, so
-  // the net is what remains after the tax — and the net is the figure that
-  // reaches the accounts. The page used to show the total alone and drop GST
-  // into the middle of a list of facts, where it read as a detail rather than
-  // as part of a sum.
+  // Prices are GST-inclusive, as printed on a Singapore receipt, so the net is
+  // what remains after the tax — and the net is the figure that reaches the
+  // accounts.
   const gst = claim.gstAmount != null ? Number(claim.gstAmount) : null;
   const net = gst != null ? Number(claim.amount) - gst : null;
+
+  const outstanding = requirements.filter(
+    (r) => r.state === "missing" || r.state === "blocked",
+  );
 
   return (
     <section className="role-workspace claim-detail">
@@ -165,10 +136,6 @@ export default function ClaimDetail() {
           <ArrowLeft className="h-4 w-4" />
           <span>Back</span>
         </button>
-        <div className="claim-detail-ident">
-          <h1 className="claim-detail-ref">{claim.id}</h1>
-          <span className={`badge-custom badge-${statusKey}`}>{claim.status}</span>
-        </div>
         {canAct && (
           <div className="claim-detail-actions">
             <button className="btn-secondary" onClick={() => setEditing(true)}>
@@ -199,170 +166,167 @@ export default function ClaimDetail() {
         </div>
       )}
 
-      <div className="claim-detail-grid">
-        <div className="data-panel claim-detail-record">
-            <div className="data-panel-head">
-              <h2 className="data-panel-title">Claim</h2>
+      <article className="claim-sheet">
+        <header className="claim-sheet-head">
+          <div className="min-w-0">
+            <div className="claim-sheet-ref">
+              <h1>{claim.id}</h1>
+              <span className={`badge-custom badge-${statusKey}`}>
+                {claim.withdrawn ? "Withdrawn" : claim.status}
+              </span>
             </div>
-            <dl className="record-grid">
-              <RecordRow label="Claimant" value={claim.employee} />
-              <RecordRow label="Department" value={claim.department} />
-              <RecordRow label="Category" value={claim.type} />
-              <RecordRow label="Merchant" value={claim.merchant || "Not recorded"} />
-              <RecordRow label="Expense date" value={formatSGDate(claim.date)} />
-              <RecordRow
-                label="Receipt scan"
-                value={
-                  claim.ocrSource === "azure"
-                    ? "Read automatically"
-                    : claim.ocrSource === "unavailable"
-                      ? "Typed by hand"
-                      : "Not recorded"
-                }
-              />
-              {detailEntries.map((e, i) => (
-                <RecordRow key={i} label={e.label} value={String(e.value)} />
-              ))}
-            </dl>
+            <p className="claim-sheet-line">
+              {claim.type} · {claim.merchant || "Merchant not recorded"} ·{" "}
+              {formatSGDate(claim.date)}
+            </p>
+            <p className="claim-sheet-line">Submitted by {claim.employee}</p>
+          </div>
+          <div className="claim-sheet-amount">
+            <b>{formatSGD(claim.amount)}</b>
+            <span>
+              {gst != null ? `incl. GST 9% ${formatSGD(gst)}` : "no GST recorded"}
+            </span>
+          </div>
+        </header>
 
-            {/* Net, tax, total — right-aligned and tabular, the way a claim is
-                actually settled. */}
-            <table className="amount-ledger">
-              <tbody>
-                {net != null && (
-                  <>
-                    <tr>
-                      <th scope="row">Net of GST</th>
-                      <td className="num">{formatSGD(net)}</td>
-                    </tr>
-                    <tr>
-                      <th scope="row">GST 9%</th>
-                      <td className="num">{formatSGD(gst)}</td>
-                    </tr>
-                  </>
-                )}
-                <tr className="amount-ledger-total">
-                  <th scope="row">Total claimed</th>
-                  <td className="num">{formatSGD(claim.amount)}</td>
+        <div className="claim-section">
+          <div className="claim-section-label">Expense</div>
+          <div className="claim-expense">
+            <div className="min-w-0">
+              {/* Category, merchant and date are in the masthead two inches
+                  above. Repeating them here is the same words twice on one
+                  screen — what is left is what the masthead does not say. */}
+              <dl className="claim-facts">
+                <Fact
+                  label="Fields"
+                  value={
+                    claim.ocrSource === "azure"
+                      ? "Read off the receipt"
+                      : claim.ocrSource === "unavailable"
+                        ? "Typed by hand"
+                        : "Not recorded"
+                  }
+                />
+                <Fact label="Department" value={claim.department || "Not recorded"} />
+                {detailEntries.map((e, i) => (
+                  <Fact key={i} label={e.label} value={String(e.value)} />
+                ))}
+              </dl>
+
+              <table className="claim-sum">
+                <tbody>
+                  {net != null && (
+                    <>
+                      <tr>
+                        <th scope="row">Net of GST</th>
+                        <td>{formatSGD(net)}</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">GST 9%</th>
+                        <td>{formatSGD(gst)}</td>
+                      </tr>
+                    </>
+                  )}
+                  <tr className="claim-sum-total">
+                    <th scope="row">Total claimed</th>
+                    <td>{formatSGD(claim.amount)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <figure className="claim-plate">
+              {claim.receiptUrl && receiptSrc && !receiptBroken ? (
+                <>
+                  <a href={receiptSrc} target="_blank" rel="noreferrer">
+                    <img
+                      src={receiptSrc}
+                      alt={`Receipt for ${claim.id}`}
+                      onError={markReceiptBroken}
+                    />
+                  </a>
+                  <figcaption>Receipt as submitted · open full size</figcaption>
+                </>
+              ) : (
+                <div className="claim-plate-empty">
+                  {claim.receiptUrl
+                    ? "Receipt stored, preview unavailable."
+                    : "No receipt attached."}
+                </div>
+              )}
+            </figure>
+          </div>
+        </div>
+
+        <div className="claim-section">
+          <div className="claim-section-label">Approval</div>
+          <p className="claim-standing">
+            {standing(claim)}{" "}
+            {policy && (
+              <em className={`claim-standing-${policy.outcome}`}>
+                {policy.label ? `${policy.label} — ` : ""}
+                {policy.message}
+              </em>
+            )}
+          </p>
+
+          {history.length === 0 ? (
+            <p className="claim-standing">
+              <em>Nothing has happened to this claim yet.</em>
+            </p>
+          ) : (
+            <table className="claim-trail">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Action</th>
+                  <th>By</th>
+                  <th>Note</th>
                 </tr>
+              </thead>
+              <tbody>
+                {history.map((entry, i) => (
+                  <tr key={i}>
+                    <td className="claim-trail-when">
+                      {entry.date}
+                      <span className="claim-trail-sub">{entry.time}</span>
+                    </td>
+                    <td>{entry.action}</td>
+                    <td>
+                      {entry.actor}
+                      <span className="claim-trail-sub">{entry.role}</span>
+                    </td>
+                    <td className="claim-trail-note">{entry.reason || "—"}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
-            {net == null && (
-              <p className="amount-ledger-note">
-                No GST recorded — the merchant may not be GST-registered.
-              </p>
-            )}
-        </div>
-
-        <div className="data-panel claim-detail-receipt">
-            <div className="data-panel-head">
-              <h2 className="data-panel-title">Receipt</h2>
-            </div>
-            {claim.receiptUrl && receiptSrc && !receiptBroken ? (
-              <div className="claim-receipt-view">
-                <a href={receiptSrc} target="_blank" rel="noreferrer">
-                  <img
-                    src={receiptSrc}
-                    alt={`Receipt for ${claim.id}`}
-                    onError={markReceiptBroken}
-                  />
-                  <span>Open full size</span>
-                </a>
-              </div>
-            ) : (
-              <p className="claim-receipt-missing">
-                {claim.receiptUrl
-                  ? "Receipt stored, preview unavailable."
-                  : "No receipt attached."}
-              </p>
-            )}
-        </div>
-
-        <div className="data-panel claim-detail-progress">
-          <div className="data-panel-head">
-            <h2 className="data-panel-title">Progress</h2>
-          </div>
-          <div className="claim-stage-wrap">
-            <StageTracker stages={stages} />
-          </div>
-          {policy && (
-            <p className={`claim-policy-line claim-policy-${policy.outcome}`}>
-              <strong>
-                {policy.outcome === "auto-approve"
-                  ? "Within policy"
-                  : policy.outcome === "block"
-                    ? "Blocked by policy"
-                    : "Routed for review"}
-              </strong>
-              {policy.label ? ` · ${policy.label}` : ""} — {policy.message}
-            </p>
           )}
         </div>
 
-          {/* The claim's own audit trail, in the same ledger the finance
-              workspace uses. It was a stack of coloured dots and prose — the
-              one screen where "who approved what, and when" has to be legible
-              at a glance was the one screen not using the table. */}
-        <div className="data-panel claim-detail-history">
-            <div className="data-panel-head">
-              <h2 className="data-panel-title">History</h2>
-              <span className="data-panel-count">{history.length} entries</span>
-            </div>
-            {history.length === 0 ? (
-              <p className="claim-empty-line">No activity recorded yet.</p>
-            ) : (
-              <div className="data-panel-scroll">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>When</th>
-                      <th>Action</th>
-                      <th>By</th>
-                      <th>Note</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.map((entry, i) => (
-                      <tr key={i}>
-                        <td className="claim-history-when">
-                          {entry.date}
-                          <span>{entry.time}</span>
-                        </td>
-                        <td>{entry.action}</td>
-                        <td>
-                          {entry.actor}
-                          <span className="claim-history-role">{entry.role}</span>
-                        </td>
-                        <td className="claim-history-note">{entry.reason || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+        <div className="claim-section">
+          <div className="claim-section-label">
+            {outstanding.length > 0 ? "Outstanding" : "Checks"}
+          </div>
+          <div className="claim-checks">
+            {requirements.map((r) => (
+              <span
+                key={r.key}
+                className={
+                  r.state === "missing"
+                    ? "claim-check claim-check-warn"
+                    : r.state === "blocked"
+                      ? "claim-check claim-check-block"
+                      : "claim-check"
+                }
+              >
+                {r.label}
+                {r.detail ? <em>{r.detail}</em> : null}
+              </span>
+            ))}
+          </div>
         </div>
-
-        <div className="data-panel claim-detail-checks">
-            <div className="data-panel-head">
-              <h2 className="data-panel-title">Checks</h2>
-            </div>
-            <ul className="req-list">
-              {requirements.map((r) => {
-                const pres = REQ_PRESENTATION[r.state] || REQ_PRESENTATION.optional;
-                const Icon = pres.icon;
-                return (
-                  <li key={r.key} className={`req-row req-${pres.tone}`}>
-                    <span className="req-icon">
-                      <Icon className="h-3.5 w-3.5" />
-                    </span>
-                    <span className="req-label">{r.label}</span>
-                    {r.detail && <span className="req-detail">{r.detail}</span>}
-                  </li>
-                );
-              })}
-            </ul>
-        </div>
-      </div>
+      </article>
 
       <EditClaimModal
         open={editing}
@@ -425,9 +389,9 @@ export default function ClaimDetail() {
   );
 }
 
-function RecordRow({ label, value }) {
+function Fact({ label, value }) {
   return (
-    <div className="record-row">
+    <div className="claim-fact">
       <dt>{label}</dt>
       <dd>{value}</dd>
     </div>

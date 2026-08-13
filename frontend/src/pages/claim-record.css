@@ -1,0 +1,253 @@
+/* ===== the claim record ==================================================
+   A claim is a document, so it is set as one sheet.
+
+   The version before this was five bordered, rounded panels on a grey field —
+   Claim, Receipt, Progress, History, Checks — each with its own small title,
+   plus a stepper with circles and a line, plus a column of ticks. Those are
+   the three most template-generated objects on the web, and boxing every
+   section is what makes a page read as a dashboard someone generated rather
+   than a record a company keeps. Structure comes from typography and hairline
+   rules here, the way a statement, an invoice or a payment record is set.
+
+   Reference points, all of which are photo-free, box-free documents: a Stripe
+   payment, a Xero invoice, a bank statement.
+   ======================================================================== */
+
+.claim-sheet {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-panel);
+}
+
+/* --- masthead: what this is, and what it is worth --------------------- */
+.claim-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.25rem 1.5rem 1.1rem;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.claim-sheet-ref {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.35rem;
+}
+.claim-sheet-ref h1 {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.claim-sheet-line {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+.claim-sheet-line + .claim-sheet-line { margin-top: 0.15rem; }
+
+/* The amount, stated once, where the eye lands. */
+.claim-sheet-amount {
+  text-align: right;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.claim-sheet-amount b {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+.claim-sheet-amount span {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+/* --- sections: ruled, not boxed --------------------------------------- */
+.claim-section {
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.claim-section:last-child { border-bottom: none; }
+
+.claim-section-label {
+  /* 12px floor: the workspace type ladder does not go below it, and these
+     were rendering at 11. */
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 0.7rem;
+}
+
+/* Expense facts beside the receipt they came off. */
+.claim-expense {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  gap: 2rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .claim-expense { grid-template-columns: minmax(0, 1fr); }
+}
+
+.claim-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 2rem;
+}
+.claim-fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0;
+  font-size: 0.8125rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.claim-fact:nth-last-child(-n + 2) { border-bottom: none; }
+.claim-fact dt { color: var(--text-tertiary); flex-shrink: 0; }
+.claim-fact dd {
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: right;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The sum. Set as a sum, on its own rule. */
+.claim-sum {
+  margin-top: 0.9rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border-default);
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.claim-sum th,
+.claim-sum td {
+  padding: 0.22rem 0;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-align: left;
+}
+.claim-sum td { text-align: right; color: var(--text-primary); }
+.claim-sum-total th,
+.claim-sum-total td {
+  padding-top: 0.45rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* The receipt as a plate with a caption, not a panel with a header. */
+.claim-plate { margin: 0; }
+.claim-plate a {
+  display: block;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  background-color: var(--bg-subtle);
+}
+.claim-plate img {
+  display: block;
+  width: 100%;
+  max-height: 11rem;
+  object-fit: contain;
+  background-color: var(--bg-card);
+}
+.claim-plate figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+.claim-plate-empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-control);
+}
+
+/* Where the claim stands, said in a sentence rather than drawn as a stepper
+   with circles and a connecting line — which is both the most generated
+   component in this whole app and a second telling of what the history table
+   underneath already records. */
+.claim-standing {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  margin-bottom: 0.8rem;
+}
+.claim-standing em {
+  font-style: normal;
+  color: var(--text-secondary);
+}
+.claim-standing-block { color: var(--danger-text); }
+.claim-standing-route-to-human { color: var(--warning-text); }
+
+/* History: a plain ruled table on the sheet. */
+.claim-trail { width: 100%; border-collapse: collapse; }
+.claim-trail th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: 0 1rem 0.35rem 0;
+  border-bottom: 1px solid var(--border-default);
+}
+.claim-trail td {
+  padding: 0.45rem 1rem 0.45rem 0;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: top;
+}
+.claim-trail tr:last-child td { border-bottom: none; }
+.claim-trail td:last-child { padding-right: 0; }
+.claim-trail-when { white-space: nowrap; color: var(--text-secondary); }
+.claim-trail-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+.claim-trail-note { color: var(--text-secondary); }
+
+/* Checks read as one line of prose. Four rows of ticks is a widget; what a
+   reader needs is whether anything is outstanding, and if so which. */
+.claim-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+.claim-check { display: inline-flex; align-items: baseline; gap: 0.3rem; }
+.claim-check-warn { color: var(--warning-text); font-weight: 500; }
+.claim-check-block { color: var(--danger-text); font-weight: 500; }
+.claim-check em { font-style: normal; color: var(--text-tertiary); }
+
+/* The correction request, when one is open. */
+.claim-correction-bar {
+  margin-bottom: 0.85rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--warning);
+  border-left-width: 3px;
+  border-radius: var(--radius-control);
+  background-color: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 0.8125rem;
+}
+.claim-correction-bar strong { font-weight: 600; }
