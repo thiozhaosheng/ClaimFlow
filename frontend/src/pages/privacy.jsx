@@ -55,9 +55,11 @@ export default function Privacy() {
         Privacy notice
       </h1>
       <P>
-        Effective 26 May 2026. This notice explains what ClaimFlow collects from
-        you, why, how long we keep it, and the choices you have under
-        Singapore's Personal Data Protection Act 2012.
+        Effective 13 August 2026. This notice explains what ClaimFlow collects
+        from you, why, how long we keep it, and the choices you have under
+        Singapore's Personal Data Protection Act 2012. It describes what the
+        portal does today — where something is intended but not yet built, it
+        is listed in section 11 rather than written as though it were running.
       </P>
 
       <H2>1. Who runs ClaimFlow</H2>
@@ -151,13 +153,19 @@ export default function Privacy() {
 
       <H2>5. Who can see your data</H2>
       <UL>
-        <li>You can see all of your own claims and audit trail.</li>
+        <li>You can see all of your own claims and their full history.</li>
         <li>
-          Your assigned approver can see claims you submit for their review.
+          An approving officer sees claims from{" "}
+          <strong className="text-text-primary font-medium">
+            their own department only
+          </strong>
+          . This is enforced by the API on every request, not just by what the
+          screen chooses to show — including when a claim is opened directly by
+          its reference.
         </li>
         <li>
-          Finance administrators can see all claims for accounting and IRAS
-          reporting.
+          Finance administrators can see all claims. They settle every claim
+          and file the GST, so the scope is the job.
         </li>
         <li>
           The infrastructure team can access the database for operations, under
@@ -205,46 +213,120 @@ export default function Privacy() {
         </li>
       </UL>
       <P>
-        Access is in the portal. For correction and withdrawal of consent,
-        email your employer&rsquo;s Data Protection Officer — the in-portal
-        erasure flow is still to be built, and is tracked in the{" "}
+        Only access is self-service. Correction and withdrawal of consent go
+        through your employer&rsquo;s Data Protection Officer by email — see
+        section 11, and the{" "}
         <a
           href="https://github.com/thiozhaosheng/ClaimFlow/blob/main/docs/compliance/pdpa.md"
           target="_blank"
           rel="noreferrer"
           className="text-accent hover:underline"
         >
-          PDPA compliance doc
-        </a>
-        .
+          PDPA compliance document
+        </a>{" "}
+        for where that sits on the roadmap.
       </P>
 
       <H2>8. How we protect your data</H2>
       <UL>
-        <li>Passwords are stored as bcrypt hashes.</li>
-        <li>API traffic is served over HTTPS.</li>
-        <li>Security headers are set via Helmet.</li>
-        <li>Authentication uses short-lived JWTs.</li>
-        <li>Receipt images require an authenticated session to view.</li>
+        <li>
+          Passwords are stored as bcrypt hashes and are never returned by any
+          endpoint.
+        </li>
+        <li>Traffic is served over HTTPS, with security headers set by Helmet.</li>
+        <li>
+          Sign-in attempts are rate limited to five per quarter of an hour from
+          one address; ordinary requests to 120 a minute.
+        </li>
+        <li>
+          Every access rule is enforced in the API. The gateway in front of it
+          forwards requests; it is not the thing that decides who may see what.
+        </li>
+        <li>
+          Uploaded receipts are held in a private store. Viewing one needs a
+          signed link that lasts fifteen minutes, and a link is only issued to
+          someone allowed to open that claim.
+        </li>
+        <li>
+          Every status change is written to an audit trail with the actor and
+          the time, and you can read your own.
+        </li>
       </UL>
+      <P>
+        Two limits worth stating plainly rather than leaving you to assume
+        otherwise. A sign-in token lasts{" "}
+        <strong className="text-text-primary font-medium">one day</strong> and
+        cannot be cancelled early — signing out removes it from your browser,
+        but a copy taken from that browser would keep working until it expires.
+        And there is no second factor at sign-in yet.
+      </P>
 
       <H2>9. If something goes wrong</H2>
       <P>
         In the event of a data breach affecting your personal data, we will
         notify the PDPC and affected users within the timelines required by the
-        PDPA (Amendment) Act 2020. The internal procedure is being drafted at{" "}
-        <code>docs/compliance/breach-runbook.md</code>.
+        PDPA (Amendment) Act 2020. The written internal procedure for doing so
+        does not exist yet — it is listed under section 11 rather than cited as
+        though it were already in place.
       </P>
 
       <H2>10. Updates to this notice</H2>
       <P>
-        When this notice materially changes, we'll show it to you again at
-        sign-in so you can confirm you've seen the new version.
+        This page carries the date it was last reviewed, and the approval policy
+        it refers to carries its own version number. Re-showing the notice at
+        sign-in when it materially changes is intended and{" "}
+        <strong className="text-text-primary font-medium">is not built</strong>
+        {" "}— the database has columns for the date and version you consented
+        to, and nothing writes to them yet.
       </P>
+
+      <H2>11. What is not built yet</H2>
+      <P>
+        A privacy notice that describes intentions as if they were controls is
+        worse than one that admits the gap, so these are listed rather than
+        implied:
+      </P>
+      <UL>
+        <li>
+          <strong className="text-text-primary font-medium">
+            Consent capture
+          </strong>{" "}
+          — no record is kept of which version of this notice you agreed to.
+        </li>
+        <li>
+          <strong className="text-text-primary font-medium">
+            Correction and erasure in the portal
+          </strong>{" "}
+          — both go through your Data Protection Officer by email today. Only
+          access is self-service.
+        </li>
+        <li>
+          <strong className="text-text-primary font-medium">
+            Automatic retention
+          </strong>{" "}
+          — nothing deletes or anonymises a record when its retention period
+          ends; the schedule below is a policy, not a scheduled job.
+        </li>
+        <li>
+          <strong className="text-text-primary font-medium">
+            Breach procedure
+          </strong>{" "}
+          — the obligation is understood, the written runbook is not finished.
+        </li>
+        <li>
+          <strong className="text-text-primary font-medium">
+            Demo data
+          </strong>{" "}
+          — receipt images in the sample dataset are ordinary files served by
+          the web server and are not access-controlled. They are generated
+          illustrations, not anyone&rsquo;s documents. Receipts you upload go to
+          the private store described in section 8.
+        </li>
+      </UL>
 
       <hr className="my-16 border-border-subtle" />
       <p className="text-[12px] text-text-tertiary">
-        Last reviewed: 26 May 2026. See also:{" "}
+        Last reviewed: 13 August 2026. See also:{" "}
         <Link to="/policies" className="text-accent hover:underline">
           company approval policy
         </Link>

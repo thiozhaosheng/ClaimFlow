@@ -9,8 +9,48 @@ import {
   Lock,
   ScrollText,
   ShieldCheck,
-  UserCheck,
 } from "lucide-react";
+
+/**
+ * Who can reach what, and where that is decided.
+ *
+ * The question the compliance page could not answer was the security one: it
+ * listed documents and linked two pages, and said nothing about how access is
+ * controlled. Each row here is a rule the API enforces on every request —
+ * `canAccessClaim` in claim.controller.ts — not a description of what the
+ * screens happen to show.
+ */
+const ACCESS = [
+  {
+    who: "Employee",
+    sees: "Their own claims, receipts and history. Nothing else, including by reference.",
+  },
+  {
+    who: "Approving officer",
+    sees: "Claims from their own department. They can endorse, refuse, or send named fields back to be corrected.",
+  },
+  {
+    who: "Finance administrator",
+    sees: "Every claim, the whole audit trail, and the staff directory. They settle every claim and file the GST.",
+  },
+];
+
+const MEASURES = [
+  "Passwords stored as bcrypt hashes, never returned by any endpoint.",
+  "Access decided in the API on every request. The gateway forwards traffic; it does not decide who may see what.",
+  "Uploaded receipts held in a private store, reached through a signed link that expires after fifteen minutes.",
+  "Sign-in limited to five attempts per quarter of an hour from one address; other requests to 120 a minute.",
+  "HTTPS, Helmet security headers, and a CORS allowlist rather than a wildcard.",
+  "Every status change written to an audit trail with the actor and the time.",
+];
+
+// Stated rather than left for someone to discover. The compliance documents
+// carry their own gap lists; these are the two that matter most to a reader
+// deciding whether to trust the portal.
+const LIMITS = [
+  "A sign-in token lasts one day and cannot be cancelled early — signing out clears it from the browser only.",
+  "There is no second factor at sign-in, and no automatic job that deletes or anonymises a record when its retention period ends.",
+];
 
 const SECTIONS = [
   {
@@ -132,6 +172,40 @@ export default function Compliance() {
         })}
       </div>
 
+      <SectionHeading>Who can see what</SectionHeading>
+      <dl className="border border-border-subtle rounded-ds-panel divide-y divide-border-subtle overflow-hidden bg-card m-0">
+        {ACCESS.map((row) => (
+          <div
+            key={row.who}
+            className="flex flex-col sm:flex-row gap-1 sm:gap-5 px-4 py-3"
+          >
+            <dt className="text-[14px] font-medium text-text-primary sm:w-44 shrink-0">
+              {row.who}
+            </dt>
+            <dd className="text-[14px] text-text-secondary leading-relaxed m-0">
+              {row.sees}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      <SectionHeading>How the data is protected</SectionHeading>
+      <ul className="list-disc pl-5 space-y-1.5 text-[14px] text-text-secondary leading-relaxed m-0">
+        {MEASURES.map((m) => (
+          <li key={m}>{m}</li>
+        ))}
+      </ul>
+      <p className="text-[14px] text-text-secondary leading-relaxed mt-4 mb-0">
+        <strong className="text-text-primary font-medium">
+          And what it does not do.
+        </strong>{" "}
+        {LIMITS.join(" ")}{" "}
+        <Link to="/privacy" className="text-accent hover:underline">
+          The privacy notice
+        </Link>{" "}
+        lists the rest under &ldquo;What is not built yet&rdquo;.
+      </p>
+
       <SectionHeading>Reference documents</SectionHeading>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {EXTERNAL_DOCS.map((d) => {
@@ -166,9 +240,12 @@ export default function Compliance() {
 
       <hr className="my-16 border-border-subtle" />
       <p className="text-[12px] text-text-tertiary">
-        Gaps and follow-ups are tracked at the bottom of each compliance
-        document. Owners are named so the team can pick them up at the next
-        sprint.
+        {/* "Owners are named so the team can pick them up at the next sprint"
+            was not true of the documents — they carry gap lists, and no
+            owners. A compliance page is the last place to describe a process
+            that is not running. */}
+        The documents above record the gaps still open in each area alongside
+        what is already in place.
       </p>
     </div>
   );
