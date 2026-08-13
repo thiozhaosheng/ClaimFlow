@@ -348,7 +348,12 @@ export default function ReviewModal({ open, claim, actionType, onConfirm, onCanc
                   </div>
                 </div>
                 <div className="review-policy-meta">
-                  <span className="review-policy-rule-label">Matched rule</span>
+                  {/* "Matched rule" sat directly above "No rule matched" on
+                      every claim that did not match one, which is most of
+                      them. */}
+                  <span className="review-policy-rule-label">
+                    {policy.label ? "Matched rule" : "Policy result"}
+                  </span>
                   {policy.label && (
                     <span className="review-policy-rule-chip">{policy.label}</span>
                   )}

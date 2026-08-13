@@ -112,6 +112,14 @@ function evaluateCondition(cond: Condition, ctx: ClaimContext): boolean {
 export interface PolicyResult {
   outcome: Outcome;
   ruleId: string;
+  /**
+   * The rule's written name from policies.json ("Missing receipt over S$50").
+   * Notifications quote the rule at an approver, and quoting its id — or worse,
+   * "default", which is not a rule — puts the engine's internal vocabulary in
+   * front of someone deciding whether to release money. Absent when no rule
+   * matched, because then there is nothing to name.
+   */
+  label?: string;
   message: string;
 }
 
@@ -119,7 +127,7 @@ export function evaluateClaim(claim: ClaimContext): PolicyResult {
   const policies = loadPolicies();
   for (const rule of policies.rules) {
     if (rule.when.every((c) => evaluateCondition(c, claim))) {
-      return { outcome: rule.then, ruleId: rule.id, message: rule.message };
+      return { outcome: rule.then, ruleId: rule.id, label: rule.label, message: rule.message };
     }
   }
   return {

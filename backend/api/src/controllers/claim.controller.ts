@@ -94,6 +94,7 @@ async function notifyDepartmentManager(args: {
   merchant: string | null;
   submitterName: string;
   ruleId: string;
+  ruleLabel?: string;
   ruleMessage: string;
   // Which fields the scan couldn't read, e.g. "Merchant, Date" — only set
   // for the ocr-incomplete kind, used to make the hint specific instead of
@@ -125,8 +126,8 @@ async function notifyDepartmentManager(args: {
       : args.kind === 'ocr-incomplete'
       ? `OCR couldn't read: ${args.ocrMissingFields || 'some fields'} — the submitter entered ${args.ocrMissingFields?.includes(',') ? 'these' : 'this'} by hand. Verify against the receipt image.`
       : args.kind === 'recommended'
-      ? `Within policy (${args.ruleId}) and the receipt read cleanly — verify the amount against the image and approve.`
-      : `Rule: ${args.ruleId} — ${args.ruleMessage}${args.ocrMissingFields ? ` · OCR also couldn't read: ${args.ocrMissingFields}` : ''}`;
+      ? `Within policy${args.ruleLabel ? ` (${args.ruleLabel.toLowerCase()})` : ''} and the receipt read cleanly — verify the amount against the image and approve.`
+      : `${args.ruleLabel ? `${args.ruleLabel} — ` : ''}${args.ruleMessage}${args.ocrMissingFields ? ` · OCR also couldn't read: ${args.ocrMissingFields}` : ''}`;
 
   await Promise.all(
     candidates.map((manager) =>
@@ -291,6 +292,7 @@ export const createClaim = async (req: Request, res: Response) => {
         merchant: merchant ?? null,
         submitterName: submitter.name,
         ruleId: policy.ruleId,
+        ruleLabel: policy.label,
         ruleMessage: policy.message,
       });
     } else if (inPolicy && ocrIncomplete) {
@@ -319,6 +321,7 @@ export const createClaim = async (req: Request, res: Response) => {
         merchant: merchant ?? null,
         submitterName: submitter.name,
         ruleId: policy.ruleId,
+        ruleLabel: policy.label,
         ruleMessage: policy.message,
         ocrMissingFields: ocrMissingFieldsList,
       });
@@ -358,6 +361,7 @@ export const createClaim = async (req: Request, res: Response) => {
         merchant: merchant ?? null,
         submitterName: submitter.name,
         ruleId: policy.ruleId,
+        ruleLabel: policy.label,
         ruleMessage: policy.message,
         ocrMissingFields: ocrIncomplete ? ocrUnavailable ? 'the whole receipt' : ocrMissingFieldsList : undefined,
       });
