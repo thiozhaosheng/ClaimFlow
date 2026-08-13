@@ -90,6 +90,9 @@ export default {
         },
       },
       borderRadius: {
+        "ds-chip": "var(--radius-chip)",
+        "ds-control": "var(--radius-control)",
+        "ds-panel": "var(--radius-panel)",
         "ds-sm": "var(--radius-sm)",
         "ds-md": "var(--radius-md)",
         "ds-lg": "var(--radius-lg)",

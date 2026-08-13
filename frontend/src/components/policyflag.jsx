@@ -98,7 +98,10 @@ export default function PolicyFlag({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
+        // Squared and at 12px: it was a fully rounded capsule set in 10px
+        // text, which is both the generated-UI shape and under the floor
+        // nothing inside the workspace is allowed to go below.
+        "inline-flex items-center gap-1 rounded-ds-chip border px-1.5 py-0.5 text-[12px] font-medium",
         TONE[policy.outcome],
         className,
       )}

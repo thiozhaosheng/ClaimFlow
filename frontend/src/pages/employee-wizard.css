@@ -354,17 +354,19 @@ button.wizard-step-done:hover {
    ========================================================================== */
 
 /* Named above the table too: the panel body scrolls, and the one row that is
-   waiting on the reader must not depend on where the scroll happens to be. */
+   waiting on the reader must not depend on where the scroll happens to be.
+   A line of type on the panel's own ground — the amber wash behind it made a
+   sentence look like an alert box, which is not how anyone lays out software
+   they use every day. The claim reference carries the weight instead. */
 .claims-fix-banner {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.5rem 0.85rem;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.5;
-  color: var(--warning-text);
-  background-color: var(--warning-bg);
-  border-bottom: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .claims-fix-banner .data-ref {
@@ -372,20 +374,13 @@ button.wizard-step-done:hover {
   font-weight: 600;
 }
 
-/* The flagged row itself: warning ground plus a rule down its leading edge,
-   so it is distinct from the ordinary rows without lifting off the table. */
-.data-table tbody tr.claim-row-fix > td,
-.data-table tbody tr.claim-row-fix-note > td {
-  background-color: var(--warning-bg);
-  border-bottom-color: color-mix(in srgb, var(--warning) 25%, transparent);
-}
-
+/* The flagged row: a rule down its leading edge and nothing else. Washing the
+   whole row amber shouted at a reader who had already been told, in the line
+   above the table, exactly which claim it was — and a coloured band across a
+   ledger row is the thing that makes a table look generated rather than kept.
+   The marker is on the edge, where a clerk's pen would put it. */
 .data-table tbody tr.claim-row-fix > td:first-child {
   box-shadow: inset 2px 0 0 var(--warning);
-}
-
-.data-table tbody tr.claim-row-fix:hover > td {
-  background-color: color-mix(in srgb, var(--warning) 12%, var(--bg-card));
 }
 
 .row-action-fix {
@@ -551,10 +546,10 @@ button.wizard-step-done:hover {
   border-radius: var(--radius-chip);
 }
 
-/* The shared policy chip is a 10px pill; on the ledger it joins the type
-   ladder and the tightened chip geometry like every other chip here. */
+/* The shared chip joins the ledger's type ladder. 0.6875rem rendered at 11px,
+   below the floor nothing inside the workspace is allowed to cross. */
 #view-employee .policy-flag-chip {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
 }
 
 /* ==========================================================================

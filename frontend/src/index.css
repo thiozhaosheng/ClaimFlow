@@ -1522,11 +1522,15 @@ code {
    BADGES — quiet pills with a tight border
    ========================================================================== */
 
+/* A label, not a lozenge. A fully rounded pill around a word is the single
+   most recognisable generated-UI object, and a ledger has no reason to round
+   a status into a capsule — the workspace radius ladder (panel 10, control 8,
+   chip 5) exists for exactly this and the badge was ignoring it. */
 .badge-custom {
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-chip);
   display: inline-block;
   letter-spacing: -0.003em;
   border: 1px solid transparent;
@@ -3646,7 +3650,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.15rem 0.55rem;
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   border: 1px solid transparent;
 }
 .req-summary-complete { background: var(--success-bg); color: var(--success-text); }
@@ -3842,7 +3846,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   color: var(--text-secondary);
   background: var(--bg-subtle);
   border: 1px solid var(--border-subtle);
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   padding: 0.2rem 0.6rem 0.2rem 0.25rem;
 }
 .claim-chip-file {
