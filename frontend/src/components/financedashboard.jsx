@@ -15,20 +15,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import {
-  Car,
-  Utensils,
-  Wine,
-  Package,
-  Plane,
-  GraduationCap,
-  Heart,
-  Dumbbell,
-  Users,
-  Tag,
-} from "lucide-react";
 import { Badge } from "./ui/badge.jsx";
-import { categoryColor } from "../lib/categoryColors.js";
 import {
   Select,
   SelectContent,
@@ -39,35 +26,19 @@ import {
 import { Skeleton } from "./ui/skeleton.jsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs.jsx";
 import { Sheet, SheetContent, SheetTitle } from "./ui/sheet.jsx";
-import { useFinanceInsights } from "../hooks/useFinanceInsights.js";
+import { useFinanceInsights, claimInRange } from "../hooks/useFinanceInsights.js";
 import { formatSGD } from "../utils/helpers.js";
 import "./finance-workspace.css";
 
-// Maps the icon keys from categoryColors.js to lucide components.
-const CAT_ICON = {
-  car: Car,
-  utensils: Utensils,
-  wine: Wine,
-  package: Package,
-  plane: Plane,
-  graduation: GraduationCap,
-  heart: Heart,
-  dumbbell: Dumbbell,
-  users: Users,
-  tag: Tag,
-};
-
-// Ranked spend-by-category row: neutral category icon + proportional bar so
-// the LENGTH (not a random hue) encodes magnitude. One accent color only.
+// Ranked spend-by-category row: the bar's LENGTH carries the magnitude.
+// The icon that used to sit at the head of each row is gone — a wine glass
+// beside the words "Client Entertainment", once per row, is a picture of the
+// text next to it, and it was the last thing in the app still pulling from the
+// eleven-hue category palette.
 function CategorySpendRow({ category, amount, max }) {
-  const meta = categoryColor(category);
-  const Icon = CAT_ICON[meta.icon] || Tag;
   const pct = max > 0 ? Math.max(4, Math.round((amount / max) * 100)) : 0;
   return (
     <div className="spend-row">
-      <span className="spend-row-icon">
-        <Icon className="h-4 w-4" />
-      </span>
       <div className="spend-row-main">
         <div className="spend-row-head">
           <span className="spend-row-name">{category}</span>
@@ -88,27 +59,34 @@ const RANGE_OPTIONS = [
   { value: "all", label: "All time" },
 ];
 
+// The same three words PolicyFlag puts on a claim row. This file said "Routed
+// to human" where every other screen says "Needs review", so one outcome had
+// two names depending on which page you were on.
 const POLICY_LABELS = {
   "auto-approve": "In policy",
-  "route-to-human": "Routed to human",
+  "route-to-human": "Needs review",
   block: "Blocked",
 };
 
+// Needs review is where two thirds of claims land. Amber on it is amber on the
+// ordinary case, which is how a colour stops meaning anything.
 const POLICY_VARIANT = {
   "auto-approve": "success",
-  "route-to-human": "warning",
+  "route-to-human": "secondary",
   block: "destructive",
 };
 
+// One hue, six steps, largest share first. See --chart-* in index.css for why
+// a ramp rather than a hue per category — and for what this replaced, which was
+// four design tokens (two of them status colours that mean something) plus four
+// hardcoded iOS system colours.
 const CHART_COLORS = [
-  "var(--accent)",
-  "var(--info)",
-  "var(--success)",
-  "var(--warning)",
-  "#af52de",
-  "#ff6a00",
-  "#5856d6",
-  "#34c759",
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+  "var(--chart-6)",
 ];
 
 function formatPct(n) {
@@ -227,18 +205,8 @@ const DRILL_DEFS = {
   },
 };
 
-function claimInRange(claim, range, now = new Date()) {
-  if (range === "all") return true;
-  const d = new Date(claim.date);
-  if (Number.isNaN(d.getTime())) return false;
-  const days = Math.floor((now - d) / 86_400_000);
-  if (range === "30d") return days <= 30;
-  if (range === "90d") return days <= 90;
-  if (range === "ytd") return d >= new Date(now.getFullYear(), 0, 1);
-  return true;
-}
 
-export default function FinanceDashboard({ claims, loading }) {
+export default function FinanceDashboard({ claims, auditLog = [], loading }) {
   const navigate = useNavigate();
   const [range, setRange] = useState("30d");
   const [subTab, setSubTab] = useState("overview");
@@ -253,7 +221,9 @@ export default function FinanceDashboard({ claims, loading }) {
     return [...map.values()];
   }, [claims]);
 
-  const uniqueInsights = useFinanceInsights(uniqueClaims, range);
+  // The audit log carries the only record of WHEN a claim was paid — there is
+  // no paidAt column — so the disbursement figures need it to mean anything.
+  const uniqueInsights = useFinanceInsights(uniqueClaims, range, auditLog);
   const view = uniqueInsights;
 
   const claimsInRange = useMemo(() => {
@@ -263,11 +233,29 @@ export default function FinanceDashboard({ claims, loading }) {
 
   const drillClaims = useMemo(() => {
     if (!drillKey) return [];
+    // Disbursement is counted on the day the money left, so its drill-down is
+    // the same set the figure was computed from — filtering "Paid" out of the
+    // claims SUBMITTED in range would open a list that does not add up to the
+    // number that was clicked.
+    if (drillKey === "disbursed") {
+      return uniqueClaims.filter((c) => view.disbursedIds.has(c.id));
+    }
     const def = DRILL_DEFS[drillKey];
     return claimsInRange.filter(def.filter);
-  }, [drillKey, claimsInRange]);
+  }, [drillKey, claimsInRange, uniqueClaims, view.disbursedIds]);
 
   const drillTotal = drillClaims.reduce((s, c) => s + (c.amount || 0), 0);
+
+  // Five slices and a remainder. The ramp has six steps; beyond that recharts
+  // starts reusing colours, so two categories would be drawn the same. A long
+  // tail is also not what finance opens this panel to see.
+  const categoryMix = useMemo(() => {
+    const all = view.byCategory || [];
+    if (all.length <= 6) return all;
+    const head = all.slice(0, 5);
+    const restTotal = all.slice(5).reduce((s2, c) => s2 + c.amount, 0);
+    return [...head, { category: `Other (${all.length - 5})`, amount: restTotal }];
+  }, [view.byCategory]);
 
   const policyTotal =
     (view.policyCounts["auto-approve"] || 0) +
@@ -407,13 +395,13 @@ export default function FinanceDashboard({ claims, loading }) {
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
                         <XAxis
                           dataKey="weekLabel"
-                          fontSize={11}
+                          fontSize={12}
                           tick={{ fill: "var(--text-tertiary)" }}
                           axisLine={{ stroke: "var(--border-subtle)" }}
                           tickLine={false}
                         />
                         <YAxis
-                          fontSize={11}
+                          fontSize={12}
                           tick={{ fill: "var(--text-tertiary)" }}
                           axisLine={{ stroke: "var(--border-subtle)" }}
                           tickLine={false}
@@ -425,6 +413,7 @@ export default function FinanceDashboard({ claims, loading }) {
                           iconType="circle"
                         />
                         <Area
+                          isAnimationActive={false}
                           type="monotone"
                           dataKey="submitted"
                           name="Submitted"
@@ -433,6 +422,7 @@ export default function FinanceDashboard({ claims, loading }) {
                           fill="url(#grad-sub)"
                         />
                         <Area
+                          isAnimationActive={false}
                           type="monotone"
                           dataKey="disbursed"
                           name="Disbursed"
@@ -476,7 +466,7 @@ export default function FinanceDashboard({ claims, loading }) {
                         />
                         <XAxis
                           type="number"
-                          fontSize={11}
+                          fontSize={12}
                           tick={{ fill: "var(--text-tertiary)" }}
                           axisLine={false}
                           tickLine={false}
@@ -487,7 +477,7 @@ export default function FinanceDashboard({ claims, loading }) {
                         <YAxis
                           dataKey="department"
                           type="category"
-                          fontSize={11}
+                          fontSize={12}
                           tick={{ fill: "var(--text-secondary)" }}
                           axisLine={false}
                           tickLine={false}
@@ -498,6 +488,7 @@ export default function FinanceDashboard({ claims, loading }) {
                           content={<ChartTooltip formatter={(v) => formatSGD(v)} />}
                         />
                         <Bar
+                          isAnimationActive={false}
                           dataKey="amount"
                           name="Spend"
                           fill="var(--accent)"
@@ -516,7 +507,7 @@ export default function FinanceDashboard({ claims, loading }) {
                 note="Share of total spend by category"
               />
               <div className="fin-panel-body">
-                {view.byCategory.length === 0 ? (
+                {categoryMix.length === 0 ? (
                   <div className="fin-panel-empty fin-panel-empty-tall">
                     No spend in this range
                   </div>
@@ -525,7 +516,8 @@ export default function FinanceDashboard({ claims, loading }) {
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={view.byCategory}
+                          isAnimationActive={false}
+                          data={categoryMix}
                           dataKey="amount"
                           nameKey="category"
                           innerRadius={48}
@@ -534,7 +526,7 @@ export default function FinanceDashboard({ claims, loading }) {
                           stroke="var(--bg-card)"
                           strokeWidth={2}
                         >
-                          {view.byCategory.map((_, idx) => (
+                          {categoryMix.map((_, idx) => (
                             <Cell
                               key={idx}
                               fill={CHART_COLORS[idx % CHART_COLORS.length]}
@@ -545,7 +537,7 @@ export default function FinanceDashboard({ claims, loading }) {
                           content={<ChartTooltip formatter={(v) => formatSGD(v)} />}
                         />
                         <Legend
-                          wrapperStyle={{ fontSize: 11 }}
+                          wrapperStyle={{ fontSize: 12 }}
                           iconType="circle"
                           layout="vertical"
                           verticalAlign="middle"
@@ -581,10 +573,10 @@ export default function FinanceDashboard({ claims, loading }) {
                       tone="success"
                     />
                     <PolicyMeter
-                      label="Routed to human"
+                      label="Needs review"
                       value={view.policyCounts["route-to-human"] || 0}
                       total={policyTotal}
-                      tone="warning"
+                      tone="neutral"
                     />
                     <PolicyMeter
                       label="Blocked"
@@ -645,9 +637,11 @@ export default function FinanceDashboard({ claims, loading }) {
               <div className="fin-panel-body">
                 <ul className="fin-list">
                   {view.statusDistribution.map((s) => {
+                    // Same rule as the badges in the ledgers: colour marks the
+                    // exception. Pending and Endorsed are where claims live.
                     const variantMap = {
-                      Pending: "warning",
-                      Endorsed: "default",
+                      Pending: "secondary",
+                      Endorsed: "secondary",
                       Paid: "success",
                       Rejected: "destructive",
                     };

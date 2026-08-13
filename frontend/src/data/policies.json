@@ -144,7 +144,7 @@
         }
       ],
       "then": "auto-approve",
-      "message": "Within the standard meal allowance — marked ready for your approver."
+      "message": "Within the standard meal allowance."
     },
     {
       "id": "auto-approve-transport",
@@ -166,7 +166,7 @@
         }
       ],
       "then": "auto-approve",
-      "message": "Within the local transport allowance — marked ready for your approver."
+      "message": "Within the local transport allowance."
     },
     {
       "id": "route-meal-missing-attendees-context",

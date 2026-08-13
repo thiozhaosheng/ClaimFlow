@@ -164,6 +164,10 @@ export default function ReviewModal({ open, claim, actionType, onConfirm, onCanc
 
   const inPolicy = policy?.outcome === "auto-approve";
   const blocked = policy?.outcome === "block";
+  // Mirrors claim.controller.ts: a rule match becomes a recommendation only
+  // when the receipt read cleanly.
+  const recommendationWithheld =
+    inPolicy && (ocrFailed || claim?.details?.ocrIncomplete === true);
 
   // Approving a claim you have just said is wrong is incoherent, so once any
   // field is marked as not matching the only live decisions are asking for a
@@ -374,12 +378,24 @@ export default function ReviewModal({ open, claim, actionType, onConfirm, onCanc
                   <div className="min-w-0">
                     <div className="review-policy-headline">
                       {inPolicy
-                        ? "In policy — ready to approve"
+                        ? recommendationWithheld
+                          ? "In policy, but the recommendation is withheld"
+                          : "In policy — ready to approve"
                         : `Needs your judgement: ${policy.message}`}
                     </div>
+                    {/* The API withholds a recommendation whenever the scan
+                        could not read the receipt, and writes that to the
+                        trail. The rules re-run in the browser do not know it,
+                        so this card read "ready to approve / every configured
+                        check passed" one step after the phase before it said
+                        every field had been typed in by hand. */}
                     <div className="review-policy-sub">
                       {inPolicy
-                        ? "Every configured check passed for this claim."
+                        ? recommendationWithheld
+                          ? ocrFailed
+                            ? "The rules are satisfied, but the scan could not read this receipt — the figures came from the submitter, not the image."
+                            : "The rules are satisfied, but the scan could not read every field — some figures came from the submitter, not the image."
+                          : "Every configured check passed for this claim."
                         : "The engine surfaced this for a human decision — it has not rejected anything."}
                     </div>
                   </div>
@@ -416,7 +432,11 @@ export default function ReviewModal({ open, claim, actionType, onConfirm, onCanc
                 <span>{formatSGD(claim.amount)}</span>
                 {policy && (
                   <span>
-                    {inPolicy ? "Engine: in policy" : "Engine: needs judgement"}
+                    {inPolicy
+                      ? recommendationWithheld
+                        ? "Engine: in policy, recommendation withheld"
+                        : "Engine: in policy"
+                      : "Engine: needs judgement"}
                   </span>
                 )}
               </div>

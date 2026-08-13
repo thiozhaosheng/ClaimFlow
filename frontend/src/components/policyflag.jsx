@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ShieldCheck, UserCheck, Ban } from "lucide-react";
+import { ShieldCheck, UserCheck, Ban, ScanLine } from "lucide-react";
 import {
   evaluatePolicies,
   claimContextFromForm,
@@ -62,12 +62,49 @@ export default function PolicyFlag({
         amount: claim.amount,
         receiptUrl: claim.receiptUrl,
         expenseDate: claim.date,
+        // Six of the eleven rules read `details.*`, and three of those are
+        // blocks. Leaving details out made every one of them see a missing
+        // field, so this chip stamped a red "Blocked" on every pending Client
+        // Entertainment and Training claim in the queue — a verdict no live
+        // claim can hold, since a block is refused at submission with a 422.
+        // The claim record and the review modal pass details and disagreed.
+        details: claim.details || {},
+        supplierGstRegNumber: claim.supplierGstRegNumber ?? null,
       }),
     );
   }, [claim]);
 
   if (!policy) return null;
   if (claim.withdrawn || SETTLED.has(claim.status)) return null;
+
+  // The API withholds a recommendation when the scan could not read the
+  // receipt, and tells the approver so in the notification — but the queue,
+  // which is where they triage, showed nothing at all on these rows: a clean
+  // auto-approve is hidden there, and that is what the rules alone return. So
+  // the one claim where every field was typed by hand looked like the least
+  // interesting row on the page.
+  const scanFailed = claim.ocrSource === "unavailable";
+  const scanIncomplete = claim.details?.ocrIncomplete === true;
+  if (policy.outcome === "auto-approve" && (scanFailed || scanIncomplete)) {
+    const why = scanFailed
+      ? "The scan could not read this receipt — every field was typed in by hand."
+      : "The scan could not read every field — some were typed in by hand.";
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 rounded-ds-chip border px-1.5 py-0.5 text-[12px] font-medium",
+          "text-warning-text bg-warning-bg border-warning/20",
+          className,
+        )}
+        title={`${why} Check them against the image.`}
+        aria-label={`${why} Check them against the image.`}
+      >
+        <ScanLine className="h-2.5 w-2.5" />
+        Check by hand
+      </span>
+    );
+  }
+
   if (hideAutoApproved && policy.outcome === "auto-approve") return null;
 
   const Icon = ICON[policy.outcome];

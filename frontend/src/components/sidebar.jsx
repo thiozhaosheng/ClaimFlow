@@ -53,7 +53,10 @@ function isInMonth(value, monthStart) {
 }
 
 // Same evaluation the approval queue uses (PolicyFlag), so the sidebar's
-// "In policy" count always matches what the officer sees inline.
+// "In policy" count always matches what the officer sees inline. It has to be
+// the same CONTEXT too — both of these omitted `details`, which the rules read
+// for six of the eleven, so the pair agreed with each other and with nothing
+// else in the app.
 function isInPolicy(claim) {
   const policy = evaluatePolicies(
     claimContextFromForm({
@@ -61,6 +64,8 @@ function isInPolicy(claim) {
       amount: claim.amount,
       receiptUrl: claim.receiptUrl,
       expenseDate: claim.date,
+      details: claim.details || {},
+      supplierGstRegNumber: claim.supplierGstRegNumber ?? null,
     }),
   );
   return policy?.outcome === "auto-approve";
@@ -81,7 +86,11 @@ function isInPolicy(claim) {
  */
 function buildViews(role, claims) {
   if (role === "approving") {
-    const dept = claims.filter((c) => c.department === "Sales");
+    // No department filter: the API scopes an approving officer to their own
+    // department, and this line hardcoded "Sales" — so an officer in Marketing
+    // or Engineering saw every count come out at zero and a rail with one row
+    // in it. The claims handed in here are already the ones they can act on.
+    const dept = claims;
     const pending = dept.filter((c) => c.status === "Pending");
     const awaiting = pending.filter((c) => c?.details?.correctionRequest);
     const toReview = pending.length - awaiting.length;
