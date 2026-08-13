@@ -404,7 +404,9 @@
   margin-left: 0.3rem;
 }
 
-.finance-audit .fin-audit-sub {
+/* Scoped to .finance-audit, so the same sub-line inside the payout table
+   rendered inline and ran into the value above it — "CLM-1087Transport". */
+.fin-audit-sub {
   display: block;
   font-size: 0.75rem;
   color: var(--text-tertiary);
@@ -569,3 +571,22 @@
   color: var(--text-primary);
 }
 .table-pager-steps button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* --- payout run ---------------------------------------------------------- */
+.payout-select { width: 2.5rem; }
+.payout-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 0.85rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-panel);
+  background-color: var(--bg-card);
+}
+.payout-bar-count {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}

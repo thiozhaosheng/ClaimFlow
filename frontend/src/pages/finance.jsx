@@ -32,7 +32,7 @@ export default function Finance() {
   const navigate = useNavigate();
   const { session, setFinanceTab } = useAuth();
   const { addToast } = useToast();
-  const { claimsDb, latestMap, error, loading } = useClaims();
+  const { claimsDb, latestMap, error, loading, batchMarkAsPaid } = useClaims();
   const [activeTab, setActiveTab] = useState(session?.financeTab || "dashboard");
   const [searchAudit, setSearchAudit] = useState("");
   const [auditFilter, setAuditFilter] = useState("All");
@@ -47,6 +47,89 @@ export default function Finance() {
   const switchTab = (tabKey) => {
     setActiveTab(tabKey);
     setFinanceTab(tabKey);
+  };
+
+  // ---- payouts ----------------------------------------------------------
+  // The claims an approver has endorsed and finance has not yet released.
+  // The rail has advertised "Awaiting payment 37" since the workspace was
+  // built, and clicking it landed on a dashboard: this role could read charts
+  // and a log, and had no way to pay anybody. batchMarkAsPaid and
+  // PATCH /api/workflow/pay/:id both existed the whole time with nothing
+  // calling them.
+  const [selected, setSelected] = useState(() => new Set());
+  const [paying, setPaying] = useState(false);
+  const [payoutRange, setPayoutRange] = useState(EMPTY_RANGE);
+
+  const awaitingPayment = useMemo(
+    () =>
+      Object.values(latestMap).filter(
+        (c) =>
+          c.status === "Endorsed" &&
+          !c.withdrawn &&
+          withinRange(payoutRange, { date: c.date, amount: c.amount }),
+      ),
+    [latestMap, payoutRange],
+  );
+
+  const PAYOUT_COLUMNS = useMemo(
+    () => ({
+      id: (c) => c.id,
+      employee: (c) => c.employee,
+      date: (c) => c.date,
+      amount: (c) => Number(c.amount),
+    }),
+    [],
+  );
+  const payoutSort = useSort(awaitingPayment, PAYOUT_COLUMNS, "date");
+  const payoutPaging = usePaging(payoutSort.rows, 25);
+
+  const selectedClaims = awaitingPayment.filter((c) => selected.has(c.id));
+  const selectedTotal = selectedClaims.reduce((sum, c) => sum + Number(c.amount), 0);
+
+  const toggleOne = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  // Selects what is on the page, not the whole filtered set — a header
+  // checkbox that silently selects rows you cannot see is how people pay the
+  // wrong claims.
+  const pageIds = payoutPaging.rows.map((c) => c.id);
+  const allOnPageSelected =
+    pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+  const togglePage = () =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+
+  const runPayout = async () => {
+    if (selectedClaims.length === 0 || paying) return;
+    setPaying(true);
+    const count = selectedClaims.length;
+    const total = selectedTotal;
+    try {
+      await batchMarkAsPaid(new Set(selectedClaims.map((c) => c.id)));
+      setSelected(new Set());
+      addToast({
+        variant: "success",
+        title: count === 1 ? "Claim paid" : `${count} claims paid`,
+        message: `${formatSGD(total)} released. Each claimant has been told.`,
+      });
+    } catch (e) {
+      addToast({
+        variant: "error",
+        title: "Couldn't release the payment",
+        message: e.message,
+      });
+    } finally {
+      setPaying(false);
+    }
   };
 
   const [auditRange, setAuditRange] = useState(EMPTY_RANGE);
@@ -135,6 +218,7 @@ export default function Finance() {
         >
           {[
             { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+            { key: "payouts", label: "Payouts", icon: Wallet },
             { key: "audit", label: "Audit trail", icon: ShieldCheck },
           ].map(({ key, label, icon: Icon }) => (
             <button
@@ -173,6 +257,119 @@ export default function Finance() {
         />
       )}
 
+
+      {activeTab === "payouts" && (
+        <div className="w-full">
+          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-3 mb-4">
+            <div>
+              <h2 className="fin-section-title">Awaiting payment</h2>
+              <p className="fin-section-sub">
+                Claims an approving officer has endorsed. Releasing one records
+                the payment and tells the claimant.
+              </p>
+            </div>
+          </div>
+
+          <div className="data-toolbar">
+            <div className="data-toolbar-filters">
+              <RangeFilters value={payoutRange} onChange={setPayoutRange} />
+            </div>
+          </div>
+
+          <div className="data-panel rounded-t-none border-t-0">
+            <div className="data-panel-scroll finance-audit-scroll">
+              {awaitingPayment.length === 0 ? (
+                <EmptyState
+                  variant="audit"
+                  title="Nothing waiting to be paid"
+                  message="Endorsed claims appear here for release."
+                />
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th scope="col" className="payout-select">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          checked={allOnPageSelected}
+                          onChange={togglePage}
+                          aria-label="Select the claims on this page"
+                        />
+                      </th>
+                      <SortHeader label="Claim ID" sortKey="id" state={payoutSort} />
+                      <SortHeader label="Claimant" sortKey="employee" state={payoutSort} />
+                      <SortHeader label="Endorsed" sortKey="date" state={payoutSort} />
+                      <SortHeader label="Amount" sortKey="amount" state={payoutSort} className="num" />
+                      <th scope="col"><span className="sr-only">Open</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payoutPaging.rows.map((claim) => (
+                      <tr key={claim.id}>
+                        <td className="payout-select">
+                          <input
+                            type="checkbox"
+                            className="form-check-input"
+                            checked={selected.has(claim.id)}
+                            onChange={() => toggleOne(claim.id)}
+                            aria-label={`Select ${claim.id}`}
+                          />
+                        </td>
+                        <td>
+                          <span className="data-ref">{claim.id}</span>
+                          <span className="fin-audit-sub">{claim.type}</span>
+                        </td>
+                        <td>
+                          {claim.employee}
+                          <span className="fin-audit-sub">
+                            {claim.department || "No department"}
+                          </span>
+                        </td>
+                        <td>{claim.date}</td>
+                        <td className="num">{formatSGD(claim.amount)}</td>
+                        <td className="num">
+                          <button
+                            type="button"
+                            className="row-action"
+                            onClick={() => navigate(`/claim/${claim.id}`)}
+                          >
+                            Open
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+
+          <TablePager paging={payoutPaging} noun="claims" />
+
+          {/* The bar states what is about to leave the account before it does.
+              A batch action whose only feedback is a toast afterwards is how
+              the wrong claims get paid. */}
+          <div className="payout-bar">
+            <span className="payout-bar-count">
+              {selectedClaims.length === 0
+                ? "Select claims to release"
+                : `${selectedClaims.length} selected · ${formatSGD(selectedTotal)}`}
+            </span>
+            <button
+              className="btn-primary"
+              disabled={selectedClaims.length === 0 || paying}
+              onClick={runPayout}
+            >
+              {paying
+                ? "Releasing…"
+                : selectedClaims.length > 1
+                  ? `Release ${selectedClaims.length} payments`
+                  : "Release payment"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div
         className={`finance-audit w-full ${activeTab !== "audit" ? "hidden" : ""}`}
