@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ShieldCheck, AlertTriangle, Ban } from "lucide-react";
+import { ShieldCheck, UserCheck, Ban } from "lucide-react";
 import {
   evaluatePolicies,
   claimContextFromForm,
@@ -8,13 +8,19 @@ import { cn } from "../lib/utils.js";
 
 const ICON = {
   "auto-approve": ShieldCheck,
-  "route-to-human": AlertTriangle,
+  "route-to-human": UserCheck,
   block: Ban,
 };
 
+/**
+ * Routing to a human is what happens to most claims — roughly two thirds of
+ * them — so amber on it painted the ordinary outcome in the colour that means
+ * attention, down entire columns. Nothing stood out because everything did.
+ * It is neutral now; a block is the exception and stays red.
+ */
 const TONE = {
   "auto-approve": "text-success-text bg-success-bg border-success/20",
-  "route-to-human": "text-warning-text bg-warning-bg border-warning/20",
+  "route-to-human": "text-text-secondary bg-subtle border-border-subtle",
   block: "text-danger-text bg-danger-bg border-danger/20",
 };
 

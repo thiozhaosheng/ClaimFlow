@@ -105,8 +105,10 @@
 
 .claim-exhibit {
   padding: 0.8rem 1.5rem;
+  /* A rule, not a fill. A second surface colour behind the receipt said
+     nothing about the receipt — the system's own line is borders over
+     shadows, and the same applies to tints. */
   border-left: 1px solid var(--border-subtle);
-  background-color: var(--bg-subtle);
 }
 
 @media (max-width: 1000px) {
@@ -249,8 +251,10 @@
   font-style: normal;
   color: var(--text-secondary);
 }
+/* Only a block is coloured. "Routed for review" is what happens to most
+   claims — amber on it made the normal path look like a fault, and left the
+   record with a warning colour on a screen where nothing was wrong. */
 .claim-standing-block { color: var(--danger-text); }
-.claim-standing-route-to-human { color: var(--warning-text); }
 
 /* History: a plain ruled table on the sheet. */
 .claim-trail { width: 100%; border-collapse: collapse; }

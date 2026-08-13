@@ -1545,16 +1545,22 @@ code {
   background: color-mix(in srgb, var(--cat) 16%, var(--bg-card));
 }
 
+/* Pending and Endorsed are not events, they are where most claims sit. Amber
+   on Pending painted the ordinary state in the colour that means attention,
+   on every row of every queue — so the colour marked nothing, and the one
+   claim that did need looking at had nothing to distinguish it. Colour is
+   spent on the two states that close a claim, which is what a reader scans a
+   list for: money out, or refused. */
 .badge-pending {
-  background-color: var(--warning-bg);
-  color: var(--warning-text);
-  border-color: color-mix(in srgb, var(--warning) 22%, transparent);
+  background-color: var(--bg-subtle);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
 }
 
 .badge-endorsed {
-  background-color: var(--accent-subtle);
-  color: var(--accent);
-  border-color: var(--accent-ring);
+  background-color: var(--bg-subtle);
+  color: var(--text-primary);
+  border-color: var(--border-default);
 }
 
 .badge-paid {
