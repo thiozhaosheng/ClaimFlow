@@ -611,7 +611,17 @@ export const getReceiptViewUrl = async (req: Request, res: Response) => {
 
 export const getAllClaims = async (req: Request, res: Response) => {
   try {
-    const claims = await claimModel.getAllClaims();
+    // Finance sees everything — they settle every claim and file the GST, and
+    // the privacy notice says so. A manager sees their own department.
+    let claims;
+    if (req.user!.role === Role.Manager) {
+      const manager = await userModel.findById(req.user!.id);
+      claims = manager?.department
+        ? await claimModel.getClaimsByDepartment(manager.department)
+        : [];
+    } else {
+      claims = await claimModel.getAllClaims();
+    }
     res.status(200).json({ status: 'success', results: claims.length, data: { claims } });
   } catch (error: any) {
     res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: error.message  });
