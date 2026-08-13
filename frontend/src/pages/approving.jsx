@@ -191,12 +191,20 @@ export default function Approving() {
       return false;
     }
     if (filterDept !== "All" && item.department !== filterDept) return false;
-    if (
-      searchQuery &&
-      !item.employee.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !item.type.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-      return false;
+    // The field said "Search by ID or employee name" and did not search the
+    // id: it matched the employee and the category only, so typing CLM-1555 —
+    // the reference printed in the first column of every row, and the thing an
+    // approver is handed when someone asks about a claim — returned an empty
+    // queue. The reference is included now, and bare digits work too because
+    // "clm-1555" contains "1555". Category stays, and is named on the label.
+    if (searchQuery) {
+      const q = searchQuery.trim().toLowerCase();
+      const matches =
+        item.id.toLowerCase().includes(q) ||
+        item.employee.toLowerCase().includes(q) ||
+        (item.type || "").toLowerCase().includes(q);
+      if (!matches) return false;
+    }
     return true;
   });
 
@@ -342,13 +350,20 @@ export default function Approving() {
                 department this officer can already see. A control with one
                 choice is not a control. */}
          </div>
-         <div className="search-input-wrapper m-0 w-full sm:w-auto" style={{ maxWidth: "280px" }}>
+         {/* A real width, not a cap. This was `sm:w-auto` with a 280px
+             max-width, so the box took the input's intrinsic size — 220px —
+             and the max-width never applied. The placeholder needed 229px of
+             the 170px left inside it and was cut off mid-word, with no
+             ellipsis to show it. The toolbar is 1184px wide and was using 400
+             of them. */}
+         <div className="search-input-wrapper m-0 w-full sm:w-[320px]">
            <Search className="h-3.5 w-3.5 search-leading-icon" />
            <input
              id="manager-search-input"
              type="search"
              className="form-control"
-             placeholder="Search by ID or employee name"
+             placeholder="Reference, name or category"
+             aria-label="Search the queue by claim reference, employee name or category"
              value={searchQuery}
              onChange={(e) => setSearchQuery(e.target.value)}
            />

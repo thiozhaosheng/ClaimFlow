@@ -479,16 +479,18 @@ export default function Finance() {
             </div>
             <RangeFilters value={auditRange} onChange={setAuditRange} />
           </div>
-          <div
-            className="search-input-wrapper m-0 w-full sm:w-auto"
-            style={{ maxWidth: "400px" }}
-          >
+          {/* Same fault the approval queue had: `sm:w-auto` with a max-width
+              meant the box took the input's intrinsic 20-character size, so
+              the max-width never applied and the placeholder needed 284px of
+              the 142px it was given — cut off halfway, with no ellipsis. */}
+          <div className="search-input-wrapper m-0 w-full sm:w-[300px]">
             <Search className="h-3.5 w-3.5 search-leading-icon" />
             <input
               id="finance-search-input"
               type="search"
               className="form-control"
-              placeholder="Search by claim ID, employee, or actor…"
+              placeholder="Reference, name or actor"
+              aria-label="Search the audit trail by claim reference, employee name or the person who acted"
               value={searchAudit}
               onChange={(e) => setSearchAudit(e.target.value)}
             />
