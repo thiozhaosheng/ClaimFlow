@@ -363,3 +363,82 @@
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
+
+/* ===== printed =========================================================
+   An auditor, an accountant or a bank asks for one claim, and until now the
+   only way to hand it over was a screenshot — which is the WhatsApp problem
+   this product exists to end, reintroduced at the last step. Printing (or
+   saving as PDF) produces the whole evidence pack: reference, claimant, the
+   amounts and the GST, the receipt image, and the approval trail with names
+   and timestamps, on paper that carries no application chrome.
+   ====================================================================== */
+@media print {
+  /* Paper is white whatever the screen was. Printing the dark theme costs a
+     cartridge and produces a page nobody can read once photocopied, so the
+     tokens the record draws from are pinned to their paper values here —
+     including on .dark, which is what a user reading in dark mode would
+     otherwise send to the printer. */
+  :root,
+  :root.dark {
+    --bg-card: #ffffff;
+    --bg-subtle: #ffffff;
+    --bg-app: #ffffff;
+    --text-primary: #111111;
+    --text-secondary: #333333;
+    --text-tertiary: #555555;
+    --border-default: #cccccc;
+    --border-subtle: #dddddd;
+  }
+
+  /* Only the record. The rail, the top bar, the pager and every button are
+     navigation, and navigation does not belong on paper. */
+  .app-rail,
+  .app-topbar,
+  .claim-detail-topbar,
+  .claim-pager,
+  .claim-detail-actions,
+  .toast-viewport {
+    display: none !important;
+  }
+
+  html,
+  body,
+  #root,
+  main {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  .claim-sheet {
+    border: none;
+    border-radius: 0;
+  }
+
+  /* The record and the receipt stack, so both print at full width rather than
+     squeezing the image into a 20rem column on an A4 page. */
+  .claim-body { grid-template-columns: minmax(0, 1fr); }
+  .claim-exhibit {
+    border-left: none;
+    border-top: 1px solid #ddd;
+    break-inside: avoid;
+  }
+  .claim-plate img { max-height: none; width: auto; max-width: 60mm; }
+
+  .claim-section { break-inside: avoid; }
+  .claim-trail { break-inside: auto; }
+  .claim-trail tr { break-inside: avoid; }
+
+  /* Where this came from, so a printed page can be traced back to the record
+     it was taken from. */
+  .claim-sheet::after {
+    content: "Printed from ClaimFlow — the record for this claim, with its receipt and approval trail.";
+    display: block;
+    padding: 0.6rem 1.5rem;
+    border-top: 1px solid #ddd;
+    font-size: 9pt;
+    color: #555;
+  }
+
+  a[href]::after { content: ""; }
+}

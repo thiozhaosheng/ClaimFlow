@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, FileText } from "lucide-react";
+import { ArrowLeft, ArrowRight, FileText, Printer } from "lucide-react";
 import { useClaims } from "../hooks/useclaims.js";
 import { useReceipt } from "../hooks/usereceipt.js";
 import { useAuth } from "../context/authcontext.jsx";
@@ -224,6 +224,17 @@ export default function ClaimDetail() {
             </button>
           </nav>
         )}
+
+        <div className="claim-detail-actions claim-detail-print">
+          <button
+            className="btn-secondary"
+            onClick={() => window.print()}
+            title="Print or save as PDF"
+          >
+            <Printer className="h-4 w-4" />
+            <span>Print</span>
+          </button>
+        </div>
 
         {canAct && (
           <div className="claim-detail-actions">

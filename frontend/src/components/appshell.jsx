@@ -48,7 +48,10 @@ export default function AppShell() {
       {/* desktop sidebar — viewport-height, no internal scroll */}
       <div
         className={cn(
-          "hidden lg:flex shrink-0 flex-col border-r border-border-subtle bg-card transition-[width] duration-200 ease-out overflow-hidden",
+          // app-rail / app-topbar: the shell had no names, only utility
+          // classes, so nothing could address it — the print stylesheet needs
+          // to take the navigation off the paper.
+          "app-rail hidden lg:flex shrink-0 flex-col border-r border-border-subtle bg-card transition-[width] duration-200 ease-out overflow-hidden",
           navOpen ? "w-52" : "w-0",
         )}
         aria-hidden={!navOpen}
@@ -60,7 +63,7 @@ export default function AppShell() {
 
       {/* main column — topbar fixed, content scrolls inside */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex-shrink-0 flex items-center gap-2 border-b border-border-subtle bg-card px-4 h-11 sm:px-6">
+        <div className="app-topbar flex-shrink-0 flex items-center gap-2 border-b border-border-subtle bg-card px-4 h-11 sm:px-6">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
