@@ -21,6 +21,7 @@ import PolicyFlag from "../components/policyflag.jsx";
 import SortHeader from "../components/sortheader.jsx";
 import AnimatedNumber from "../components/animatednumber.jsx";
 import { useSort } from "../hooks/usesort.js";
+import { useRowExit } from "../hooks/useRowExit.js";
 import { useShortcuts } from "../hooks/useShortcuts.js";
 import "../components/review-flow.css";
 
@@ -63,6 +64,7 @@ export default function Approving() {
   }, [urlStatus]);
   const [filterDept, setFilterDept] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const queueExit = useRowExit();
   const [reviewClaim, setReviewClaim] = useState(null);
   const [reviewAction, setReviewAction] = useState(null);
 
@@ -88,31 +90,42 @@ export default function Approving() {
 
   const handleReviewConfirm = async (actionType, reason, fields = []) => {
     if (!reviewClaim) return;
+    // A decision takes the claim out of the queue the approver is looking at,
+    // and the row that changed is what the decision produced. It leaves while
+    // the request runs. (A correction request leaves the Pending view too —
+    // the claim moves to Awaiting correction.)
+    const leavingId = reviewClaim.id;
     try {
       if (actionType === "request-changes") {
         // The claim stays Pending and keeps its receipt, its OCR result and
         // its id — only the named fields go back to the submitter. This is
         // the path that replaces chasing them outside the portal.
-        await api.patch(`/api/workflow/review/${reviewClaim.rawId}`, {
-          action: "request-changes",
-          remarks: reason || undefined,
-          fields,
+        await queueExit.exit([leavingId], async () => {
+          await api.patch(`/api/workflow/review/${reviewClaim.rawId}`, {
+            action: "request-changes",
+            remarks: reason || undefined,
+            fields,
+          });
+          await refetch();
         });
-        await refetch();
         addToast({
           variant: "warning",
           title: "Correction requested",
           message: `${reviewClaim.id} went back to ${reviewClaim.employee} for ${describeCorrectionFields(fields)}.`,
         });
       } else if (actionType === "reject") {
-        await updateClaimStatus(reviewClaim.id, "Rejected", reason);
+        await queueExit.exit([leavingId], () =>
+          updateClaimStatus(reviewClaim.id, "Rejected", reason),
+        );
         addToast({
           variant: "error",
           title: "Claim rejected",
           message: `${reviewClaim.id} returned to ${reviewClaim.employee}.`,
         });
       } else if (actionType === "endorse") {
-        await updateClaimStatus(reviewClaim.id, "Endorsed", reason);
+        await queueExit.exit([leavingId], () =>
+          updateClaimStatus(reviewClaim.id, "Endorsed", reason),
+        );
         addToast({
           variant: "success",
           title: "Claim endorsed",
@@ -368,6 +381,7 @@ export default function Approving() {
                   return (
                   <tr
                     key={item.id}
+                    className={queueExit.isLeaving(item.id) ? "row-leaving" : undefined}
                     role="button"
                     tabIndex={0}
                     onClick={() => navigate(`/claim/${item.id}`)}

@@ -7,6 +7,7 @@ import TablePager from "../components/tablepager.jsx";
 import RangeFilters, { EMPTY_RANGE, withinRange } from "../components/rangefilters.jsx";
 import { useSort } from "../hooks/usesort.js";
 import { usePaging } from "../hooks/usepaging.js";
+import { useRowExit } from "../hooks/useRowExit.js";
 import { useClaims } from "../hooks/useclaims.js";
 import { useShortcuts } from "../hooks/useShortcuts.js";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
@@ -57,6 +58,7 @@ export default function Finance() {
   // PATCH /api/workflow/pay/:id both existed the whole time with nothing
   // calling them.
   const [selected, setSelected] = useState(() => new Set());
+  const payoutExit = useRowExit();
   const [paying, setPaying] = useState(false);
   const [payoutRange, setPayoutRange] = useState(EMPTY_RANGE);
 
@@ -114,7 +116,11 @@ export default function Finance() {
     const count = selectedClaims.length;
     const total = selectedTotal;
     try {
-      await batchMarkAsPaid(new Set(selectedClaims.map((c) => c.id)));
+      const ids = selectedClaims.map((c) => c.id);
+      // The rows leave while the request is in flight, so the reader sees
+      // which claims their click released rather than watching the table
+      // silently reflow.
+      await payoutExit.exit(ids, () => batchMarkAsPaid(new Set(ids)));
       setSelected(new Set());
       addToast({
         variant: "success",
@@ -306,7 +312,10 @@ export default function Finance() {
                   </thead>
                   <tbody>
                     {payoutPaging.rows.map((claim) => (
-                      <tr key={claim.id}>
+                      <tr
+                        key={claim.id}
+                        className={payoutExit.isLeaving(claim.id) ? "row-leaving" : undefined}
+                      >
                         <td className="payout-select">
                           <input
                             type="checkbox"

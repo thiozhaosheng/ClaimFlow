@@ -4012,3 +4012,19 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 .data-table th.num .col-sort { flex-direction: row-reverse; }
 .data-table th .col-sort:hover { color: var(--text-primary); }
 .data-table th .col-sort-active { color: var(--text-primary); }
+
+/* A row on its way out of a ledger. It collapses rather than blinking away,
+   so the reader can see which line their action removed — the one piece of
+   information the action produced. Skipped entirely under reduced motion,
+   where the hook does not add the class at all. */
+@keyframes row-exit {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(10px); }
+}
+.data-table tbody tr.row-leaving > td {
+  animation: row-exit 260ms ease forwards;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .data-table tbody tr.row-leaving > td { animation: none; opacity: 0.4; }
+}
