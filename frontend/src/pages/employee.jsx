@@ -1067,9 +1067,16 @@ export default function Employee() {
                       attach the full tax invoice as your receipt — finance will verify the fields
                       before approval.
                     </div>
+                    {/* No rule id here. This cited `route-tax-invoice-required`
+                        in code font with a link to the approval policy, and no
+                        such rule exists — the S$1,000 threshold is an IRAS
+                        requirement carried by a constant in this file, not one
+                        of the eleven rules the engine evaluates. Naming a
+                        fictional rule and linking to a page that does not list
+                        it is worse than naming nothing. */}
                     <div className="text-xs text-text-tertiary mt-1">
-                      Rule: <code>route-tax-invoice-required</code> — see{" "}
-                      <Link to="/policies">approval policy</Link>.
+                      This comes from IRAS, not from the{" "}
+                      <Link to="/policies">company approval policy</Link>.
                     </div>
                   </div>
                 </div>

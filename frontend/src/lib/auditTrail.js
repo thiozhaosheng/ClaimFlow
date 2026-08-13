@@ -55,6 +55,29 @@ export const ACTION_GROUPS = {
   Rejected: ["MANAGER_REJECTION"],
 };
 
+/**
+ * What an entry MEANT, so the trail can be read at a glance.
+ *
+ * Every row rendered as the same grey text, so a claim that was refused and
+ * one that sailed through looked identical until you read all four columns.
+ * The outcome is a property of the action, so it is derived here rather than
+ * re-decided by each screen — and it is the only thing on the record allowed
+ * to carry colour, because it is the only thing that is a verdict.
+ *
+ * Returns "settled" | "refused" | "attention" | null (an ordinary step).
+ */
+const ACTION_OUTCOMES = {
+  MANAGER_APPROVAL: "settled",
+  FINANCE_REIMBURSEMENT: "settled",
+  MANAGER_REJECTION: "refused",
+  CHANGES_REQUESTED: "attention",
+  WITHDRAWN_BY_SUBMITTER: "refused",
+};
+
+export function actionOutcome(action) {
+  return ACTION_OUTCOMES[action] || null;
+}
+
 export function actionLabel(action) {
   if (!action) return "";
   return ACTION_LABELS[action] || action.replace(/_/g, " ").toLowerCase();

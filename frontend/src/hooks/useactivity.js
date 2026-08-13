@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, mapRoleFromApi } from "../utils/api.js";
-import { actionLabel, remarkText } from "../lib/auditTrail.js";
+import { actionLabel, actionOutcome, remarkText } from "../lib/auditTrail.js";
 
 /**
  * A claim's real audit trail.
@@ -79,6 +79,7 @@ function adaptEntry(log) {
       : "",
     action: actionLabel(log.action),
     actionKey: log.action,
+    outcome: actionOutcome(log.action),
     actor: executor.name || "System",
     role: mapRoleFromApi(executor.role || "Employee"),
     note: remarkText(log.remarks),

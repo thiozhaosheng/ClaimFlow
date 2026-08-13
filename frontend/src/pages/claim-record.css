@@ -323,6 +323,24 @@
 }
 .claim-trail-note { color: var(--text-secondary); }
 
+/* An outcome dot, not a tinted row: the row stays ink so the table still
+   reads as a table, and the 6px mark carries the verdict. Same three colours
+   as everywhere else in the app — settled, refused, someone must act. */
+.claim-trail-action { display: inline-flex; align-items: center; gap: 0.4rem; }
+.claim-trail-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--text-tertiary);
+}
+.claim-trail-action.is-settled { color: var(--success-text); font-weight: 500; }
+.claim-trail-action.is-settled .claim-trail-dot { background: var(--success); }
+.claim-trail-action.is-refused { color: var(--danger-text); font-weight: 500; }
+.claim-trail-action.is-refused .claim-trail-dot { background: var(--danger); }
+.claim-trail-action.is-attention { color: var(--warning-text); font-weight: 500; }
+.claim-trail-action.is-attention .claim-trail-dot { background: var(--warning); }
+
 /* Checks read as one line of prose. Four rows of ticks is a widget; what a
    reader needs is whether anything is outstanding, and if so which. */
 .claim-checks {
@@ -332,9 +350,22 @@
   font-size: 0.8125rem;
   color: var(--text-secondary);
 }
-.claim-check { display: inline-flex; align-items: baseline; gap: 0.3rem; }
+.claim-check { display: inline-flex; align-items: center; gap: 0.3rem; }
+.claim-check-icon {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex-shrink: 0;
+}
+/* Settled, needs someone, refused — the three marks the palette allows, and
+   the only colour on this sheet apart from the trail's outcomes. A check that
+   passed is ledger green because passing IS the verdict; a check that is
+   merely optional and unmet stays ink, because nothing is wrong. */
+.claim-check-done { color: var(--success-text); }
+.claim-check-done .claim-check-icon { color: var(--success); }
 .claim-check-warn { color: var(--warning-text); font-weight: 500; }
+.claim-check-warn .claim-check-icon { color: var(--warning); }
 .claim-check-block { color: var(--danger-text); font-weight: 500; }
+.claim-check-block .claim-check-icon { color: var(--danger); }
 .claim-check em { font-style: normal; color: var(--text-tertiary); }
 
 /* The correction request, when one is open. */

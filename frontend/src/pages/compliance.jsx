@@ -106,7 +106,7 @@ const EXTERNAL_DOCS = [
 
 function SectionHeading({ children }) {
   return (
-    <h2 className="text-[0.75rem] uppercase tracking-[0.12em] font-semibold text-text-tertiary mt-12 mb-3">
+    <h2 className="text-[1.25rem] font-semibold tracking-tight mt-12 mb-3 text-text-primary">
       {children}
     </h2>
   );
@@ -155,7 +155,7 @@ export default function Compliance() {
               <div className="bg-card border border-border-subtle rounded-ds-lg h-full p-5 transition hover:border-border">
                 <div className="flex items-center gap-2.5 mb-2.5">
                   <Icon className="h-4 w-4 text-accent" />
-                  <h3 className="text-[15px] font-semibold m-0 tracking-tight">
+                  <h3 className="text-[16px] font-medium m-0 tracking-tight">
                     {s.title}
                   </h3>
                 </div>
@@ -221,7 +221,7 @@ export default function Compliance() {
               <div className="bg-card border border-border-subtle rounded-ds-lg h-full p-5 transition hover:border-border">
                 <div className="flex items-center gap-2.5 mb-2.5">
                   <Icon className="h-4 w-4 text-text-secondary" />
-                  <h3 className="text-[15px] font-semibold m-0 tracking-tight">
+                  <h3 className="text-[16px] font-medium m-0 tracking-tight">
                     {d.title}
                   </h3>
                 </div>

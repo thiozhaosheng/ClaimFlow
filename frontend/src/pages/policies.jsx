@@ -228,7 +228,7 @@ export default function Policies() {
 
       {amounts.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-[0.75rem] uppercase tracking-[0.12em] font-semibold text-text-tertiary mb-3">
+          <h2 className="text-[1.25rem] font-semibold tracking-tight m-0 mb-3">
             The numbers
           </h2>
           <dl className="border border-border-subtle rounded-ds-panel divide-y divide-border-subtle overflow-hidden bg-card">
@@ -250,7 +250,7 @@ export default function Policies() {
       {grouped.map((group) => (
         <section key={group.outcome} className="mt-12">
           <div className="flex flex-wrap items-center gap-3 mb-1">
-            <h2 className="text-[1.15rem] font-semibold tracking-tight m-0">
+            <h2 className="text-[1.25rem] font-semibold tracking-tight m-0">
               {group.heading}
             </h2>
             <span
@@ -270,7 +270,7 @@ export default function Policies() {
           <div className="border border-border-subtle rounded-ds-panel divide-y divide-border-subtle overflow-hidden bg-card">
             {group.rules.map((rule) => (
               <article key={rule.id} className="px-4 py-4">
-                <h3 className="text-[14px] font-medium text-text-primary m-0 mb-1">
+                <h3 className="text-[16px] font-medium text-text-primary m-0 mb-1">
                   {rule.label}
                 </h3>
                 <p className="text-[14px] text-text-secondary leading-relaxed m-0 mb-2">

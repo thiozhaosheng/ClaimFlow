@@ -320,9 +320,12 @@ a {
 
 code {
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  /* 0.92em, not 0.85: mono runs optically smaller than the sans beside it,
-     and 0.85 of an already-small parent produced 10px rule names. */
-  font-size: 0.95em;
+  /* A rung, not a ratio. Relative sizing put this at 12.35px inside 13px
+     copy and 11.4px inside 12px copy — two values that are on no ladder, from
+     one declaration. Mono does run optically smaller than the sans beside it,
+     which is why this sits at the same 13px as the body it appears in rather
+     than below it. */
+  font-size: 0.8125rem;
   border-radius: var(--radius-chip);
   background-color: var(--bg-subtle);
   border: 1px solid var(--border-subtle);
@@ -490,7 +493,10 @@ code {
 .auth-topbar-name {
   font-weight: 600;
   color: var(--text-primary);
-  font-size: 0.9375rem;
+  /* 14px, the size the wordmark is in the app's own rail. It was 15 — the one
+     value on this page that sits on neither ladder, and it made the same word
+     a different size depending on whether you had signed in yet. */
+  font-size: 0.875rem;
   letter-spacing: -0.015em;
 }
 

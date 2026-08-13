@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, FileText, Printer } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  Ban,
+  Check,
+  FileText,
+  Printer,
+} from "lucide-react";
 import { useClaims, adaptClaim } from "../hooks/useclaims.js";
 import { api } from "../utils/api.js";
 import { useActivity } from "../hooks/useactivity.js";
@@ -186,7 +194,7 @@ export default function ClaimDetail() {
           {/* Deliberately non-committal: a refusal and a missing claim read
               the same, so this page cannot be used to find out which claim
               numbers exist in another department. */}
-          <h2 className="text-lg font-semibold mb-1">
+          <h2 className="text-[1.25rem] font-semibold mb-1">
             {fetchFailed ? "Claim unavailable" : "Opening claim…"}
           </h2>
           <p className="text-sm text-text-secondary mb-4">
@@ -416,6 +424,9 @@ export default function ClaimDetail() {
                         ? "Typed in by hand"
                         : "Not recorded"
                   }
+                  // Hand-typed figures are the ones an approver has to check
+                  // against the image; a scan that read cleanly is not.
+                  warn={claim.ocrSource === "unavailable"}
                 />
                 {claim.description && (
                   <Fact label="Description" value={claim.description} wide />
@@ -495,7 +506,23 @@ export default function ClaimDetail() {
                           {entry.date}
                           <span className="claim-trail-sub">{entry.time}</span>
                         </td>
-                        <td>{entry.action}</td>
+                        {/* The one mark that tells you the shape of a claim's
+                            history without reading it: endorsed and paid are
+                            settled, refused and withdrawn closed it, a
+                            correction request is waiting on someone. Every
+                            other step stays ink. */}
+                        <td>
+                          <span
+                            className={`claim-trail-action${
+                              entry.outcome ? ` is-${entry.outcome}` : ""
+                            }`}
+                          >
+                            {entry.outcome && (
+                              <i className="claim-trail-dot" aria-hidden="true" />
+                            )}
+                            {entry.action}
+                          </span>
+                        </td>
                         <td>
                           {entry.actor}
                           <span className="claim-trail-sub">{entry.role}</span>
@@ -513,22 +540,37 @@ export default function ClaimDetail() {
               <div className="claim-section-label">
                 {outstanding.length > 0 ? "Outstanding" : "Compliance checks"}
               </div>
+              {/* A verdict per check, rather than four identical lines of
+                  grey. A satisfied check is the whole point of the section —
+                  it was the only state with nothing to distinguish it, so a
+                  reader could not tell at a glance that everything had passed
+                  without reading every word of it. */}
               <div className="claim-checks">
-                {requirements.map((r) => (
-                  <span
-                    key={r.key}
-                    className={
-                      r.state === "missing"
-                        ? "claim-check claim-check-warn"
-                        : r.state === "blocked"
-                          ? "claim-check claim-check-block"
-                          : "claim-check"
-                    }
-                  >
-                    {r.label}
-                    {r.detail ? <em>{r.detail}</em> : null}
-                  </span>
-                ))}
+                {requirements.map((r) => {
+                  const Icon =
+                    r.state === "blocked"
+                      ? Ban
+                      : r.state === "missing"
+                        ? AlertTriangle
+                        : r.state === "done"
+                          ? Check
+                          : null;
+                  const tone =
+                    r.state === "blocked"
+                      ? " claim-check-block"
+                      : r.state === "missing"
+                        ? " claim-check-warn"
+                        : r.state === "done"
+                          ? " claim-check-done"
+                          : "";
+                  return (
+                    <span key={r.key} className={`claim-check${tone}`}>
+                      {Icon && <Icon className="claim-check-icon" aria-hidden="true" />}
+                      {r.label}
+                      {r.detail ? <em>{r.detail}</em> : null}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           </div>

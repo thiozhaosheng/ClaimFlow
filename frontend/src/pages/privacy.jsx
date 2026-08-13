@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 function H2({ children }) {
   return (
-    <h2 className="text-[1.15rem] font-semibold tracking-tight mt-12 mb-3 text-text-primary">
+    <h2 className="text-[1.25rem] font-semibold tracking-tight mt-12 mb-3 text-text-primary">
       {children}
     </h2>
   );
