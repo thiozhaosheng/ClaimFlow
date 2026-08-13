@@ -1219,10 +1219,11 @@ export default function Employee() {
                           <span className="claim-row-date">{item.date}</span>
                         </td>
                         <td data-label="Category">
-                          <span className="claim-row-cat">
-                            <CategoryIcon category={item.type} size={18} />
-                            {escapeHtml(item.type)}
-                          </span>
+                          {/* The queue dropped this tile and the ledger kept
+                              it, so the same table read two ways in one
+                              product. A picture repeating the word beside it,
+                              once per row, is not information. */}
+                          <span className="claim-row-cat">{escapeHtml(item.type)}</span>
                         </td>
                         <td className="num" data-label="Amount">
                           <span className="claim-row-total">

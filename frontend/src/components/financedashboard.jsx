@@ -406,7 +406,7 @@ export default function FinanceDashboard({ claims, loading }) {
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
                         <XAxis
-                          dataKey="week"
+                          dataKey="weekLabel"
                           fontSize={11}
                           tick={{ fill: "var(--text-tertiary)" }}
                           axisLine={{ stroke: "var(--border-subtle)" }}

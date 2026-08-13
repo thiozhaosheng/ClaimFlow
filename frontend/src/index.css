@@ -301,7 +301,7 @@ code {
 }
 
 .brand-title {
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   letter-spacing: -0.015em;
   color: var(--text-primary);
@@ -321,13 +321,13 @@ code {
 }
 
 .user-identity-name {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-primary);
 }
 
 .user-identity-role {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   color: var(--text-secondary);
   font-weight: 500;
   margin-top: 2px;
@@ -342,7 +342,7 @@ code {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   position: relative;
@@ -365,7 +365,7 @@ code {
   background-color: transparent;
   border: 1px solid var(--border-default);
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 500;
   padding: 0.4rem 0.75rem;
   border-radius: var(--radius-sm);
@@ -391,7 +391,7 @@ code {
   border-color: var(--border-strong);
 }
 
-.btn-logout i { font-size: 0.78rem; }
+.btn-logout i { font-size: 0.75rem; }
 
 /* ==========================================================================
    SIGN IN — centered focused card. No aurora, no blobs.
@@ -434,7 +434,7 @@ code {
 .auth-topbar-name {
   font-weight: 600;
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
   letter-spacing: -0.015em;
 }
 
@@ -926,12 +926,12 @@ code {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   padding: 0.65rem 0.85rem;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   margin-bottom: 1rem;
 }
 
 .auth-error i {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   margin-top: 2px;
   flex-shrink: 0;
 }
@@ -1094,7 +1094,7 @@ code {
 .workspace-card.p-6 { padding: 1.25rem !important; }
 
 .workspace-card-title {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.018em;
@@ -1109,7 +1109,7 @@ code {
   border-radius: var(--radius-sm);
   align-items: center;
   justify-content: center;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   border: 1px solid var(--border-subtle);
 }
 
@@ -1180,7 +1180,9 @@ code {
 }
 
 .dropzone-subtext {
-  font-size: 0.76rem;
+  /* 0.75rem, on the ladder. 0.76 rendered 12.16px — a size that exists for no
+     reason and reads as a value someone typed rather than chose. */
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   display: block;
   margin-top: 0.35rem;
@@ -1207,14 +1209,14 @@ code {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   flex-shrink: 0;
   margin-top: 1px;
 }
 
 .extracted-banner-text strong {
   display: block;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.005em;
@@ -1222,7 +1224,7 @@ code {
 
 .extracted-banner-text span {
   display: block;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   margin-top: 1px;
   line-height: 1.45;
@@ -1230,7 +1232,7 @@ code {
 
 .form-label-hint {
   font-weight: 400;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   margin-left: 0.3rem;
 }
@@ -1291,7 +1293,7 @@ code {
 }
 
 .ocr-result-head strong {
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: -0.005em;
   color: var(--text-primary);
@@ -1301,7 +1303,7 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: -0.01em;
@@ -1343,7 +1345,7 @@ code {
 }
 
 .ocr-result-desc {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   margin: 0.15rem 0 0;
   line-height: 1.45;
@@ -1354,7 +1356,7 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   padding: 0.05rem 0.35rem;
@@ -1418,7 +1420,7 @@ code {
 }
 
 .ocr-progress-title {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -1438,7 +1440,7 @@ code {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   transition: var(--transition-base);
 }
 
@@ -1501,15 +1503,15 @@ code {
 }
 
 .data-error i { font-size: 1rem; margin-top: 2px; }
-.data-error strong { display: block; font-size: 0.9rem; margin-bottom: 1px; }
-.data-error span { font-size: 0.82rem; opacity: 0.9; }
+.data-error strong { display: block; font-size: 0.875rem; margin-bottom: 1px; }
+.data-error span { font-size: 0.8125rem; opacity: 0.9; }
 
 /* ==========================================================================
    PANEL / SIDEBAR (legacy layout used by approving page)
    ========================================================================== */
 
 .panel-subtitle {
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.012em;
@@ -1605,7 +1607,7 @@ code {
 }
 
 .sidebar-meta-label {
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1627,7 +1629,7 @@ code {
 
 .stat-widget-box .widget-title {
   display: block;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-secondary);
   margin-bottom: 0.35rem;
@@ -1636,7 +1638,7 @@ code {
 }
 
 .stat-widget-box .widget-value {
-  font-size: 1.4rem;
+  font-size: 1.5625rem;
   font-weight: 600;
   letter-spacing: -0.025em;
   color: var(--text-primary);
@@ -1649,7 +1651,7 @@ code {
   background-color: var(--bg-subtle);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   border-radius: var(--radius-sm);
 }
 
@@ -1676,7 +1678,7 @@ code {
 .search-input-wrapper .form-control {
   padding-left: 36px;
   height: 38px;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
 }
 
 /* ==========================================================================
@@ -1849,7 +1851,7 @@ code {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -1867,7 +1869,7 @@ code {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   cursor: pointer;
   transition: var(--transition-fast);
 }
@@ -1903,7 +1905,7 @@ code {
 .sub-tab-link {
   color: var(--text-secondary);
   font-weight: 500;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   padding: 0.65rem 0.2rem;
   border: none;
   background: transparent;
@@ -1932,7 +1934,7 @@ code {
   cursor: pointer;
   font-family: inherit;
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.875rem; /* 14px, the body size. 0.85rem rendered 13.6 — every button in the app sat a fraction off the ladder. */
   padding: 0.5rem 1rem;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
@@ -1971,7 +1973,7 @@ code {
   padding: 0.5rem 1.1rem;
   border-radius: var(--radius-sm);
   font-weight: 500;
-  font-size: 0.86rem;
+  font-size: 0.8125rem;
   transition: var(--transition-base);
   letter-spacing: -0.005em;
   cursor: pointer;
@@ -2009,7 +2011,7 @@ code {
   background: transparent;
   border: none;
   padding: 0.35rem 0.85rem;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-secondary);
   border-radius: 4px;
@@ -2042,7 +2044,7 @@ code {
   border-radius: var(--radius-sm);
   transition: var(--transition-base);
   font-family: inherit;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   line-height: 1.4;
   height: 38px;
   padding: 0 0.75rem;
@@ -2074,7 +2076,7 @@ code {
 
 .form-select-sm,
 .form-control-sm {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   height: 32px;
   padding: 0 0.6rem;
   border-radius: var(--radius-sm);
@@ -2143,7 +2145,7 @@ code {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 500;
   white-space: nowrap;
   height: 38px;
@@ -2181,17 +2183,17 @@ code {
 .text-primary { color: var(--accent) !important; }
 .text-end { text-align: right; }
 
-.small, small { font-size: 0.78rem !important; }
+.small, small { font-size: 0.75rem !important; }
 
 .form-label {
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: 0.4rem;
 }
 
 .form-label.small {
-  font-size: 0.74rem !important;
+  font-size: 0.75rem !important;
   color: var(--text-secondary) !important;
   font-weight: 500;
   text-transform: none;
@@ -2283,7 +2285,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .preflight-headline strong {
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: -0.005em;
 }
@@ -2303,14 +2305,14 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .preflight-message {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   margin: 0.2rem 0 0;
   line-height: 1.45;
 }
 
 .preflight-hint {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   margin: 0.35rem 0 0;
   line-height: 1.45;
@@ -2336,7 +2338,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   background-color: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   flex-wrap: wrap;
   white-space: nowrap;
@@ -2352,7 +2354,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   font-weight: 600;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   letter-spacing: -0.005em;
 }
 
@@ -2389,7 +2391,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 .welcome-strip-text { flex: 1; min-width: 0; }
 
 .welcome-strip-title {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 600;
   letter-spacing: -0.018em;
   color: var(--text-primary);
@@ -2397,7 +2399,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .welcome-strip-subtitle {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
   margin: 0;
 }
@@ -2417,7 +2419,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   border: 1px solid var(--border-subtle);
   border-radius: 4px;
   padding: 0.25rem 0.55rem;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 500;
   color: var(--text-secondary);
   white-space: nowrap;
@@ -2429,8 +2431,8 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   color: var(--accent);
 }
 
-.lifecycle-step i { font-size: 0.62rem; }
-.lifecycle-arrow { color: var(--text-tertiary); font-size: 0.65rem; }
+.lifecycle-step i { font-size: 0.6875rem; }
+.lifecycle-arrow { color: var(--text-tertiary); font-size: 0.6875rem; }
 
 @media (max-width: 768px) {
   .welcome-strip { flex-direction: column; align-items: flex-start; }
@@ -2465,7 +2467,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .empty-state-title {
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 0.25rem;
@@ -2473,7 +2475,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .empty-state-text {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: var(--text-tertiary);
   margin: 0;
   max-width: 280px;
@@ -2529,7 +2531,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 .modal-header { padding: 1.4rem 1.5rem 1rem; }
 
 .modal-title {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 600;
   letter-spacing: -0.015em;
   color: var(--text-primary);
@@ -2537,7 +2539,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .modal-subtitle {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
   margin: 0;
   font-variant-numeric: tabular-nums;
@@ -2554,7 +2556,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .form-hint {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   margin: 0.5rem 0 0;
 }
@@ -2575,7 +2577,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   padding: 0 1rem;
   border-radius: var(--radius-sm);
   font-weight: 500;
-  font-size: 0.86rem;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition: var(--transition-base);
   font-family: inherit;
@@ -2594,7 +2596,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   padding: 0 1rem;
   border-radius: var(--radius-sm);
   font-weight: 500;
-  font-size: 0.86rem;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition: var(--transition-base);
   font-family: inherit;
@@ -2640,7 +2642,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   justify-content: center;
   cursor: pointer;
   transition: var(--transition-fast);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 }
 
 .modal-close:hover {
@@ -2673,7 +2675,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .claim-detail-meta-label {
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-tertiary);
@@ -2681,7 +2683,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .claim-detail-meta-value {
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
@@ -2689,7 +2691,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .claim-detail-history-title {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 0.75rem;
@@ -2739,7 +2741,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 .timeline-dot-rejected { background-color: var(--danger); }
 
 .timeline-action {
-  font-size: 0.86rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-primary);
   letter-spacing: -0.005em;
@@ -2796,7 +2798,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   margin-top: 1px;
 }
 
@@ -2808,14 +2810,14 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 .toast-content { flex: 1; min-width: 0; }
 
 .toast-title {
-  font-size: 0.86rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.005em;
 }
 
 .toast-message {
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
   margin-top: 1px;
   line-height: 1.45;
@@ -2832,7 +2834,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   transition: var(--transition-fast);
   flex-shrink: 0;
 }
@@ -2866,7 +2868,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   border-radius: var(--radius-sm);
   background-color: var(--bg-app);
   color: var(--text-tertiary);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-family: inherit;
   cursor: pointer;
   transition: var(--transition-base);
@@ -2882,7 +2884,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 
 .cmdk-trigger-kbd {
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--text-tertiary);
   background-color: var(--bg-card);
@@ -2945,7 +2947,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   background: transparent;
   outline: none;
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
   color: var(--text-primary);
   letter-spacing: -0.01em;
 }
@@ -2954,7 +2956,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 
 .cmdk-esc {
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.64rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--text-tertiary);
   background-color: var(--bg-subtle);
@@ -2971,7 +2973,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 .cmdk-group { margin-bottom: 0.2rem; }
 
 .cmdk-group-label {
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -2991,7 +2993,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
   transition: background-color 0.1s ease, color 0.1s ease;
 }
@@ -3008,7 +3010,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 
 .cmdk-chord {
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.64rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--text-tertiary);
   background-color: var(--bg-subtle);
@@ -3022,7 +3024,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 .cmdk-empty {
   padding: 1.5rem 0.6rem;
   text-align: center;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   color: var(--text-tertiary);
 }
 
@@ -3033,13 +3035,13 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   padding: 0.55rem 1rem;
   border-top: 1px solid var(--border-subtle);
   background-color: var(--bg-app);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
 }
 
 .cmdk-footer kbd {
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--text-secondary);
   background-color: var(--bg-card);
@@ -3057,7 +3059,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .shortcuts-group-title {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -3084,7 +3086,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 .shortcuts-row:last-child { border-bottom: none; }
 
 .shortcuts-label {
-  font-size: 0.86rem;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
 }
 
@@ -3092,7 +3094,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 
 .shortcuts-kbd {
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--text-primary);
   background-color: var(--bg-subtle);
@@ -3181,7 +3183,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   .user-identity-text { display: none; }
   .btn-logout span { display: none; }
   .btn-logout { width: 32px; padding: 0; justify-content: center; }
-  .brand-title { font-size: 0.9rem; }
+  .brand-title { font-size: 0.875rem; }
 
   .lifecycle-flow {
     width: 100%;
@@ -3218,7 +3220,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   .data-table tbody td:first-child { padding-top: 0; }
   .data-table tbody td[data-label]::before {
     content: attr(data-label);
-    font-size: 0.66rem;
+    font-size: 0.6875rem;
     text-transform: uppercase;
     letter-spacing: 0.07em;
     color: var(--text-tertiary);
@@ -3232,17 +3234,20 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   }
 
   .form-control,
-  .form-select { height: 42px; font-size: 0.95rem; }
-  .form-group-modern input { height: 44px; font-size: 0.95rem; }
+  .form-select { height: 42px; font-size: 0.9375rem; }
+  .form-group-modern input { height: 44px; font-size: 0.9375rem; }
   .btn-primary,
-  .btn-mark-paid { height: 42px; font-size: 0.92rem; }
+  .btn-mark-paid { height: 42px; font-size: 0.9375rem; }
 
   .role-workspace { padding: 0 0.25rem; }
 
   .modal-backdrop { padding: 0; align-items: flex-end; }
   .modal-sheet {
     max-width: 100%;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    /* The toolbar is the top of the panel it sits on, so it takes the panel's
+     radius. --radius-lg is 16px, the marketing page's geometry, and it made
+     the join read as two different objects stacked. */
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
     max-height: 90vh;
     overflow-y: auto;
   }
@@ -3421,7 +3426,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 
 .cat-tile-label {
   padding: 0 1rem;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -3429,7 +3434,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 .cat-tile-name {
   padding: 0.1rem 1rem 0;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
   letter-spacing: -0.015em;
   color: color-mix(in srgb, var(--cat) 60%, var(--text-primary));
@@ -3449,7 +3454,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   gap: 0.4rem;
 }
 .cat-tile-strip small {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 500;
   opacity: 0.85;
 }
@@ -3515,7 +3520,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   border-radius: var(--radius-sm);
   background: var(--bg-card);
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -3554,7 +3559,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 .claim-receipt-view a:hover span { color: var(--text-secondary); }
 .claim-receipt-missing {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   padding: 0.75rem;
   border: 1px dashed var(--border-subtle);
@@ -3573,12 +3578,12 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 .claim-info-row:last-child { border-bottom: none; }
 .claim-info-row dt {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   flex-shrink: 0;
 }
 .claim-info-row dd {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-primary);
   text-align: right;
@@ -3605,11 +3610,11 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   border: 1px solid var(--border-default);
   background: var(--bg-card);
   color: var(--text-tertiary);
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 600;
 }
 .stage-label {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-secondary);
   white-space: nowrap;
@@ -3700,7 +3705,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   align-items: center;
   gap: 0.3rem;
   flex-shrink: 0;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--accent);
   background: transparent;
@@ -3726,7 +3731,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   align-items: center;
   gap: 0.35rem;
   flex-shrink: 0;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--accent);
   cursor: pointer;
@@ -3741,7 +3746,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   align-items: center;
   gap: 0.3rem;
   flex-shrink: 0;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--success-text);
 }
@@ -3768,7 +3773,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   margin-bottom: 0.3rem;
 }
 .spend-row-name {
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
@@ -3776,7 +3781,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   text-overflow: ellipsis;
 }
 .spend-row-amount {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
@@ -3813,7 +3818,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   min-width: 0;
 }
 .claim-row-name {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
@@ -3822,7 +3827,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   text-overflow: ellipsis;
 }
 .claim-row-sub {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -3841,7 +3846,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-secondary);
   background: var(--bg-subtle);
@@ -3857,7 +3862,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 }
 
 .claim-row-amount {
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
   font-weight: 700;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
@@ -3880,7 +3885,7 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   height: 32px;
   padding: 0 0.7rem;
   border-radius: var(--radius-sm);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -3934,7 +3939,10 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   border: 1px solid var(--border-subtle);
   border-bottom: none;
   padding: 1rem 1.25rem;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  /* The toolbar is the top of the panel it sits on, so it takes the panel's
+     radius. --radius-lg is 16px, the marketing page's geometry, and it made
+     the join read as two different objects stacked. */
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
 }
 
 .dark .data-toolbar {
@@ -3974,13 +3982,13 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   color: var(--text-tertiary);
 }
 .notfound-page h1 {
-  font-size: 1.35rem;
+  font-size: 1.5625rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--foreground);
 }
 .notfound-page p {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
   max-width: 34rem;
 }

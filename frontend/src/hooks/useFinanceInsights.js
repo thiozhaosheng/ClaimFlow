@@ -92,6 +92,12 @@ function evaluatePolicies(claim) {
   return { outcome: "route-to-human", ruleId: "default", label: "No rule matched" };
 }
 
+/**
+ * The bucket key. It stays ISO ("2026-W29") because it sorts and groups
+ * correctly; what the axis shows is weekLabel below, because "2026-W29" is how
+ * a developer names a week and nobody in a finance department reads a chart
+ * that way.
+ */
 function isoWeekKey(d) {
   // YYYY-Www
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -100,6 +106,14 @@ function isoWeekKey(d) {
   const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
   const weekNum = Math.ceil(((date - yearStart) / MS_PER_DAY + 1) / 7);
   return `${date.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+}
+
+/** The Monday of the week a date falls in, as "29 Jun". */
+function weekCommencingLabel(d) {
+  const monday = new Date(d);
+  const offset = (monday.getDay() + 6) % 7;
+  monday.setDate(monday.getDate() - offset);
+  return monday.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
 export function useFinanceInsights(claims, range = "30d") {
@@ -176,7 +190,12 @@ export function useFinanceInsights(claims, range = "30d") {
       const d = parseDate(c.date);
       if (!d) continue;
       const key = isoWeekKey(d);
-      const cur = weekMap.get(key) || { week: key, submitted: 0, disbursed: 0 };
+      const cur = weekMap.get(key) || {
+        week: key,
+        weekLabel: weekCommencingLabel(d),
+        submitted: 0,
+        disbursed: 0,
+      };
       cur.submitted += 1;
       if (c.status === "Paid") cur.disbursed += 1;
       weekMap.set(key, cur);
