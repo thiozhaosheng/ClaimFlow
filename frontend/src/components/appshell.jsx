@@ -90,7 +90,12 @@ export default function AppShell() {
             title="Command palette (⌘K)"
           >
             <Search className="h-3.5 w-3.5" />
-            <span className="cmdk-trigger-label">Search</span>
+            {/* "Search" promised more than this does. The palette runs commands
+                — go to a page, switch theme, sign out — and answers a claim
+                reference with "No commands match", which reads as a dead end to
+                anyone who took the label at its word. Claims are searched in the
+                table's own box, which says what it covers. */}
+            <span className="cmdk-trigger-label">Commands</span>
             <kbd className="cmdk-trigger-kbd">⌘K</kbd>
           </button>
 
