@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   Download,
   FileText,
@@ -36,7 +36,9 @@ const NAV_BY_ROLE = {
 const SUMMARY_TITLES = {
   employee: "Your claims",
   approving: "Queue",
-  finance: "Payouts",
+  // Not "Payouts": the rows under it are Awaiting payment, Paid and All
+  // claims, and two of those are not payouts.
+  finance: "Claims",
 };
 
 // Route each role's summary rows to the workspace where the figure lives.
@@ -133,17 +135,21 @@ function buildViews(role, claims) {
       (c) => c.status === "Pending" && !c?.details?.correctionRequest,
     ).length;
     const rows = [
-      { label: "Needs your fix", value: needsFix, to: "/employee" },
-      { label: "With your approver", value: inReview, to: "/employee" },
+      { label: "Needs your fix", value: needsFix, to: "/employee?status=fix" },
+      {
+        label: "With your approver",
+        value: inReview,
+        to: "/employee?status=pending",
+      },
       {
         label: "Endorsed",
         value: claims.filter((c) => c.status === "Endorsed").length,
-        to: "/employee",
+        to: "/employee?status=Endorsed",
       },
       {
         label: "Paid",
         value: claims.filter((c) => c.status === "Paid").length,
-        to: "/employee",
+        to: "/employee?status=Paid",
       },
       { label: "All claims", value: claims.length, to: "/employee" },
     ];
@@ -151,20 +157,23 @@ function buildViews(role, claims) {
   }
 
   if (role === "finance") {
+    // Only what finance can actually open. "In review" used to sit here
+    // counting pending claims, and there is no screen in this role that lists
+    // them — the approver decides those. The dashboard already reports them in
+    // its In flight figure, with a drill-down, in range.
     const endorsed = claims.filter((c) => c.status === "Endorsed");
     const rows = [
-      { label: "Awaiting payment", value: endorsed.length, to: "/finance" },
+      {
+        label: "Awaiting payment",
+        value: endorsed.length,
+        to: "/finance?tab=payouts",
+      },
       {
         label: "Paid",
         value: claims.filter((c) => c.status === "Paid").length,
-        to: "/finance",
+        to: "/finance?tab=audit&filter=Paid",
       },
-      {
-        label: "In review",
-        value: claims.filter((c) => c.status === "Pending").length,
-        to: "/finance",
-      },
-      { label: "All claims", value: claims.length, to: "/finance" },
+      { label: "All claims", value: claims.length, to: "/finance?tab=audit" },
     ];
     return rows.filter((r) => r.value > 0);
   }
@@ -175,8 +184,35 @@ function buildViews(role, claims) {
 /* buildSummaryRows() removed — the rail shows navigable views now, not
    read-only figures. */
 
+/**
+ * The parameters a saved view is allowed to set. A view is the open one when
+ * all of them agree — including the ones it does NOT set, so "All claims"
+ * (which names none) is not also lit while you are looking at "Paid".
+ */
+const VIEW_PARAMS = ["status", "tab", "filter"];
+
+/**
+ * Which view is open.
+ *
+ * NavLink cannot answer this: it compares pathnames and ignores the query
+ * string, and with a plain string className react-router appends `active`
+ * itself — so every row in the rail carried `.active` at once and the whole
+ * list rendered as one shaded slab. The "open folder" mark meant nothing
+ * because it was on all of them.
+ */
+function viewMatches(to, location) {
+  const [path, query = ""] = to.split("?");
+  if (path !== location.pathname) return false;
+  const target = new URLSearchParams(query);
+  const current = new URLSearchParams(location.search);
+  return VIEW_PARAMS.every(
+    (key) => (target.get(key) || "") === (current.get(key) || ""),
+  );
+}
+
+// No "Policies" here: the approval-policy block directly above these links
+// goes to the same page, and a rail should not offer one destination twice.
 const LEGAL_LINKS = [
-  { to: "/policies", label: "Policies" },
   { to: "/compliance", label: "Compliance" },
   { to: "/privacy", label: "Privacy" },
 ];
@@ -201,7 +237,10 @@ function deriveName(email) {
 
 function SectionLabel({ children }) {
   return (
-    <p className="px-2 mb-1 text-[0.6875rem] uppercase tracking-[0.08em] font-semibold text-text-tertiary">
+    /* 12px, like every other label in the rail. 11 was the only rung below
+       the floor the rest of the app is held to, on the one line that names
+       what the rows underneath are. */
+    <p className="px-2 mb-1 text-[12px] uppercase tracking-[0.08em] font-semibold text-text-tertiary">
       {children}
     </p>
   );
@@ -211,6 +250,7 @@ export default function Sidebar({ onNavigate, className }) {
   const { session, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { latestMap, loading, error } = useClaims();
+  const location = useLocation();
 
   const summaryRows = useMemo(() => {
     if (!session) return [];
@@ -290,9 +330,9 @@ export default function Sidebar({ onNavigate, className }) {
         <span className="text-sm font-semibold tracking-tight">ClaimFlow</span>
       </div>
 
-      {/* nav */}
-      <nav className="flex-1 px-2 pt-4 overflow-hidden">
-        <SectionLabel>Workspace</SectionLabel>
+      {/* nav — no "Workspace" heading above it: each role has exactly one
+          page, and the heading repeated the word on the only item under it. */}
+      <nav className="flex-1 px-2 pt-3 overflow-hidden">
         <ul className="flex flex-col gap-0.5 mb-5">
           {nav.map(({ to, label, icon: Icon }) => (
             <li key={to}>
@@ -319,100 +359,98 @@ export default function Sidebar({ onNavigate, className }) {
           <div>
             <SectionLabel>{SUMMARY_TITLES[session.role]}</SectionLabel>
             <div className="sidebar-summary-list">
-              {summaryRows.map(({ label, value, to }) => (
-                <NavLink
-                  key={label}
-                  to={to || summaryTo}
-                  onClick={onNavigate}
-                  className="sidebar-stat"
-                  title={`Open ${label.toLowerCase()}`}
-                >
-                  <span className="sidebar-stat-label">{label}</span>
-                  <span className="sidebar-stat-value">{value}</span>
-                </NavLink>
-              ))}
+              {summaryRows.map(({ label, value, to }) => {
+                const target = to || summaryTo;
+                const open = viewMatches(target, location);
+                return (
+                  <NavLink
+                    key={label}
+                    to={target}
+                    onClick={onNavigate}
+                    /* Function form on purpose: with a plain string,
+                       react-router appends its own `active` on a pathname
+                       match and the query — which is the whole difference
+                       between these rows — is ignored. */
+                    className={() => cn("sidebar-stat", open && "active")}
+                    aria-current={open ? "page" : undefined}
+                    title={`Open ${label.toLowerCase()}`}
+                  >
+                    <span className="sidebar-stat-label">{label}</span>
+                    <span className="sidebar-stat-value">{value}</span>
+                  </NavLink>
+                );
+              })}
             </div>
           </div>
         )}
       </nav>
 
-      {/* user card — minimal */}
-      <div className="border-t border-border-subtle px-3 py-3">
-        <div className="flex items-center gap-2.5 mb-2">
-          <div className="user-identity-avatar h-8 w-8 text-[11px]">
+      {/* The foot: who you are, then the three things you can do about it,
+          then what rule set is running. It used to be three separate bands —
+          a profile row, a strip of two unlabelled icon buttons beside Sign
+          out, and two more stacked blocks — 199px of chrome under 355px of
+          nothing. A lone download arrow in a rail also tells nobody that it
+          is their PDPA export, which is the one control here the product has
+          promised on two other pages. */}
+      <div className="sidebar-foot">
+        <div className="sidebar-identity">
+          <div className="user-identity-avatar h-8 w-8 text-[12px]">
             {initials}
             <span className="user-identity-presence" aria-hidden="true"></span>
           </div>
           <div className="min-w-0 flex-1 leading-tight">
-            <div className="text-[13px] font-medium truncate">{name}</div>
-            <div className="text-[11px] text-text-tertiary truncate">
-              {roleLabel}
-            </div>
+            <div className="sidebar-identity-name">{name}</div>
+            <div className="sidebar-identity-role">{roleLabel}</div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={
-              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
-            }
-            title={
-              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
-            }
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-ds-sm text-text-tertiary hover:bg-subtle hover:text-foreground transition-colors"
-          >
-            {theme === "dark" ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={downloadMyData}
-            disabled={exporting}
-            aria-label="Download my data"
-            title="Download my data"
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-ds-sm text-text-tertiary hover:bg-subtle hover:text-foreground transition-colors disabled:opacity-50"
-          >
-            <Download className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={logout}
-            className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-ds-sm text-[13px] font-medium text-text-secondary hover:bg-subtle hover:text-foreground transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>Sign out</span>
-          </button>
-        </div>
+
+        <button type="button" onClick={toggleTheme} className="sidebar-action">
+          {theme === "dark" ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
+          <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+        </button>
+        <button
+          type="button"
+          onClick={downloadMyData}
+          disabled={exporting}
+          className="sidebar-action"
+        >
+          <Download className="h-4 w-4" />
+          <span>{exporting ? "Preparing…" : "Download my data"}</span>
+        </button>
+        <button type="button" onClick={logout} className="sidebar-action">
+          <LogOut className="h-4 w-4" />
+          <span>Sign out</span>
+        </button>
       </div>
 
-      {/* What rule set is actually running. Real values from policies.json —
-          the version the engine loaded and the number of rules it evaluates —
-          which is the sort of thing an audit-minded finance tool states, and
-          it anchors the foot of the rail so the space above reads as a gap
-          between two groups rather than a trailing void. */}
-      <NavLink to="/policies" onClick={onNavigate} className="sidebar-policy">
-        <span className="sidebar-policy-label">Approval policy</span>
-        <span className="sidebar-policy-meta">
-          <span className="sidebar-policy-version">{policies.version}</span>
-          <span aria-hidden="true"> · </span>
-          {policies.rules.length} rules
-        </span>
-      </NavLink>
-
-      {/* legal pages stay reachable, but quiet */}
-      <div className="sidebar-legal">
-        {LEGAL_LINKS.map(({ to, label }, i) => (
-          <span key={to}>
-            {i > 0 && <span aria-hidden="true"> · </span>}
-            <NavLink to={to} onClick={onNavigate}>
-              {label}
-            </NavLink>
+      {/* What rule set is actually running, and the pages that govern it —
+          one block, because they are one subject. Real values from
+          policies.json: the version the engine loaded and the number of rules
+          it evaluates. "Policies" is gone from the line below because the
+          block above it already goes there. */}
+      <div className="sidebar-rules">
+        <NavLink to="/policies" onClick={onNavigate} className="sidebar-policy">
+          <span className="sidebar-policy-label">Approval policy</span>
+          <span className="sidebar-policy-meta">
+            <span className="sidebar-policy-version">{policies.version}</span>
+            <span aria-hidden="true"> · </span>
+            {policies.rules.length} rules
           </span>
-        ))}
+        </NavLink>
+        <div className="sidebar-legal">
+          {LEGAL_LINKS.map(({ to, label }, i) => (
+            <span key={to}>
+              {i > 0 && <span aria-hidden="true"> · </span>}
+              <NavLink to={to} onClick={onNavigate}>
+                {label}
+              </NavLink>
+            </span>
+          ))}
+        </div>
       </div>
     </aside>
   );

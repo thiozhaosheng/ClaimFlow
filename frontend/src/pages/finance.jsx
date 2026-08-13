@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
 import SortHeader from "../components/sortheader.jsx";
@@ -34,9 +34,18 @@ export default function Finance() {
   const { session, setFinanceTab } = useAuth();
   const { addToast } = useToast();
   const { claimsDb, latestMap, error, loading, batchMarkAsPaid } = useClaims();
-  const [activeTab, setActiveTab] = useState(session?.financeTab || "dashboard");
+
+  // The tab and the audit filter live in the URL, so the rail's saved views can
+  // reach them. Every finance view used to link to "/finance" — the page you
+  // were already on — which made four rows with counts and hover states do
+  // nothing when clicked. It also makes a filtered ledger shareable and
+  // back-button-able, the way the approver's queue already is.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  const urlAuditFilter = searchParams.get("filter");
+  const activeTab = urlTab || session?.financeTab || "dashboard";
+  const auditFilter = urlAuditFilter || "All";
   const [searchAudit, setSearchAudit] = useState("");
-  const [auditFilter, setAuditFilter] = useState("All");
 
   useShortcuts({
     onSearch: () => {
@@ -44,10 +53,23 @@ export default function Finance() {
     }
   });
 
+  const setParams = (changes) => {
+    const params = new URLSearchParams(searchParams);
+    for (const [key, value] of Object.entries(changes)) {
+      if (value === null || value === undefined || value === "") params.delete(key);
+      else params.set(key, value);
+    }
+    setSearchParams(params, { replace: true });
+  };
+
   const switchTab = (tabKey) => {
-    setActiveTab(tabKey);
+    // The filter belongs to the audit tab; leaving it set while moving to
+    // Payouts would strand it and light the wrong row in the rail.
+    setParams({ tab: tabKey, filter: null });
     setFinanceTab(tabKey);
   };
+
+  const setAuditFilter = (value) => setParams({ filter: value === "All" ? null : value });
 
   // ---- payouts ----------------------------------------------------------
   // The claims an approver has endorsed and finance has not yet released.

@@ -53,8 +53,70 @@
   white-space: nowrap;
 }
 
+/* ---- rail foot: identity, then what you can do about it ------------- */
+.sidebar-foot {
+  border-top: 1px solid var(--border-subtle);
+  padding: 8px;
+}
+
+.sidebar-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 10px;
+}
+.sidebar-identity-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-identity-role {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Named, not guessed at. Two of these were icon-only buttons in a row, and a
+   bare download arrow does not read as "export everything held about you".
+   Same 12px label and quiet ink as the saved views above, so the rail has one
+   rhythm from top to bottom. */
+.sidebar-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 4px 8px;
+  border-radius: var(--radius-control);
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.sidebar-action:hover:not(:disabled) {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+.sidebar-action:disabled { opacity: 0.55; cursor: default; }
+.sidebar-action svg { flex-shrink: 0; color: var(--text-tertiary); }
+.sidebar-action:hover:not(:disabled) svg { color: var(--text-secondary); }
+
+.sidebar-rules {
+  border-top: 1px solid var(--border-subtle);
+  padding: 8px;
+}
+
 .sidebar-legal {
-  padding: 6px 16px 12px;
+  padding: 2px 12px 4px;
   font-size: 0.75rem;
   line-height: 1.6;
   color: var(--text-tertiary);
@@ -71,12 +133,11 @@
   color: var(--text-primary);
 }
 
-/* ---- rail foot: the rule set currently in force -------------------- */
+/* ---- the rule set currently in force -------------------------------- */
 .sidebar-policy {
   display: block;
-  margin: 0 8px 2px;
-  padding: 8px 12px;
-  border-top: 1px solid var(--border-subtle);
+  padding: 4px 12px;
+  border-radius: var(--radius-control);
   text-decoration: none;
   transition: var(--transition-fast);
 }
@@ -95,7 +156,7 @@
 .sidebar-policy-meta {
   display: block;
   margin-top: 1px;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }

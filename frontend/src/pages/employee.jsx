@@ -1,5 +1,5 @@
 import { Fragment, useState, useRef, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   Ban,
@@ -494,10 +494,37 @@ export default function Employee() {
   };
 
   const allClaims = Object.values(latestMap);
+
+  // The rail's saved views land here. Every one of them used to link to
+  // "/employee" — the page you were already on — so five rows that looked like
+  // navigation, had hover states and read "Open needs your fix" on hover did
+  // nothing at all when clicked. The ledger had no filter of any kind.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = searchParams.get("status") || "";
+  const VIEW_LABELS = {
+    fix: "Needs your fix",
+    pending: "With your approver",
+    Endorsed: "Endorsed",
+    Paid: "Paid",
+  };
+  const inView = (c) => {
+    if (view === "fix") return c.status === "Pending" && !!correctionRequestOf(c);
+    if (view === "pending")
+      return c.status === "Pending" && !correctionRequestOf(c);
+    if (view === "Endorsed" || view === "Paid") return c.status === view;
+    return true;
+  };
+  const clearView = () => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("status");
+    setSearchParams(params, { replace: true });
+  };
+
   // A claim an approver has sent back is the one thing on this page that is
   // waiting on the employee, so it leads the list ahead of ordinary pending
   // claims. sort() is stable, so everything else keeps the API's order.
   const distinctClaims = [...allClaims]
+    .filter(inView)
     .sort(
       (a, b) =>
         (correctionRequestOf(b) ? 1 : 0) - (correctionRequestOf(a) ? 1 : 0),
@@ -530,7 +557,10 @@ export default function Employee() {
 
   // The references waiting on the employee, named once above the table so the
   // work is visible even when the panel is scrolled down.
-  const claimsNeedingFix = distinctClaims.filter((c) => correctionRequestOf(c));
+  // From every claim, not the filtered view: the banner names what is waiting
+  // on the submitter, and that does not stop being true because they are
+  // looking at Paid.
+  const claimsNeedingFix = allClaims.filter((c) => correctionRequestOf(c));
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -1153,10 +1183,20 @@ export default function Employee() {
           The panel body scrolls on its own so the page keeps the fold. */}
       <div className="data-panel claims-panel">
         <div className="data-panel-head">
-          <span className="data-panel-title">Recent claims</span>
-          <span className="claims-panel-count">
-            {allClaims.length === 1 ? "1 claim" : `${allClaims.length} claims`}
+          <span className="data-panel-title">
+            {VIEW_LABELS[view] || "Recent claims"}
           </span>
+          <span className="claims-panel-count">
+            {distinctClaims.length === 1
+              ? "1 claim"
+              : `${distinctClaims.length} claims`}
+          </span>
+          {view && (
+            /* A filtered ledger has to say so, and hold the way back. */
+            <button type="button" className="claims-panel-clear" onClick={clearView}>
+              Show all {allClaims.length}
+            </button>
+          )}
         </div>
 
         {/* Named above the table as well as on the row: a correction is the

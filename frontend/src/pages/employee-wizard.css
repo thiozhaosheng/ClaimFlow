@@ -264,6 +264,24 @@ button.wizard-step-done:hover {
    the rows and the numbers. Only the per-cell detail lives here.
    ========================================================================== */
 
+/* The way back out of a saved view. Quiet, and beside the count it modifies. */
+.claims-panel-clear {
+  margin-left: auto;
+  padding: 2px 8px;
+  border: none;
+  border-radius: var(--radius-chip);
+  background: none;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.claims-panel-clear:hover {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
 .claims-panel-count {
   font-size: 0.75rem;
   color: var(--text-tertiary);
