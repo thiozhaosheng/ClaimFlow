@@ -16,10 +16,10 @@
   <text x="28" y="130" class="m">Ref</text>
   <text x="292" y="130" text-anchor="end" class="m">R-9001</text>
   <line x1="28" y1="148" x2="292" y2="148" class="rule" />
-  <text x="28" y="176" class="r">Dining — client</text><text x="292" y="176" text-anchor="end" class="r">245.87</text>
-  <text x="28" y="202" class="r">GST 9%</text><text x="292" y="202" text-anchor="end" class="r">22.13</text>
+  <text x="28" y="176" class="r">Dining — client</text><text x="292" y="176" text-anchor="end" class="r">154.14</text>
+  <text x="28" y="202" class="r">GST 9%</text><text x="292" y="202" text-anchor="end" class="r">13.86</text>
   <line x1="28" y1="214" x2="292" y2="214" class="rule" />
-  <text x="28" y="234" class="b">TOTAL (SGD)</text><text x="292" y="234" text-anchor="end" class="b">268.00</text>
+  <text x="28" y="234" class="b">TOTAL (SGD)</text><text x="292" y="234" text-anchor="end" class="b">168.00</text>
   <text x="160" y="312" text-anchor="middle" class="m">Thank you</text>
   <text x="160" y="334" text-anchor="middle" class="m">DEMO DATA — not a real receipt</text>
 </svg>

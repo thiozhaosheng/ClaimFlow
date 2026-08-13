@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="320" height="330" viewBox="0 0 320 330" role="img" aria-label="Receipt from Agoda">
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="356" viewBox="0 0 320 356" role="img" aria-label="Receipt from Subway">
   <style>
     .r { font: 13px ui-monospace, "SF Mono", Menlo, monospace; fill: #1f2937; }
     .b { font: 700 14px ui-monospace, "SF Mono", Menlo, monospace; fill: #111827; }
@@ -6,19 +6,20 @@
     .m { font: 11px ui-monospace, "SF Mono", Menlo, monospace; fill: #6b7280; }
     .rule { stroke: #d1d5db; stroke-width: 1; }
   </style>
-  <rect x="0" y="0" width="320" height="330" fill="#ffffff" />
-  <rect x="0.5" y="0.5" width="319" height="329" fill="none" stroke="#e5e7eb" />
-  <text x="160" y="46" text-anchor="middle" class="h">Agoda</text>
+  <rect x="0" y="0" width="320" height="356" fill="#ffffff" />
+  <rect x="0.5" y="0.5" width="319" height="355" fill="none" stroke="#e5e7eb" />
+  <text x="160" y="46" text-anchor="middle" class="h">Subway</text>
   <text x="160" y="66" text-anchor="middle" class="m">Singapore</text>
   <line x1="28" y1="86" x2="292" y2="86" class="rule" />
   <text x="28" y="110" class="m">Date</text>
-  <text x="292" y="110" text-anchor="end" class="m">20 Jul 2026</text>
+  <text x="292" y="110" text-anchor="end" class="m">03 Jul 2026</text>
   <text x="28" y="130" class="m">Ref</text>
   <text x="292" y="130" text-anchor="end" class="m">R-0019</text>
   <line x1="28" y1="148" x2="292" y2="148" class="rule" />
-  <text x="28" y="176" class="r">Travel booking</text><text x="292" y="176" text-anchor="end" class="r">1454.02</text>
-  <line x1="28" y1="188" x2="292" y2="188" class="rule" />
-  <text x="28" y="208" class="b">TOTAL (SGD)</text><text x="292" y="208" text-anchor="end" class="b">1454.02</text>
-  <text x="160" y="286" text-anchor="middle" class="m">Thank you</text>
-  <text x="160" y="308" text-anchor="middle" class="m">DEMO DATA — not a real receipt</text>
+  <text x="28" y="176" class="r">Food &amp; beverage</text><text x="292" y="176" text-anchor="end" class="r">7.62</text>
+  <text x="28" y="202" class="r">GST 9%</text><text x="292" y="202" text-anchor="end" class="r">0.69</text>
+  <line x1="28" y1="214" x2="292" y2="214" class="rule" />
+  <text x="28" y="234" class="b">TOTAL (SGD)</text><text x="292" y="234" text-anchor="end" class="b">8.31</text>
+  <text x="160" y="312" text-anchor="middle" class="m">Thank you</text>
+  <text x="160" y="334" text-anchor="middle" class="m">DEMO DATA — not a real receipt</text>
 </svg>

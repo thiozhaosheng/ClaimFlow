@@ -57,13 +57,36 @@ const slugEmail = (name: string) =>
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z]+/g, '.')
     .replace(/^\.|\.$/g, '');
-const avatarFor = (email: string) =>
-  `https://i.pravatar.cc/150?u=${encodeURIComponent(email)}`;
+// No avatar URLs are seeded. They pointed at pravatar.cc — photographs of
+// strangers, fetched from a third party, stored against staff records in a
+// product whose selling point is PDPA custody. Nothing in the app renders one
+// either: the claims API does not return the column and every surface that
+// shows a person uses their initials.
+const avatarFor = (_email: string): string | null => null;
 const daysAgo = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
   d.setHours(randInt(8, 19), randInt(0, 59), 0, 0);
   return d;
+};
+
+/**
+ * A working moment strictly after `base`, and never in the future.
+ *
+ * Every timestamp in the demo used to be computed independently from the
+ * claim's age — `daysAgo(ageDays)`, `daysAgo(ageDays - randInt(1, 3))` — which
+ * randomises the hour on each call. So a claim could be endorsed at 09:04 on a
+ * day it was submitted at 15:20, and an eight-day-old claim approved "one to
+ * three days later" could be approved before it existed. Chaining from the
+ * previous event is what makes an audit trail read in order.
+ */
+const after = (base: Date, minDays: number, maxDays: number) => {
+  const d = new Date(base.getTime());
+  d.setDate(d.getDate() + randInt(minDays, maxDays));
+  d.setHours(randInt(9, 18), randInt(0, 59), 0, 0);
+  if (d <= base) d.setTime(base.getTime() + randInt(20, 300) * 60_000);
+  const now = new Date();
+  return d > now ? now : d;
 };
 
 // ---------------------------------------------------------------------------
@@ -452,6 +475,12 @@ async function main() {
       );
       const merchant = pick(recipe.merchants);
       const expenseDate = daysAgo(ageDays);
+      // Nobody files a claim the instant they pay. Submission is nought to two
+      // days later, and it is what `createdAt` is set to — the column was left
+      // to its default, so every claim in the demo reported that it had been
+      // submitted at the moment the seed ran, on a record whose audit entries
+      // were dated weeks earlier.
+      const submittedAt = after(expenseDate, 0, 2);
       // The receipt is drawn from this claim, so the image and the fields
       // cannot disagree. Category-matched photographs were the previous fix
       // and they were not enough: three images cannot carry 140 claims, so a
@@ -480,6 +509,7 @@ async function main() {
       // - everything else is Pending, then evolves into Endorsed/Rejected/Paid based on age
 
       const blocked = chance(0.05); // 5% chance of being withdrawn
+      const withdrawnAt = after(submittedAt, 0, 1);
       if (blocked) {
         // Replace with a withdrawn-by-submitter row so the dataset shows
         // how blocks surface in history without polluting active queues.
@@ -494,8 +524,9 @@ async function main() {
             receiptUrl,
             ocrSource,
             status: ClaimStatus.Pending,
+            createdAt: submittedAt,
             withdrawn: true,
-            withdrawnAt: daysAgo(Math.max(0, ageDays - 1)),
+            withdrawnAt: withdrawnAt,
           },
         });
         await db.auditLog.create({
@@ -505,8 +536,8 @@ async function main() {
             performedBy: employee.id,
             oldStatus: ClaimStatus.Pending,
             newStatus: ClaimStatus.Pending,
-            remarks: 'Submitter withdrew after seeing the missing-receipt block.',
-            createdAt: daysAgo(Math.max(0, ageDays - 1)),
+            remarks: 'Withdrawn by the submitter before anyone acted on it.',
+            createdAt: withdrawnAt,
           },
         });
         claimCount++;
@@ -566,6 +597,7 @@ async function main() {
           ocrSource,
           details: generateDetailsFor(recipe.category, amount),
           status,
+          createdAt: submittedAt,
         },
       });
       claimCount++;
@@ -589,7 +621,7 @@ async function main() {
             oldStatus: ClaimStatus.Pending,
             newStatus: ClaimStatus.Pending,
             remarks: autoApproveMeal ? 'auto-approve-small-meal' : 'auto-approve-transport',
-            createdAt: daysAgo(ageDays),
+            createdAt: submittedAt,
           },
         });
         auditCount++;
@@ -605,7 +637,7 @@ async function main() {
             hint: autoApproveMeal
               ? 'Within the meal allowance and the receipt read cleanly — verify the amount and approve.'
               : 'Within the transport allowance and the receipt read cleanly — verify the amount and approve.',
-            createdAt: daysAgo(ageDays),
+            createdAt: submittedAt,
           },
         });
         notifCount++;
@@ -613,6 +645,7 @@ async function main() {
         // A recommendation is not an endorsement: something an officer did has
         // to stand between Pending and Endorsed, or the trail cannot explain
         // how the claim moved.
+        const endorsedAt = after(submittedAt, 1, 3);
         if (status === ClaimStatus.Endorsed || status === ClaimStatus.Paid) {
           await db.auditLog.create({
             data: {
@@ -622,14 +655,14 @@ async function main() {
               oldStatus: ClaimStatus.Pending,
               newStatus: ClaimStatus.Endorsed,
               remarks: 'Recommended by policy, checked and endorsed.',
-              createdAt: daysAgo(Math.max(0, ageDays - randInt(1, 3))),
+              createdAt: endorsedAt,
             },
           });
           auditCount++;
         }
 
         if (status === ClaimStatus.Paid) {
-          const paidAge = Math.max(0, ageDays - randInt(3, 6));
+          const paidAt = after(endorsedAt, 2, 4);
           await db.auditLog.create({
             data: {
               claimId: claim.id,
@@ -637,8 +670,8 @@ async function main() {
               performedBy: primaryFinance.id,
               oldStatus: ClaimStatus.Endorsed,
               newStatus: ClaimStatus.Paid,
-              remarks: 'Batch payout — approved claims included.',
-              createdAt: daysAgo(paidAge),
+              remarks: 'Released in a payout run.',
+              createdAt: paidAt,
             },
           });
           auditCount++;
@@ -649,8 +682,8 @@ async function main() {
               kind: 'claim-paid',
               title: 'Reimbursed',
               body: `S$${amount.toFixed(2)} for ${merchant} has been credited to your bank account.`,
-              createdAt: daysAgo(paidAge),
-              readAt: paidAge > 2 ? daysAgo(paidAge - 1) : null,
+              createdAt: paidAt,
+              readAt: after(paidAt, 0, 1),
             },
           });
           notifCount++;
@@ -670,7 +703,7 @@ async function main() {
             oldStatus: ClaimStatus.Pending,
             newStatus: ClaimStatus.Pending,
             remarks: reason,
-            createdAt: daysAgo(ageDays),
+            createdAt: submittedAt,
           },
         });
         auditCount++;
@@ -688,19 +721,21 @@ async function main() {
               ocrSource === 'unavailable'
                 ? 'OCR could not read the receipt — verify the receipt image matches the entered amount and date.'
                 : largeAmount
-                ? `Above S$500 auto-approve ceiling — verify business justification.`
-                : 'Did not match any auto-approve rule.',
-            createdAt: daysAgo(ageDays),
+                // S$500 is the amount above which review is FORCED. It is not
+                // an auto-approval ceiling — this engine has never approved
+                // anything — and policies.json was corrected without this copy
+                // following it.
+                ? 'Above S$500, so the rules send it to a person — check the business justification.'
+                : 'No rule matched, so it needs your judgement.',
+            createdAt: submittedAt,
             readAt:
-              ageDays > 1 && status !== ClaimStatus.Pending
-                ? daysAgo(Math.max(0, ageDays - 1))
-                : null,
+              status !== ClaimStatus.Pending ? after(submittedAt, 0, 1) : null,
           },
         });
         notifCount++;
 
         if (status === ClaimStatus.Endorsed || status === ClaimStatus.Paid) {
-          const endorsedAge = Math.max(0, ageDays - randInt(1, 3));
+          const endorsedAt = after(submittedAt, 1, 3);
           await db.auditLog.create({
             data: {
               claimId: claim.id,
@@ -708,8 +743,8 @@ async function main() {
               performedBy: approver.id,
               oldStatus: ClaimStatus.Pending,
               newStatus: ClaimStatus.Endorsed,
-              remarks: '',
-              createdAt: daysAgo(endorsedAge),
+              remarks: 'Checked against the receipt and endorsed.',
+              createdAt: endorsedAt,
             },
           });
           auditCount++;
@@ -720,14 +755,14 @@ async function main() {
               kind: 'claim-endorsed',
               title: 'Claim endorsed',
               body: `${approver.name} endorsed your S$${amount.toFixed(2)} ${recipe.category.toLowerCase()} claim. Awaiting finance disbursement.`,
-              createdAt: daysAgo(endorsedAge),
-              readAt: endorsedAge > 2 ? daysAgo(endorsedAge - 1) : null,
+              createdAt: endorsedAt,
+              readAt: after(endorsedAt, 0, 1),
             },
           });
           notifCount++;
 
           if (status === ClaimStatus.Paid) {
-            const paidAge = Math.max(0, endorsedAge - randInt(2, 5));
+            const paidAt = after(endorsedAt, 2, 5);
             await db.auditLog.create({
               data: {
                 claimId: claim.id,
@@ -735,8 +770,8 @@ async function main() {
                 performedBy: primaryFinance.id,
                 oldStatus: ClaimStatus.Endorsed,
                 newStatus: ClaimStatus.Paid,
-                remarks: '',
-                createdAt: daysAgo(paidAge),
+                remarks: 'Released in a payout run.',
+                createdAt: paidAt,
               },
             });
             auditCount++;
@@ -747,14 +782,14 @@ async function main() {
                 kind: 'claim-paid',
                 title: 'Reimbursed',
                 body: `S$${amount.toFixed(2)} for ${merchant} has been credited to your bank account.`,
-                createdAt: daysAgo(paidAge),
-                readAt: paidAge > 2 ? daysAgo(paidAge - 1) : null,
+                createdAt: paidAt,
+                readAt: after(paidAt, 0, 1),
               },
             });
             notifCount++;
           }
         } else if (status === ClaimStatus.Rejected) {
-          const rejectedAge = Math.max(0, ageDays - randInt(1, 3));
+          const rejectedAt = after(submittedAt, 1, 3);
           const reason = pick(REJECTION_REASONS);
           await db.auditLog.create({
             data: {
@@ -764,7 +799,7 @@ async function main() {
               oldStatus: ClaimStatus.Pending,
               newStatus: ClaimStatus.Rejected,
               remarks: reason,
-              createdAt: daysAgo(rejectedAge),
+              createdAt: rejectedAt,
             },
           });
           auditCount++;
@@ -773,10 +808,14 @@ async function main() {
               recipientId: employee.id,
               claimId: claim.id,
               kind: 'claim-rejected',
-              title: 'Claim returned for fix',
+              // A rejected claim is closed: the API refuses an edit on
+              // anything that is not Pending. "Returned for fix" is what a
+              // CORRECTION REQUEST does, and this title sent the submitter off
+              // to redo work on a claim nobody would look at again.
+              title: 'Claim rejected',
               body: reason,
-              createdAt: daysAgo(rejectedAge),
-              readAt: rejectedAge > 2 ? daysAgo(rejectedAge - 1) : null,
+              createdAt: rejectedAt,
+              readAt: after(rejectedAt, 0, 1),
             },
           });
           notifCount++;
@@ -806,18 +845,30 @@ async function main() {
     withdrawn?: boolean;
     ocrSource?: string;
     details?: Record<string, unknown>;
+    /**
+     * What the RECEIPT says, when that is deliberately not what was typed.
+     *
+     * The correction journey needs the two to disagree — that is the whole
+     * point of it. The receipt is generated from the claim, so without this the
+     * approver's note read "the receipt total reads S$168.00, not S$268.00"
+     * beside an image printing 268.00: the one screen where the product proves
+     * it catches a mistyped figure was proving the opposite.
+     */
+    receipt?: { total: number; gst: number | null };
   }) => {
     const index = 9000 + scenarioCount;
     const expenseDate = daysAgo(opts.ageDays);
+    const submittedAt = after(expenseDate, 0, 1);
     const receiptUrl = `/test-receipts/seed/${String(index).padStart(4, '0')}.svg`;
     writeSeedReceipt(index, {
       merchant: opts.merchant,
       date: expenseDate.toISOString().slice(0, 10),
       category: opts.category,
-      total: opts.amount,
-      gst: opts.gst,
+      total: opts.receipt ? opts.receipt.total : opts.amount,
+      gst: opts.receipt ? opts.receipt.gst : opts.gst,
       reference: `R-${String(index).padStart(4, '0')}`,
     });
+    const withdrawnAt = opts.withdrawn ? after(submittedAt, 0, 1) : null;
     const claim = await db.claim.create({
       data: {
         userId: demoEmployee.id,
@@ -829,14 +880,15 @@ async function main() {
         receiptUrl,
         ocrSource: opts.ocrSource ?? 'azure',
         status: opts.status,
+        createdAt: submittedAt,
         withdrawn: opts.withdrawn ?? false,
-        withdrawnAt: opts.withdrawn ? daysAgo(Math.max(0, opts.ageDays - 1)) : null,
+        withdrawnAt,
         details: (opts.details ?? {}) as any,
       },
     });
     scenarioCount++;
     claimCount++;
-    return claim;
+    return { claim, submittedAt };
   };
 
   const log = async (
@@ -846,7 +898,7 @@ async function main() {
     from: ClaimStatus,
     to: ClaimStatus,
     remarks: string,
-    ageDays: number,
+    at: Date,
   ) => {
     await db.auditLog.create({
       data: {
@@ -856,39 +908,73 @@ async function main() {
         oldStatus: from,
         newStatus: to,
         remarks,
-        createdAt: daysAgo(ageDays),
+        createdAt: at,
       },
     });
     auditCount++;
   };
 
+  // Every scenario below carries details that SATISFY the policy engine.
+  // Three of them did not: two Client Entertainment claims with no
+  // businessJustification or clientCompany, and a Training claim whose key was
+  // `justification` rather than the `businessJustification` the rule reads. The
+  // seed writes straight to the database, so the engine never saw them — and
+  // the app, which re-runs the rules in the browser, stamped a red "Blocked"
+  // on live pending claims. A blocked claim cannot exist: createClaim refuses
+  // one with a 422 before anything is written.
+
   // 1 — straight through: submitted, recommended, endorsed, paid.
   const settled = await scenarioClaim({
     merchant: 'Grab', category: 'Transport', amount: 18.5, gst: 1.53,
     ageDays: 12, status: ClaimStatus.Paid,
+    details: {
+      fromLocation: 'Office (Toa Payoh)',
+      toLocation: 'Client (Marina Bay)',
+      tripPurpose: 'Client meeting',
+      travelWindow: 'Morning (06-12)',
+    },
   });
-  await log(settled.id, 'POLICY_RECOMMENDED_APPROVAL', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'auto-approve-transport', 12);
-  await log(settled.id, 'MANAGER_APPROVAL', demoManager.id, ClaimStatus.Pending, ClaimStatus.Endorsed, 'Within the transport allowance.', 11);
-  await log(settled.id, 'FINANCE_REIMBURSEMENT', demoFinance.id, ClaimStatus.Endorsed, ClaimStatus.Paid, 'Paid by PayNow.', 9);
+  const settledEndorsed = after(settled.submittedAt, 1, 2);
+  const settledPaid = after(settledEndorsed, 2, 3);
+  await log(settled.claim.id, 'POLICY_RECOMMENDED_APPROVAL', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'auto-approve-transport', settled.submittedAt);
+  await log(settled.claim.id, 'MANAGER_APPROVAL', demoManager.id, ClaimStatus.Pending, ClaimStatus.Endorsed, 'Within the transport allowance.', settledEndorsed);
+  await log(settled.claim.id, 'FINANCE_REIMBURSEMENT', demoFinance.id, ClaimStatus.Endorsed, ClaimStatus.Paid, 'Paid by PayNow.', settledPaid);
 
-  // 2 — sent back, and still waiting on the submitter.
+  // 2 — sent back, and still waiting on the submitter. The receipt prints
+  //     S$168.00; S$268.00 was typed. That gap is the claim the product makes.
   const awaitingFix = await scenarioClaim({
     merchant: 'Jumbo Seafood', category: 'Client Entertainment', amount: 268.0, gst: 22.13,
+    receipt: { total: 168.0, gst: 13.86 },
     ageDays: 3, status: ClaimStatus.Pending,
     details: {
       occasion: 'Client dinner',
       attendees: '4',
-      correctionRequest: {
-        fields: ['amount'],
-        note: 'The receipt total reads S$168.00, not S$268.00.',
-        requestedAt: daysAgo(2).toISOString(),
-        requestedBy: demoManager.name,
-        requestedById: demoManager.id,
-      },
+      clientCompany: 'Acme Pte Ltd',
+      clientContacts: 'Jane Lim, Marcus Wee',
+      internalCount: 2,
+      externalCount: 2,
+      businessJustification:
+        'Contract renewal discussion ahead of the FY26 renewal date.',
     },
   });
-  await log(awaitingFix.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'route-large-amount', 3);
-  await log(awaitingFix.id, 'CHANGES_REQUESTED', demoManager.id, ClaimStatus.Pending, ClaimStatus.Pending, 'Amount does not match the receipt.', 2);
+  const fixAskedAt = after(awaitingFix.submittedAt, 1, 1);
+  await log(awaitingFix.claim.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'default', awaitingFix.submittedAt);
+  await log(awaitingFix.claim.id, 'CHANGES_REQUESTED', demoManager.id, ClaimStatus.Pending, ClaimStatus.Pending, 'Amount does not match the receipt.', fixAskedAt);
+  await db.claim.update({
+    where: { id: awaitingFix.claim.id },
+    data: {
+      details: {
+        ...(awaitingFix.claim.details as any),
+        correctionRequest: {
+          fields: ['amount'],
+          note: 'The receipt total reads S$168.00, not S$268.00.',
+          requestedAt: fixAskedAt.toISOString(),
+          requestedBy: demoManager.name,
+          requestedById: demoManager.id,
+        },
+      } as any,
+    },
+  });
 
   // 3 — the same loop, completed: sent back, fixed, resubmitted, endorsed.
   const corrected = await scenarioClaim({
@@ -896,19 +982,34 @@ async function main() {
     ageDays: 20, status: ClaimStatus.Endorsed,
     details: { itemSummary: 'Printer paper, filing boxes' },
   });
-  await log(corrected.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'default', 20);
-  await log(corrected.id, 'CHANGES_REQUESTED', demoManager.id, ClaimStatus.Pending, ClaimStatus.Pending, 'GST looked wrong against the total.', 18);
-  await log(corrected.id, 'CORRECTION_SUBMITTED', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'GST corrected to S$3.85.', 17);
-  await log(corrected.id, 'MANAGER_APPROVAL', demoManager.id, ClaimStatus.Pending, ClaimStatus.Endorsed, 'Corrected and checked.', 16);
+  const correctedAsked = after(corrected.submittedAt, 1, 2);
+  const correctedFixed = after(correctedAsked, 1, 1);
+  const correctedEndorsed = after(correctedFixed, 1, 1);
+  await log(corrected.claim.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'default', corrected.submittedAt);
+  await log(corrected.claim.id, 'CHANGES_REQUESTED', demoManager.id, ClaimStatus.Pending, ClaimStatus.Pending, 'GST looked wrong against the total.', correctedAsked);
+  await log(corrected.claim.id, 'CORRECTION_SUBMITTED', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'Corrected: GST', correctedFixed);
+  await log(corrected.claim.id, 'MANAGER_APPROVAL', demoManager.id, ClaimStatus.Pending, ClaimStatus.Endorsed, 'Corrected and checked.', correctedEndorsed);
 
-  // 4 — refused, with the reason on the record.
+  // 4 — refused, with the reason on the record. The claim is complete: it names
+  //     a client and gives a justification, so the rules let it through. The
+  //     refusal is a judgement about what the evening actually was, which is
+  //     exactly the call the engine is not allowed to make.
   const refused = await scenarioClaim({
     merchant: 'Tipsy Collective', category: 'Client Entertainment', amount: 412.0, gst: 34.02,
     ageDays: 25, status: ClaimStatus.Rejected,
-    details: { occasion: 'Team celebration', attendees: '9' },
+    details: {
+      occasion: 'Client drinks',
+      attendees: '9',
+      clientCompany: 'Globex Asia',
+      clientContacts: 'Denise Aw',
+      internalCount: 8,
+      externalCount: 1,
+      businessJustification: 'End of quarter drinks with the Globex account team.',
+    },
   });
-  await log(refused.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'block-entertainment-missing-client', 25);
-  await log(refused.id, 'MANAGER_REJECTION', demoManager.id, ClaimStatus.Pending, ClaimStatus.Rejected, 'No client named — this reads as a staff event, which is not claimable.', 24);
+  const refusedAt = after(refused.submittedAt, 1, 2);
+  await log(refused.claim.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'default', refused.submittedAt);
+  await log(refused.claim.id, 'MANAGER_REJECTION', demoManager.id, ClaimStatus.Pending, ClaimStatus.Rejected, 'Eight of the nine attendees were our own staff — this is a team night out, not client entertainment.', refusedAt);
 
   // 5 — withdrawn by the submitter before anyone acted.
   const pulled = await scenarioClaim({
@@ -916,33 +1017,41 @@ async function main() {
     ageDays: 30, status: ClaimStatus.Pending, withdrawn: true,
     details: { itemSummary: 'Desk organisers' },
   });
-  await log(pulled.id, 'WITHDRAWN_BY_SUBMITTER', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'Bought personally in the end.', 29);
+  await log(pulled.claim.id, 'WITHDRAWN_BY_SUBMITTER', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'Bought personally in the end.', after(pulled.submittedAt, 0, 1));
 
   // 6 — above S$1,000, where IRAS wants a full tax invoice and this product
   //     does not yet capture the supplier GST number or the invoice serial.
+  //     A local supplier, deliberately: international air travel is zero-rated
+  //     in Singapore, so the previous Singapore Airlines ticket carried 9% GST
+  //     it could never have been charged.
   const largeAmount = await scenarioClaim({
-    merchant: 'Singapore Airlines', category: 'Travel', amount: 1480.0, gst: 122.2,
+    merchant: 'Challenger', category: 'Office Supplies', amount: 1480.0, gst: 122.2,
     ageDays: 6, status: ClaimStatus.Pending,
-    details: { mode: 'Flight', destination: 'Jakarta', purpose: 'Client onboarding' },
+    details: { itemSummary: 'Two 27-inch monitors and a docking station for the new hire' },
   });
-  await log(largeAmount.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'route-large-amount', 6);
+  await log(largeAmount.claim.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'route-large-amount', largeAmount.submittedAt);
 
   // 7 — the scan failed, so every field was typed by hand.
   const typed = await scenarioClaim({
     merchant: 'Kopitiam', category: 'Meal', amount: 8.4, gst: null,
     ageDays: 4, status: ClaimStatus.Pending, ocrSource: 'unavailable',
-    details: { attendeeNotes: 'Working lunch, alone' },
+    details: { occasion: 'Solo working meal', attendees: 1, attendeeNotes: 'Working lunch, alone' },
   });
-  await log(typed.id, 'RECOMMENDATION_WITHHELD_OCR_UNAVAILABLE', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'The receipt could not be read; fields entered by hand.', 4);
+  await log(typed.claim.id, 'RECOMMENDATION_WITHHELD_OCR_UNAVAILABLE', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'auto-approve-small-meal (recommendation withheld: OCR did not read the receipt)', typed.submittedAt);
 
   // 8 — near the end of the 90-day window, which is the last week it can be
   //     claimed at all.
   const nearlyStale = await scenarioClaim({
     merchant: 'SMU Academy', category: 'Training', amount: 385.27, gst: 31.81,
     ageDays: 86, status: ClaimStatus.Pending,
-    details: { provider: 'SMU Academy', justification: 'Data protection certification' },
+    details: {
+      courseName: 'Singapore SME Tax Workshop',
+      provider: 'SMU Academy',
+      businessJustification:
+        'Data protection and GST filing refresher required for the finance handover.',
+    },
   });
-  await log(nearlyStale.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'default', 86);
+  await log(nearlyStale.claim.id, 'ROUTED_TO_HUMAN', demoEmployee.id, ClaimStatus.Pending, ClaimStatus.Pending, 'default', nearlyStale.submittedAt);
 
   console.log(`  created ${scenarioCount} scenario claims on the demo employee`);
 
@@ -959,7 +1068,7 @@ async function main() {
   console.log('  Finance:   demo.finance@claimflow.com    (Priya Kumar)');
   console.log('');
   console.log(
-    `Plus ${users.length - 3} other named employees across ${DEPARTMENTS.length} departments. Avatars served by pravatar.cc.`,
+    `Plus ${users.length - 3} other named employees across ${DEPARTMENTS.length} departments.`,
   );
 }
 

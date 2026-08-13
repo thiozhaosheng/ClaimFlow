@@ -479,6 +479,13 @@ export const editClaim = async (req: Request, res: Response) => {
     const updated = await claimModel.updateClaim(claimId, updates);
 
     if (pendingCorrection) {
+      // The request has been answered, so the submitter's "Fix Amount on your
+      // office supplies claim" notification is no longer true — it sat at the
+      // top of their bell under ACTION NEEDED after they had already fixed it
+      // and sent it back. Retire first, then raise the approver's new one
+      // below, so the fresh notification is not swept up with the stale ones.
+      await notifModel.retireForClaim(claimId);
+
       const askedFor: string[] = Array.isArray(pendingCorrection.fields)
         ? pendingCorrection.fields
         : [];
