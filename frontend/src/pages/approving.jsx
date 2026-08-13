@@ -64,6 +64,26 @@ export default function Approving() {
   const [reviewClaim, setReviewClaim] = useState(null);
   const [reviewAction, setReviewAction] = useState(null);
 
+  // Opening a claim from the queue lands on its record, and the record is the
+  // one place an approver could read everything and do nothing about it. Its
+  // Review button sends them back here with ?review=CLM-…, which opens the
+  // same gated flow the row's button opens. The parameter is cleared straight
+  // away so a refresh does not reopen it.
+  const reviewParam = searchParams.get("review");
+  useEffect(() => {
+    if (!reviewParam) return;
+    // Wait for the claims to arrive. Clearing the parameter on the first render
+    // — before the fetch resolves and latestMap is still empty — threw the
+    // request away and landed the approver on the plain queue.
+    const target = latestMap[reviewParam];
+    if (!target) return;
+    setReviewClaim(target);
+    setReviewAction(null);
+    const params = new URLSearchParams(searchParams);
+    params.delete("review");
+    setSearchParams(params, { replace: true });
+  }, [reviewParam, latestMap]);
+
   const handleReviewConfirm = async (actionType, reason, fields = []) => {
     if (!reviewClaim) return;
     try {
@@ -83,14 +103,14 @@ export default function Approving() {
           message: `${reviewClaim.id} went back to ${reviewClaim.employee} for ${describeCorrectionFields(fields)}.`,
         });
       } else if (actionType === "reject") {
-        await updateClaimStatus(reviewClaim.id, "Rejected", "Lisa Wang", reason);
+        await updateClaimStatus(reviewClaim.id, "Rejected", reason);
         addToast({
           variant: "error",
           title: "Claim rejected",
           message: `${reviewClaim.id} returned to ${reviewClaim.employee}.`,
         });
       } else if (actionType === "endorse") {
-        await updateClaimStatus(reviewClaim.id, "Endorsed", "Lisa Wang", reason);
+        await updateClaimStatus(reviewClaim.id, "Endorsed", reason);
         addToast({
           variant: "success",
           title: "Claim endorsed",

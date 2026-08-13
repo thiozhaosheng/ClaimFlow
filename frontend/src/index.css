@@ -2646,34 +2646,6 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   gap: 1.1rem;
 }
 
-.claim-detail-receipt {
-  border-radius: var(--radius-md);
-  background-color: var(--bg-subtle);
-  border: 1px solid var(--border-subtle);
-  height: 150px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.claim-detail-receipt-thumb {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--text-tertiary);
-}
-
-.claim-detail-receipt-thumb i { font-size: 1.5rem; }
-.claim-detail-receipt-thumb span {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-.claim-detail-receipt-thumb small {
-  font-size: 0.72rem;
-  color: var(--text-tertiary);
-}
 
 .claim-detail-meta {
   display: grid;
@@ -3565,7 +3537,8 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 .claim-receipt-view a span {
   display: block;
   padding: 0.4rem 0.6rem;
-  font-size: 0.72rem;
+  /* 0.75rem, not 0.72: nothing inside main may compute under 12px. */
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   border-top: 1px solid var(--border-subtle);
 }
@@ -3675,35 +3648,42 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
 .req-summary-blocked { background: var(--danger-bg); color: var(--danger-text); }
 .req-summary-review { background: var(--accent-subtle); color: var(--accent); }
 
+/* One line per check, on shared axes. This was four rows of a 24px tinted
+   circle beside a title with a subtitle under it — the icon/title/subtitle
+   row, three elements deep, and every satisfied check wearing a green disc.
+   A column of green says nothing; it only makes the one row that needs
+   attention harder to find. Ticks are plain ink now and the tint is kept for
+   the states that are actually a verdict. */
 .req-list { list-style: none; display: flex; flex-direction: column; }
 .req-row {
   display: flex;
-  align-items: flex-start;
-  gap: 0.65rem;
-  padding: 0.7rem 0;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.55rem;
+  padding: 0.5rem 0.85rem;
   border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.8125rem;
 }
 .req-row:last-child { border-bottom: none; }
 
 .req-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
-  margin-top: 1px;
+  color: var(--text-tertiary);
+  transform: translateY(2px);
 }
-.req-done .req-icon { background: var(--success-bg); color: var(--success-text); }
-.req-warn .req-icon { background: var(--warning-bg); color: var(--warning-text); }
-.req-block .req-icon { background: var(--danger-bg); color: var(--danger-text); }
-.req-info .req-icon { background: var(--accent-subtle); color: var(--accent); }
-.req-muted .req-icon { background: var(--bg-subtle); color: var(--text-tertiary); }
+.req-warn .req-icon { color: var(--warning-text); }
+.req-block .req-icon { color: var(--danger-text); }
 
-.req-body { flex: 1; min-width: 0; }
-.req-label { font-size: 0.86rem; font-weight: 500; color: var(--text-primary); }
-.req-detail { font-size: 0.76rem; color: var(--text-tertiary); margin-top: 1px; }
+.req-label {
+  font-weight: 500;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+.req-detail {
+  color: var(--text-tertiary);
+  min-width: 0;
+}
 
 .req-upload {
   display: inline-flex;
@@ -3995,3 +3975,183 @@ main.container-fluid { padding: 1.75rem 1.75rem !important; }
   max-width: 34rem;
 }
 .notfound-page .btn-primary { margin-top: 0.5rem; }
+
+/* ===== claim record =====================================================
+   A claim opened on its own is a document an SME back office files, checks
+   and settles. It used to read as a summary you could only look at: the
+   figure once, GST buried in a list of facts, the history as coloured dots,
+   the checks as a column of green discs, and nothing to do with any of it.
+   The parts below are the record — identity, the sum, the evidence, the
+   trail — using the same ledger furniture as the rest of the workspace. */
+
+.claim-detail-ident { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+.claim-detail-ref {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.claim-correction-bar {
+  margin-bottom: 0.85rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--warning);
+  border-left-width: 3px;
+  border-radius: var(--radius-control);
+  background-color: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 0.8125rem;
+}
+.claim-correction-bar strong { font-weight: 600; }
+
+/* The record beside its evidence, then the trail underneath — which is how
+   an expense tool lays a claim out, because the two things a person compares
+   are the typed figures and the receipt they came off.
+   Stacking it as two tall columns instead left the right one ending 232px
+   above the left, and a column that stops early reads unfinished. */
+.claim-detail-grid {
+  display: grid;
+  /* The facts take the width — they are label/value rows and read better
+     wide. The receipt is a portrait photograph, so it takes the narrow
+     column and fills it. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 21rem);
+  /* The receipt is the tall object, so the two short panels stack against it
+     rather than leaving 190px of nothing beside it. */
+  grid-template-areas:
+    "record receipt"
+    "checks receipt"
+    "progress progress"
+    "history history";
+  gap: 0.85rem;
+  align-items: start;
+}
+.claim-detail-record { grid-area: record; }
+.claim-detail-receipt { grid-area: receipt; }
+.claim-detail-progress { grid-area: progress; }
+.claim-detail-history { grid-area: history; }
+.claim-detail-checks { grid-area: checks; }
+
+/* The receipt is the tall object; the history sits under it and can grow. */
+.claim-detail-receipt .claim-receipt-view img { max-height: 340px; }
+.claim-detail-history .data-panel-scroll { max-height: 15rem; }
+
+@media (max-width: 1100px) {
+  .claim-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "record" "receipt" "checks" "progress" "history";
+  }
+}
+
+/* Two pairs per row, not one stretched across the panel. A single label/value
+   pair on a 620px row leaves ~430px of nothing between the word and its
+   answer — the same middle gap the workspaces were fixed for. Pairing them up
+   halves the distance and doubles what the panel says. */
+.record-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.5rem;
+}
+@media (max-width: 700px) {
+  .record-grid { grid-template-columns: minmax(0, 1fr); }
+}
+.record-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0.85rem;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.8125rem;
+}
+.record-row:last-child { border-bottom: none; }
+.record-row dt { color: var(--text-tertiary); flex-shrink: 0; }
+.record-row dd {
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: right;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The sum, set as a sum. */
+.amount-ledger {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid var(--border-default);
+  font-variant-numeric: tabular-nums;
+}
+.amount-ledger th,
+.amount-ledger td {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-align: left;
+}
+.amount-ledger td.num { text-align: right; color: var(--text-primary); }
+.amount-ledger-total th,
+.amount-ledger-total td {
+  border-top: 1px solid var(--border-default);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+}
+.amount-ledger-note {
+  padding: 0 0.85rem 0.7rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.claim-stage-wrap { padding: 0.95rem 0.85rem; }
+.claim-empty-line {
+  padding: 0.85rem;
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+}
+
+.data-panel-count { font-size: 0.75rem; color: var(--text-tertiary); }
+
+/* History: timestamps stacked so the column stays narrow, the actor's role
+   under their name, the note allowed to wrap. */
+.claim-history-when { white-space: nowrap; color: var(--text-secondary); }
+.claim-history-when span {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+.claim-history-role {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+.claim-history-note { color: var(--text-secondary); }
+
+/* The verdict as one line of prose. It was a bordered banner with a 4px icon
+   tile — a second panel inside a panel, for one sentence. */
+.claim-policy-line {
+  padding: 0.7rem 0.85rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+.claim-policy-line strong { color: var(--text-primary); font-weight: 600; }
+.claim-policy-block strong { color: var(--danger-text); }
+.claim-policy-route-to-human strong { color: var(--warning-text); }
+.claim-policy-auto-approve strong { color: var(--success-text); }
+
+/* Receipt inside its panel. */
+.data-panel > .claim-receipt-view { margin: 0; padding: 0.85rem; }
+.data-panel > .claim-receipt-missing { margin: 0.85rem; }
+
+/* The record has five panels stacked in three bands, so the page runs 30px
+   past the fold on the 1440x900 the rest of the app is held to. The overflow
+   is padding, not content — trimmed here only, so the queue and the finance
+   ledger keep their own rhythm. */
+.claim-detail .claim-detail-grid { gap: 0.7rem; }
+.claim-detail .data-panel-head { padding: 0.6rem 0.85rem; }
+.claim-detail .claim-stage-wrap { padding: 0.75rem 0.85rem; }
+.claim-detail .req-row { padding: 0.45rem 0.85rem; }
+.claim-detail .record-row { padding: 0.4rem 0.85rem; }

@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { formatSGD, formatSGDate } from "../utils/helpers.js";
+import { useReceipt } from "../hooks/usereceipt.js";
 import {
   evaluatePolicies,
   claimContextFromForm,
@@ -103,6 +104,12 @@ const HINT_TONE_CLASSES = {
 };
 
 export default function ClaimDetailModal({ open, claim, history = [], onClose }) {
+  const {
+    src: receiptSrc,
+    broken: receiptBroken,
+    markBroken: markReceiptBroken,
+  } = useReceipt(claim, open);
+
   useEffect(() => {
     if (!open) return;
     const handleKey = (e) => {
@@ -222,23 +229,26 @@ export default function ClaimDetailModal({ open, claim, history = [], onClose })
             </div>
           )}
 
-          <div className="claim-detail-receipt">
-            <div className="claim-detail-receipt-thumb">
-              <ScanLine className="h-6 w-6" />
-              <span>
-                {claim.receiptUrl ? "Receipt attached" : "No receipt"}
-              </span>
-              <small>
-                {claim.receiptUrl
-                  ? claim.ocrSource === "azure"
-                    ? "Azure OCR · structured fields"
-                    : claim.ocrSource === "unavailable"
-                    ? "Stored, OCR unavailable"
-                    : "Click to view full image"
-                  : "Manual entry"}
-              </small>
+          {/* The receipt, not an icon captioned "Click to view full image"
+              beside nothing clickable. */}
+          {claim.receiptUrl && receiptSrc && !receiptBroken ? (
+            <div className="claim-receipt-view">
+              <a href={receiptSrc} target="_blank" rel="noreferrer">
+                <img
+                  src={receiptSrc}
+                  alt={`Receipt for ${claim.id}`}
+                  onError={markReceiptBroken}
+                />
+                <span>Open full size</span>
+              </a>
             </div>
-          </div>
+          ) : (
+            <p className="claim-receipt-missing">
+              {claim.receiptUrl
+                ? "Receipt stored, preview unavailable."
+                : "No receipt attached — the fields were entered by hand."}
+            </p>
+          )}
 
           <div className="claim-detail-meta">
             <div className="claim-detail-meta-item">

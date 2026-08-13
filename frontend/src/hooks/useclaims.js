@@ -153,7 +153,10 @@ export function useClaims() {
   );
 
   const updateClaimStatus = useCallback(
-    async (claimId, newStatus, _actorName, reason = null) => {
+    // No actor argument: the API records whoever the token belongs to. Callers
+    // used to pass the string "Lisa Wang" here, a person who exists nowhere in
+    // this system, and it was silently discarded.
+    async (claimId, newStatus, reason = null) => {
       const claim = claims.find((c) => c.id === claimId);
       if (!claim) return;
       const action = newStatus === "Endorsed" ? "approve" : "reject";
