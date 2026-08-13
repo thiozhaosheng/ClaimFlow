@@ -25,7 +25,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 2rem;
-  padding: 1.25rem 1.5rem 1.1rem;
+  padding: 1rem 1.5rem 0.9rem;
   border-bottom: 1px solid var(--border-default);
 }
 
@@ -72,7 +72,10 @@
 
 /* --- sections: ruled, not boxed --------------------------------------- */
 .claim-section {
-  padding: 1.1rem 1.5rem;
+  /* Five sections at 1.1rem top and bottom spent 176px on air and put the
+     compliance line under the fold. Tighter is also denser, which is the
+     direction a finance record wants anyway. */
+  padding: 0.8rem 1.5rem;
   border-bottom: 1px solid var(--border-subtle);
 }
 .claim-section:last-child { border-bottom: none; }
@@ -85,40 +88,92 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-tertiary);
-  margin-bottom: 0.7rem;
+  margin-bottom: 0.5rem;
 }
 
-/* Expense facts beside the receipt they came off. */
+/* The record on the left, the receipt pinned beside it. Stacking the image
+   above the record made it either unreadably small or pushed the page 177px
+   past the fold; alongside, its height is absorbed by the sections it sits
+   next to and it can be a size someone can read. */
+.claim-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  align-items: stretch;
+}
+.claim-record-col { min-width: 0; }
+.claim-record-col .claim-section:last-child { border-bottom: none; }
+
+.claim-exhibit {
+  padding: 0.8rem 1.5rem;
+  border-left: 1px solid var(--border-subtle);
+  background-color: var(--bg-subtle);
+}
+
+@media (max-width: 1000px) {
+  .claim-body { grid-template-columns: minmax(0, 1fr); }
+  .claim-exhibit { border-left: none; border-top: 1px solid var(--border-subtle); }
+}
+
 .claim-expense {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 15rem;
+  grid-template-columns: 19rem minmax(0, 1fr);
   gap: 2rem;
   align-items: start;
 }
+/* The sum has no top rule of its own here: the section it opens is already
+   ruled off above it. */
+.claim-expense .claim-sum { margin-top: 0; padding-top: 0; border-top: none; }
+
 @media (max-width: 900px) {
   .claim-expense { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Filing facts read as the exhibit's label. */
+.claim-filing { display: flex; flex-direction: column; margin-top: 0.85rem; }
+/* Narrow column: a value that does not fit wraps. "Read off this image" was
+   being clipped to "Read off this im…", which tells the reader nothing. */
+.claim-filing .claim-fact { grid-template-columns: 7.5rem minmax(0, 1fr); }
+.claim-filing .claim-fact dd { white-space: normal; overflow: visible; }
+.claim-filing .claim-fact:last-child { border-bottom: none; }
+.claim-fact-ref {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.claim-plate-open {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.claim-plate-open:hover { color: var(--accent); }
 
 .claim-facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: 2rem;
 }
+/* Label then value, on a fixed axis — not label-left/value-right.
+   Pushing values to the right edge of each half gave them a ragged left edge,
+   so finding "Merchant" meant reading every line. With the label column fixed,
+   every value in a column starts at the same x and the eye drops straight down
+   it. Money is the exception and stays right-aligned in the sum below, because
+   there the point is comparing magnitudes. */
 .claim-fact {
-  display: flex;
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
   align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.3rem 0;
+  gap: 0.75rem;
+  padding: 0.28rem 0;
   font-size: 0.8125rem;
   border-bottom: 1px solid var(--border-subtle);
 }
-.claim-fact:nth-last-child(-n + 2) { border-bottom: none; }
+.claim-facts .claim-fact:nth-last-child(-n + 2) { border-bottom: none; }
 .claim-fact dt { color: var(--text-tertiary); flex-shrink: 0; }
 .claim-fact dd {
   color: var(--text-primary);
   font-weight: 500;
-  text-align: right;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -154,15 +209,16 @@
 .claim-plate { margin: 0; }
 .claim-plate a {
   display: block;
+  padding: 0.5rem;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-control);
-  overflow: hidden;
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-card);
 }
 .claim-plate img {
   display: block;
   width: 100%;
-  max-height: 11rem;
+  height: auto;
+  max-height: 19rem;
   object-fit: contain;
   background-color: var(--bg-card);
 }
@@ -251,3 +307,55 @@
   font-size: 0.8125rem;
 }
 .claim-correction-bar strong { font-weight: 600; }
+
+/* Sections a finance clerk reads down, not across. */
+.claim-facts-single { grid-template-columns: minmax(0, 1fr); }
+.claim-fact-wide { grid-column: 1 / -1; }
+.claim-fact-wide dd { white-space: normal; text-align: left; }
+.claim-fact-muted { color: var(--text-tertiary) !important; font-weight: 400 !important; }
+.claim-fact-warn { color: var(--warning-text) !important; }
+
+.claim-amounts {
+  display: grid;
+  grid-template-columns: 19rem minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+.claim-amounts .claim-sum { margin-top: 0; padding-top: 0; border-top: none; }
+@media (max-width: 900px) {
+  .claim-amounts { grid-template-columns: minmax(0, 1fr); }
+}
+
+
+/* Stepping through claims without going back to the list. The keys are the
+   point — the control exists so the keys are discoverable, and it doubles as
+   the position marker so you know where you are in the set. */
+.claim-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin-left: 0.75rem;
+  padding: 0.15rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+}
+.claim-pager button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-chip);
+  color: var(--text-secondary);
+}
+.claim-pager button:hover:not(:disabled) {
+  background-color: var(--bg-subtle);
+  color: var(--text-primary);
+}
+.claim-pager button:disabled { opacity: 0.35; cursor: not-allowed; }
+.claim-pager span {
+  padding: 0 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}

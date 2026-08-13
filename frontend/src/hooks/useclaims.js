@@ -25,7 +25,10 @@ function adaptClaim(claim) {
     date: expenseDate,
     time,
     type: claim.category,
-    department: user.department || "Sales",
+    // Not "Sales": an unset department was being shown as a real one, which
+    // puts a claim in a department it may not belong to on every screen that
+    // groups or filters by it.
+    department: user.department || null,
     amount: Number(claim.amount),
     status: claim.status,
     actor: user.name || "Unknown",
@@ -35,6 +38,12 @@ function adaptClaim(claim) {
     ocrSource: claim.ocrSource || null,
     gstAmount: claim.gstAmount != null ? Number(claim.gstAmount) : null,
     merchant: claim.merchant || null,
+    description: claim.description || null,
+    // The two fields IRAS wants on a tax invoice above S$1,000. They are
+    // columns on the claim and the policy engine speaks about them, but
+    // nothing has ever carried them to the screen where finance checks them.
+    supplierGstRegNumber: claim.supplierGstRegNumber || null,
+    taxInvoiceNumber: claim.taxInvoiceNumber || null,
     details: claim.details || null,
     createdAt: claim.createdAt || null,
     updatedAt: claim.updatedAt || null,
@@ -60,7 +69,13 @@ function adaptAuditLog(log) {
     id: `CLM-${String(log.claimId).padStart(3, "0")}`,
     rawId: log.claimId,
     employee: submitter.name || "Unknown",
-    date: createdAt.toISOString().slice(0, 10),
+    // Local date, not the UTC one. These two lines used to disagree: the date
+    // came off toISOString() and the time off the local clock, so an approval
+    // at 06:28 on the 13th in Singapore was filed as "2026-08-12 06:28 AM" —
+    // a date and a time from different days, on the audit trail, which is the
+    // one place a timestamp has to be right. Everything after 08:00 SGT was
+    // stamped with the previous day.
+    date: createdAt.toLocaleDateString("en-CA"),
     time: createdAt.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",

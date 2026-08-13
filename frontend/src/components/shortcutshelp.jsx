@@ -12,6 +12,13 @@ const GROUPS = [
     ],
   },
   {
+    title: "On a claim",
+    items: [
+      { keys: ["←"], label: "Previous claim" },
+      { keys: ["→"], label: "Next claim" },
+    ],
+  },
+  {
     title: "Jump to (press G, then…)",
     items: [
       { keys: ["G", "C"], label: "Compliance" },
