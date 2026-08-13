@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authcontext.jsx";
 import { useToast } from "../context/toastcontext.jsx";
 import SortHeader from "../components/sortheader.jsx";
+import TablePager from "../components/tablepager.jsx";
+import RangeFilters, { EMPTY_RANGE, withinRange } from "../components/rangefilters.jsx";
 import { useSort } from "../hooks/usesort.js";
+import { usePaging } from "../hooks/usepaging.js";
 import { useClaims } from "../hooks/useclaims.js";
 import { useShortcuts } from "../hooks/useShortcuts.js";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
@@ -46,7 +49,10 @@ export default function Finance() {
     setFinanceTab(tabKey);
   };
 
+  const [auditRange, setAuditRange] = useState(EMPTY_RANGE);
+
   const filteredLogs = claimsDb.filter((log) => {
+    if (!withinRange(auditRange, { date: log.date, amount: log.amount })) return false;
     if (auditFilter !== "All") {
       if (auditFilter === "Submitted" && log.action !== "Claim submitted")
         return false;
@@ -79,12 +85,22 @@ export default function Finance() {
     [],
   );
   const auditSort = useSort(filteredLogs, AUDIT_COLUMNS, "when");
+  const auditPaging = usePaging(auditSort.rows, 25);
 
   const uniqueClaimIds = new Set(claimsDb.map((c) => c.id));
 
   const exportCsv = () => {
+    // The date and amount ranges count as filters too. Without them here, a
+    // finance admin who narrowed the log to "over S$1,000 in July" and hit
+    // Export would have been handed all 341 rows, named "full", with nothing
+    // on screen to say the export ignored what they had set.
     const hasActiveFilter =
-      auditFilter !== "All" || searchAudit.trim().length > 0;
+      auditFilter !== "All" ||
+      searchAudit.trim().length > 0 ||
+      auditRange.from !== "" ||
+      auditRange.to !== "" ||
+      auditRange.min !== "" ||
+      auditRange.max !== "";
     const logsToExport = hasActiveFilter ? filteredLogs : claimsDb;
     const exported = exportAuditLogToCsv(logsToExport, {
       filenameSuffix: hasActiveFilter ? "filtered" : "full",
@@ -190,6 +206,7 @@ export default function Finance() {
                 </button>
               ))}
             </div>
+            <RangeFilters value={auditRange} onChange={setAuditRange} />
           </div>
           <div
             className="search-input-wrapper m-0 w-full sm:w-auto"
@@ -237,7 +254,7 @@ export default function Finance() {
                   </td>
                 </tr>
               ) : (
-                auditSort.rows.map((log, idx) => (
+                auditPaging.rows.map((log, idx) => (
                   <tr
                     key={`${log.id}-${idx}`}
                     role="button"
@@ -279,9 +296,16 @@ export default function Finance() {
           </div>
         </div>
 
+        {/* The range being viewed, how to move, and — when a filter is
+            narrowing things — what the log holds in total, so a filtered view
+            is never mistaken for the whole trail. */}
+        <TablePager paging={auditPaging} noun="entries" />
+
         <div className="fin-audit-foot">
           <span>
-            Showing {filteredLogs.length} of {claimsDb.length} total entries
+            {filteredLogs.length === claimsDb.length
+              ? `${claimsDb.length} entries in the log`
+              : `Filtered from ${claimsDb.length} entries in the log`}
           </span>
           <span>Total claims: {uniqueClaimIds.size}</span>
         </div>

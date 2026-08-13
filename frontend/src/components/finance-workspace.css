@@ -385,7 +385,10 @@
 /* Two classes deliberately: .data-panel-scroll ships `max-height: 100%`, which
    against an auto-height parent means "no limit". This has to out-specify it. */
 .finance-audit-scroll.data-panel-scroll {
-  max-height: calc(100vh - 470px);
+  /* 470 -> 530: the pager bar and the range filters both sit outside this
+     scroller, so the constant that keeps the workspace on one screen has to
+     account for them. Measured, not guessed — the tab ran 59px long. */
+  max-height: calc(100vh - 530px);
   min-height: 260px;
   overflow-y: auto;
 }
@@ -482,3 +485,87 @@
   .finance-ws .metric-strip > .metric-item-action { transition: none; }
   .finance-ws .spend-row-fill { transition: none; }
 }
+
+/* --- range filters + pager ------------------------------------------------
+   Both live on the toolbar and the foot of a ledger, in the ledger's own type.
+   They are controls a finance user reaches for constantly, so they are quiet:
+   no boxes around groups, no coloured chrome. */
+.range-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+}
+.range-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+.range-field .form-control {
+  width: auto;
+  font-size: 0.8125rem;
+  padding: 0.2rem 0.4rem;
+}
+.range-field .range-amount { width: 5.5rem; }
+.range-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius-chip);
+}
+.range-clear:hover { background-color: var(--bg-subtle); color: var(--text-primary); }
+
+.table-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--border-default);
+  border-top: none;
+  border-bottom-left-radius: var(--radius-panel);
+  border-bottom-right-radius: var(--radius-panel);
+  background-color: var(--bg-card);
+}
+.table-pager-count {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.table-pager-controls { display: flex; align-items: center; gap: 1rem; }
+.table-pager-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+.table-pager-steps {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.table-pager-steps button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-chip);
+  color: var(--text-secondary);
+}
+.table-pager-steps button:hover:not(:disabled) {
+  background-color: var(--bg-subtle);
+  color: var(--text-primary);
+}
+.table-pager-steps button:disabled { opacity: 0.35; cursor: not-allowed; }
