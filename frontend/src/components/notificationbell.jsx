@@ -96,6 +96,41 @@ const ACTIONABLE_KINDS = new Set([
   "correction-submitted",
 ]);
 
+// The kinds that ask an approver to act on an OPEN claim. The claim's current
+// status travels on every notification, so whether the ask still stands is a
+// fact, not a guess — a "New claim to review" row must not keep demanding a
+// review after the claim has been endorsed, paid or rejected. The backend
+// already marks these read when the claim is decided; this is the display-side
+// half of the same rule.
+const REVIEW_KINDS = new Set([
+  "route-to-human",
+  "ocr-unavailable",
+  "ocr-incomplete",
+  "recommended",
+  "correction-submitted",
+]);
+
+// Settled work is history: it moves out of "Action needed" and drops its
+// action line. A claim that is no longer Pending settles its review asks
+// outright; anything else actionable settles once every notification in the
+// stack has been read.
+function isSettled(entry) {
+  const n = entry.latest;
+  if (REVIEW_KINDS.has(n.kind) && n.claim && n.claim.status !== "Pending") {
+    return true;
+  }
+  return ACTIONABLE_KINDS.has(n.kind) && entry.unreadIds.length === 0;
+}
+
+// "Already handled — this claim has since been endorsed." Only said when the
+// status proves it; a read row on a still-open claim gets no line at all.
+function settledLine(n) {
+  const word = { Endorsed: "endorsed", Paid: "paid", Rejected: "rejected" }[
+    n.claim?.status
+  ];
+  return word ? `Already handled — this claim has since been ${word}.` : null;
+}
+
 // Pull "Merchant, Date" out of the backend hint so the action line can say
 // exactly which fields were hand-typed.
 function ocrMissingFields(hint) {
@@ -203,7 +238,7 @@ function stackItems(items) {
   const stacked = [...byClaim.values(), ...standalone];
   const grouped = { action: [], ready: [], fyi: [] };
   for (const entry of stacked) {
-    grouped[sectionOf(entry.latest.kind)].push(entry);
+    grouped[isSettled(entry) ? "fyi" : sectionOf(entry.latest.kind)].push(entry);
   }
   return grouped;
 }
@@ -230,12 +265,18 @@ export default function NotificationBell() {
     const Icon = ICON_BY_KIND[n.kind] || Bell;
     const tone = TONE_BY_KIND[n.kind] || "text-text-secondary bg-subtle";
     const isUnread = entry.unreadIds.length > 0;
-    const action = nextAction(n);
-    const isWarning = WARNING_KINDS.has(n.kind);
-    const isActionable = ACTIONABLE_KINDS.has(n.kind);
+    const settled = isSettled(entry);
+    // A settled row keeps its title and body as history, but must not keep
+    // telling the reader to review or fix something that is already done.
+    const action = settled ? settledLine(n) : nextAction(n);
+    const isWarning = !settled && WARNING_KINDS.has(n.kind);
+    const isActionable = !settled && ACTIONABLE_KINDS.has(n.kind);
     // The action line already carries the OCR hint's substance; only show
     // the raw hint when it adds detail (rule context for judgement calls).
-    const showHint = n.hint && (n.kind === "route-to-human" || n.kind === "recommended");
+    const showHint =
+      !settled &&
+      n.hint &&
+      (n.kind === "route-to-human" || n.kind === "recommended");
 
     return (
       <li key={n.id}>

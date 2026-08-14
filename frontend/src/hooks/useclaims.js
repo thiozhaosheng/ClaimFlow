@@ -108,6 +108,18 @@ function adaptAuditLog(log) {
   };
 }
 
+// Every mounted useClaims() is its own island of state — the workspace and
+// the rail each hold one. A submit refreshed the instance that submitted and
+// left the rail's counts standing ("All claims 12" beside a table saying 13)
+// until the next 25s poll. Mutations announce themselves here so every other
+// instance refetches at once; the mutating instance already awaits its own.
+const claimsListeners = new Set();
+function announceClaimsChanged(except) {
+  for (const listener of claimsListeners) {
+    if (listener !== except) listener();
+  }
+}
+
 export function useClaims() {
   const { session } = useAuth();
   const [claims, setClaims] = useState([]);
@@ -148,9 +160,11 @@ export function useClaims() {
       if (document.visibilityState === "visible") fetchClaimsForRole();
     };
     document.addEventListener("visibilitychange", onVisibility);
+    claimsListeners.add(fetchClaimsForRole);
     return () => {
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVisibility);
+      claimsListeners.delete(fetchClaimsForRole);
     };
   }, [fetchClaimsForRole, session]);
 
@@ -178,6 +192,7 @@ export function useClaims() {
         details: details || null,
       });
       await fetchClaimsForRole();
+      announceClaimsChanged(fetchClaimsForRole);
       return { claim: adaptClaim(created?.data?.claim), policy: created?.policy };
     },
     [fetchClaimsForRole],
@@ -196,6 +211,7 @@ export function useClaims() {
         remarks: reason || undefined,
       });
       await fetchClaimsForRole();
+      announceClaimsChanged(fetchClaimsForRole);
     },
     [claims, fetchClaimsForRole],
   );
@@ -211,6 +227,7 @@ export function useClaims() {
         }
       }
       await fetchClaimsForRole();
+      announceClaimsChanged(fetchClaimsForRole);
     },
     [claims, fetchClaimsForRole],
   );
@@ -236,6 +253,7 @@ export function useClaims() {
       }
       await api.patch(`/api/claims/${claim.rawId}`, payload);
       await fetchClaimsForRole();
+      announceClaimsChanged(fetchClaimsForRole);
     },
     [claims, fetchClaimsForRole],
   );
@@ -246,6 +264,7 @@ export function useClaims() {
       if (!claim) return;
       await api.patch(`/api/claims/${claim.rawId}/withdraw`, {});
       await fetchClaimsForRole();
+      announceClaimsChanged(fetchClaimsForRole);
     },
     [claims, fetchClaimsForRole],
   );
