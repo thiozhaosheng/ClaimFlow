@@ -4,7 +4,28 @@ import {
   evaluatePolicies,
   claimContextFromForm,
 } from "../lib/policy.js";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip.jsx";
 import { cn } from "../lib/utils.js";
+
+// Our tooltip, not the browser's. The native `title` renders at whatever
+// width and position the OS picks — a rule note was drawing itself as a wide
+// slab across the queue's search box. This one wraps inside a measured
+// column and steps out of the way of controls.
+function FlagTip({ text, children }) {
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent>{text}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 const ICON = {
   "auto-approve": ShieldCheck,
@@ -90,18 +111,19 @@ export default function PolicyFlag({
       ? "The scan could not read this receipt — every field was typed in by hand."
       : "The scan could not read every field — some were typed in by hand.";
     return (
-      <span
-        className={cn(
-          "inline-flex items-center gap-1 rounded-ds-chip border px-1.5 py-0.5 text-[12px] font-medium",
-          "text-warning-text bg-warning-bg border-warning/20",
-          className,
-        )}
-        title={`${why} Check them against the image.`}
-        aria-label={`${why} Check them against the image.`}
-      >
-        <ScanLine className="h-2.5 w-2.5" />
-        Check by hand
-      </span>
+      <FlagTip text={`${why} Check them against the image.`}>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-ds-chip border px-1.5 py-0.5 text-[12px] font-medium",
+            "text-warning-text bg-warning-bg border-warning/20",
+            className,
+          )}
+          aria-label={`${why} Check them against the image.`}
+        >
+          <ScanLine className="h-2.5 w-2.5" />
+          Check by hand
+        </span>
+      </FlagTip>
     );
   }
 
@@ -120,33 +142,35 @@ export default function PolicyFlag({
           ? "bg-warning"
           : "bg-destructive";
     return (
-      <span
-        className={cn(
-          "inline-flex h-1.5 w-1.5 rounded-full",
-          dotColor,
-          className,
-        )}
-        title={tooltip}
-        aria-label={tooltip}
-      />
+      <FlagTip text={tooltip}>
+        <span
+          className={cn(
+            "inline-flex h-1.5 w-1.5 rounded-full",
+            dotColor,
+            className,
+          )}
+          aria-label={tooltip}
+        />
+      </FlagTip>
     );
   }
 
   return (
-    <span
-      className={cn(
-        // Squared and at 12px: it was a fully rounded capsule set in 10px
-        // text, which is both the generated-UI shape and under the floor
-        // nothing inside the workspace is allowed to go below.
-        "inline-flex items-center gap-1 rounded-ds-chip border px-1.5 py-0.5 text-[12px] font-medium",
-        TONE[policy.outcome],
-        className,
-      )}
-      title={tooltip}
-      aria-label={tooltip}
-    >
-      <Icon className="h-2.5 w-2.5" />
-      {SHORT_LABEL[policy.outcome]}
-    </span>
+    <FlagTip text={tooltip}>
+      <span
+        className={cn(
+          // Squared and at 12px: it was a fully rounded capsule set in 10px
+          // text, which is both the generated-UI shape and under the floor
+          // nothing inside the workspace is allowed to go below.
+          "inline-flex items-center gap-1 rounded-ds-chip border px-1.5 py-0.5 text-[12px] font-medium",
+          TONE[policy.outcome],
+          className,
+        )}
+        aria-label={tooltip}
+      >
+        <Icon className="h-2.5 w-2.5" />
+        {SHORT_LABEL[policy.outcome]}
+      </span>
+    </FlagTip>
   );
 }
