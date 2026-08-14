@@ -2,10 +2,13 @@ import { render, screen } from "@testing-library/react";
 import { OcrSourceBadge, OcrFieldTag, OcrProgress } from "./ocrfeedback.jsx";
 
 describe("OcrSourceBadge", () => {
-  it("names Azure and shows a live indicator for a live read", () => {
+  it("says the receipt was read live, in plain words, with a live indicator", () => {
     const { container } = render(<OcrSourceBadge source="azure" />);
-    // Appears in both the headline and the engine chip.
-    expect(screen.getAllByText(/Azure Document Intelligence/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/read from your receipt/i)).toBeInTheDocument();
+    expect(screen.getByText(/live scan/i)).toBeInTheDocument();
+    // The claimant-facing badge names no vendor — "Azure Document
+    // Intelligence" is jargon to the person claiming a kopi.
+    expect(screen.queryByText(/azure/i)).not.toBeInTheDocument();
     expect(container.querySelector(".ocr-live-dot")).toBeInTheDocument();
     expect(container.querySelector(".ocr-result-accent")).toBeInTheDocument();
   });

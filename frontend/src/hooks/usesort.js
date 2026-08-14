@@ -18,11 +18,13 @@ import { useMemo, useState } from "react";
  * @param {Array} rows
  * @param {Record<string, (row: any) => any>} accessors  column key → value
  * @param {string} initialKey
+ * @param {"asc"|"desc"} [initialDirection]  newest/largest first by default;
+ *   a queue worked oldest-first passes "asc"
  * @returns {{rows: Array, sortKey: string, direction: "asc"|"desc", toggle: (key: string) => void, ariaSort: (key: string) => string}}
  */
-export function useSort(rows, accessors, initialKey) {
+export function useSort(rows, accessors, initialKey, initialDirection = "desc") {
   const [sortKey, setSortKey] = useState(initialKey);
-  const [direction, setDirection] = useState("desc");
+  const [direction, setDirection] = useState(initialDirection);
 
   const sorted = useMemo(() => {
     const read = accessors[sortKey];

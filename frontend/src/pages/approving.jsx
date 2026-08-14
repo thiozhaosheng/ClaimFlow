@@ -210,7 +210,11 @@ export default function Approving() {
 
   const deptClaims = Object.values(latestMap);
 
-  const sort = useSort(matchingClaims, QUEUE_COLUMNS, "date");
+  // Oldest first. The metric band says "Oldest: 86 days" while newest-first
+  // buried that exact claim at the bottom of the last page — a queue is
+  // worked from the back of the line, and the aggregate should point at a row
+  // the reader can see.
+  const sort = useSort(matchingClaims, QUEUE_COLUMNS, "date", "asc");
   const sortedClaims = sort.rows;
 
   const stats = useMemo(() => {
@@ -299,13 +303,15 @@ export default function Approving() {
           <div className="metric-item">
             <span className="metric-item-label">Queue</span>
             <span className="metric-item-value">
+              {/* With its S$ — every other amount in the app carries it, and
+                  a bare 2,916.93 over a lone "SGD" was the exception. */}
               <AnimatedNumber
                 value={stats.pendingTotal}
                 decimals={2}
-                format={(n) => formatSGD(n).replace("S$", "")}
+                format={(n) => formatSGD(n)}
               />
             </span>
-            <span className="metric-item-sub">SGD</span>
+            <span className="metric-item-sub">awaiting your decision</span>
           </div>
           <div className="metric-item">
             <span className="metric-item-label">Oldest</span>

@@ -9,8 +9,18 @@ describe("describeOcrSource", () => {
     const info = describeOcrSource("azure");
     expect(info.kind).toBe("azure");
     expect(info.live).toBe(true);
-    expect(info.engine).toMatch(/Azure/);
     expect(info.tone).toBe("accent");
+  });
+
+  // The badge is read by the person claiming a kopi, so it speaks in plain
+  // words — vendor names ("Azure Document Intelligence", "prebuilt-receipt
+  // model") are the same jargon family as status codes and stay in the code.
+  it("never surfaces a vendor name in claimant-facing copy", () => {
+    for (const src of ["azure", "sample", "unavailable", "unknown"]) {
+      const info = describeOcrSource(src);
+      const copy = `${info.engine} ${info.label} ${info.description}`;
+      expect(copy).not.toMatch(/azure|prebuilt|model|OCR/i);
+    }
   });
 
   it("flags unavailable as a non-live failure", () => {

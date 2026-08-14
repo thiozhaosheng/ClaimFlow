@@ -2039,6 +2039,20 @@ code {
 
 .btn-primary:active { transform: translateY(1px); }
 
+/* A button that cannot be pressed must not look pressable. The wizard's
+   Continue is disabled until a receipt is attached, and it rendered exactly
+   like the live button — so the click did nothing, silently, and the reader
+   was left blaming themselves. Same treatment .btn-mark-paid already had. */
+.btn-primary:disabled,
+.btn-primary:disabled:hover,
+.btn-primary:disabled:focus {
+  background: var(--bg-subtle);
+  color: var(--text-tertiary);
+  border-color: var(--border-subtle);
+  cursor: not-allowed;
+  transform: none;
+}
+
 .btn-mark-paid {
   background: var(--accent);
   color: var(--accent-foreground);

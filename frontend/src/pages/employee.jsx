@@ -28,6 +28,7 @@ import { useSort } from "../hooks/usesort.js";
 import { usePaging } from "../hooks/usepaging.js";
 import EditClaimModal, {
   correctionRequestOf,
+  CATEGORY_OPTIONS,
 } from "../components/editclaimmodal.jsx";
 import ConfirmModal from "../components/confirmmodal.jsx";
 import PolicyFlag from "../components/policyflag.jsx";
@@ -51,20 +52,12 @@ export const DISALLOWED_CATEGORIES = (() => {
   return rule?.when?.[0]?.value ?? [];
 })();
 
-// Only categories the policy allows are offered. Categories the policy blocks
-// outright (Medical non-statutory, Club Subscription, Family Benefit, Motor
-// Car) are deliberately NOT listed — nobody should be able to pick a category
-// that can never be claimed. See DISALLOWED_CATEGORIES / the
-// block-disallowed-category rule for the blocked list.
-const CATEGORY_OPTIONS = [
-  { value: "Transport", label: "Transport (Grab / Taxi / MRT)" },
-  { value: "Meal", label: "Meal" },
-  { value: "Client Entertainment", label: "Client Entertainment" },
-  { value: "Office Supplies", label: "Office Supplies" },
-  { value: "Travel", label: "Overseas Travel" },
-  { value: "Training", label: "Training" },
-  { value: "Medical (statutory)", label: "Medical — statutory (WICA, etc.)" },
-];
+// Only categories the policy allows are offered — the list itself lives with
+// the edit modal so the wizard and the correction form name a category the
+// same way. Categories the policy blocks outright (Medical non-statutory,
+// Club Subscription, Family Benefit, Motor Car) are deliberately NOT listed —
+// nobody should be able to pick a category that can never be claimed. See
+// DISALLOWED_CATEGORIES / the block-disallowed-category rule.
 
 const FULL_TAX_INVOICE_OVER = 1000;
 const MAX_AGE_DAYS = 90;
@@ -307,8 +300,11 @@ export default function Employee() {
       const result = await api.postForm("/api/claims/parse-receipt", fd);
       const data = result?.data;
       if (!data) throw new Error("No data returned");
-      if (data.total != null) setAmount(String(data.total));
-      if (data.gstAmount != null) setGstAmount(String(data.gstAmount));
+      // Money is written to two places: S$32.70, never "32.7" — a bare float
+      // in an amount field is the one number on the form that must not look
+      // approximate.
+      if (data.total != null) setAmount(Number(data.total).toFixed(2));
+      if (data.gstAmount != null) setGstAmount(Number(data.gstAmount).toFixed(2));
       if (data.merchant) setMerchant(data.merchant);
       if (data.expenseDate) setDate(data.expenseDate);
       // Only apply OCR's category guess if the user hasn't already picked
@@ -665,14 +661,17 @@ export default function Employee() {
         <div className="metric-item">
           <span className="metric-item-label">Owed to you</span>
           <span className="metric-item-value">
+            {/* With its S$, like every other figure in the app — a bare
+                424.52 with the currency four words into the line below was
+                the one amount on the page you had to parse twice. */}
             <AnimatedNumber
               value={stats.awaitingPayout}
               decimals={2}
-              format={(n) => formatSGD(n).replace("S$", "")}
+              format={(n) => formatSGD(n)}
             />
           </span>
           <span className="metric-item-sub">
-            SGD endorsed, awaiting payout · {formatSGD(stats.reimbursedToDate)}{" "}
+            endorsed, awaiting payout · {formatSGD(stats.reimbursedToDate)}{" "}
             reimbursed so far
           </span>
         </div>
@@ -795,8 +794,10 @@ export default function Employee() {
                     Receipt stored.{" "}
                     <a href={viewUrl} target="_blank" rel="noreferrer" className="underline">
                       View uploaded image
-                    </a>{" "}
-                    <span className="text-text-tertiary">(link valid 15 minutes)</span>
+                    </a>
+                    {/* "(link valid 15 minutes)" was here — a fact about
+                        signed-URL expiry, which is the system explaining its
+                        plumbing to someone who just wants their money back. */}
                   </span>
                 </div>
               )}
@@ -1108,13 +1109,14 @@ export default function Employee() {
                       {preflight.outcome === "block" &&
                         "Won't submit — policy blocks this"}
                     </strong>
-                    {/* The recommend rules are named auto-approve-* in
-                        policies.json; surfacing that id would contradict
-                        the advisory copy ("the engine recommends, a human
-                        decides"), so the chip is shown only for routing
-                        and block outcomes. */}
-                    {preflight.outcome !== "auto-approve" && (
-                      <span className="preflight-rule">{preflight.ruleId}</span>
+                    {/* The rule's written NAME, and only when a rule exists.
+                        This printed the raw id — a claimant read "default" in
+                        code font beside their own claim, an engine talking to
+                        itself. The recommend rules stay unchipped so the
+                        advisory copy ("a human decides") is not contradicted
+                        by an auto-approve-* id. */}
+                    {preflight.outcome !== "auto-approve" && preflight.label && (
+                      <span className="preflight-rule">{preflight.label}</span>
                     )}
                   </div>
                   <p className="preflight-message">{preflight.message}</p>

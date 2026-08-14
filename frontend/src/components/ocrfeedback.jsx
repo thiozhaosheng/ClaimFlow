@@ -52,7 +52,7 @@ export function OcrFieldTag({ live }) {
       className={`ocr-field-tag ${live ? "ocr-field-tag-live" : "ocr-field-tag-sample"}`}
       title={
         live
-          ? "Read from your receipt by Azure Document Intelligence"
+          ? "Read from your receipt"
           : "Pre-filled with demo data — please verify"
       }
     >

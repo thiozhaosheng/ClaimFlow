@@ -27,31 +27,36 @@
 
 /** @type {Record<string, OcrSourceInfo>} */
 const SOURCES = {
+  // No vendor names in anything a claimant reads — "Azure Document
+  // Intelligence" and "prebuilt-receipt model" are the same jargon family as
+  // status codes, and the person claiming a kopi has no use for either. The
+  // honesty the badge exists for ("did a real scan run?") survives in plain
+  // words: a live scan read this receipt / nothing was read.
   azure: {
     kind: "azure",
     live: true,
-    engine: "Azure Document Intelligence",
-    label: "Read by Azure Document Intelligence",
+    engine: "Live scan",
+    label: "Read from your receipt",
     description:
-      "Fields below were extracted from your receipt by Azure's prebuilt-receipt model. Review them before submitting.",
+      "The merchant, amount, GST and date were read off this receipt — you confirm each one on the next step.",
     tone: "accent",
   },
   sample: {
     kind: "sample",
     live: false,
-    engine: "Demo parser",
+    engine: "Demo values",
     label: "Filled with demo data",
     description:
-      "No live OCR ran — these are sample values so you can try the flow. Connect Azure Document Intelligence to read real receipts.",
+      "No live scan ran — these are sample values so you can try the flow.",
     tone: "warning",
   },
   unavailable: {
     kind: "unavailable",
     live: false,
-    engine: "OCR unavailable",
+    engine: "Scan unavailable",
     label: "Couldn't read this receipt",
     description:
-      "The image was uploaded and stored, but the parser couldn't extract details. Please fill in the fields manually.",
+      "The image was uploaded and stored, but the details couldn't be read off it. Please type each field yourself.",
     tone: "warning",
   },
   unknown: {
