@@ -2,14 +2,18 @@ import { useState, useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { formatSGD } from "../utils/helpers.js";
 
-const CATEGORY_OPTIONS = [
-  "Transport",
-  "Meal",
-  "Client Entertainment",
-  "Office Supplies",
-  "Travel",
-  "Training",
-  "Medical (statutory)",
+// One list, two forms: the wizard and this modal must name a category the
+// same way. This modal used to print the raw backend values ("Travel",
+// "Medical (statutory)") where the wizard says "Overseas Travel" and
+// "Medical — statutory (WICA, etc.)" — same claim, two vocabularies.
+export const CATEGORY_OPTIONS = [
+  { value: "Transport", label: "Transport (Grab / Taxi / MRT)" },
+  { value: "Meal", label: "Meal" },
+  { value: "Client Entertainment", label: "Client Entertainment" },
+  { value: "Office Supplies", label: "Office Supplies" },
+  { value: "Travel", label: "Overseas Travel" },
+  { value: "Training", label: "Training" },
+  { value: "Medical (statutory)", label: "Medical — statutory (WICA, etc.)" },
 ];
 
 // The field keys an approver can send back, with the labels the submitter
@@ -103,6 +107,24 @@ export default function EditClaimModal({ open, claim, onSave, onCancel }) {
 
   if (!open || !claim) return null;
 
+  // The amounts are GST-inclusive, so 9% GST is 9/109 of the total — more is
+  // not a figure any receipt can carry. This is the stale-GST trap: fix a
+  // S$268 total down to S$168 as asked and the S$22.13 GST beside it is now
+  // impossible, and a submitter who doesn't know GST arithmetic (most people)
+  // would send it straight back wrong. The right figure is one click; typing
+  // the receipt's own GST line stays just as valid.
+  const totalNum = Number(amount);
+  const gstNum = Number(gstAmount);
+  const maxGst =
+    Number.isFinite(totalNum) && totalNum > 0
+      ? Math.round((totalNum * 900) / 109) / 100
+      : null;
+  const gstTooHigh =
+    maxGst != null &&
+    gstAmount !== "" &&
+    Number.isFinite(gstNum) &&
+    gstNum - maxGst > 0.011;
+
   // When an approver has sent the claim back, the named fields are the whole
   // job: they get the warning treatment and a tag, everything else stays
   // ordinary so the eye goes straight to the work.
@@ -168,8 +190,8 @@ export default function EditClaimModal({ open, claim, onSave, onCancel }) {
               onChange={(e) => setCategory(e.target.value)}
             >
               {CATEGORY_OPTIONS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+                <option key={c.value} value={c.value}>
+                  {c.label}
                 </option>
               ))}
             </select>
@@ -228,7 +250,21 @@ export default function EditClaimModal({ open, claim, onSave, onCancel }) {
               className="form-control"
               value={gstAmount}
               onChange={(e) => setGstAmount(e.target.value)}
+              aria-invalid={gstTooHigh || undefined}
             />
+            {gstTooHigh && (
+              <p className="form-hint fix-hint">
+                9% GST on {formatSGD(totalNum)} is {formatSGD(maxGst)} at most —
+                match the receipt's GST line.{" "}
+                <button
+                  type="button"
+                  className="row-action"
+                  onClick={() => setGstAmount(maxGst.toFixed(2))}
+                >
+                  Use {formatSGD(maxGst)}
+                </button>
+              </p>
+            )}
           </div>
           {asked.has("receipt") ? (
             <p className="form-hint fix-hint">
@@ -256,7 +292,7 @@ export default function EditClaimModal({ open, claim, onSave, onCancel }) {
             type="button"
             className="btn-primary"
             onClick={handleSave}
-            disabled={submitting || !category || !amount || !date}
+            disabled={submitting || !category || !amount || !date || gstTooHigh}
           >
             {correction
               ? submitting

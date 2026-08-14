@@ -45,6 +45,17 @@ export const checkClaimAmounts = (
   if (gst > total) {
     return 'GST cannot be more than the claim total.';
   }
+  // The amounts are GST-inclusive, so at 9% the GST is 9/109 of the total —
+  // S$168.00 holds at most S$13.87 of GST. More than that is not a figure any
+  // receipt can carry, and it is exactly what a stale GST looks like after
+  // only the total was corrected. Under the cap is left alone: receipts with
+  // zero-rated or exempt items legitimately run below 9%.
+  const maxGst = (total * 9) / 109;
+  if (gst - maxGst > 0.011) {
+    return `GST looks too high — 9% GST on S$${total.toFixed(2)} is S$${maxGst.toFixed(
+      2,
+    )} at most. Check the receipt's GST line, or leave it blank.`;
+  }
   return null;
 };
 

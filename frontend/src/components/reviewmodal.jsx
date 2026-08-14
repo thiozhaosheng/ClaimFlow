@@ -101,6 +101,21 @@ function buildCheckItems(claim) {
       num: claim.gstAmount != null,
       verified: verified("gstAmount"),
       verifiedNote: "9% of the total, to the cent",
+      // Arithmetic the reviewer should not have to do in their head: on a
+      // GST-inclusive total, 9% GST is 9/109 of it, so anything above that is
+      // impossible regardless of what the receipt shows. Below the cap stays
+      // quiet — zero-rated and exempt items legitimately pull GST under 9%.
+      conflict: (() => {
+        const total = Number(claim.amount);
+        const gst = Number(claim.gstAmount);
+        if (claim.gstAmount == null || !Number.isFinite(total) || total <= 0) {
+          return null;
+        }
+        const max = Math.round((total * 900) / 109) / 100;
+        return Number.isFinite(gst) && gst - max > 0.011
+          ? `9% GST on ${formatSGD(total)} is ${formatSGD(max)} at most`
+          : null;
+      })(),
     },
   ];
 }

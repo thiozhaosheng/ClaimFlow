@@ -222,6 +222,16 @@ export default function ClaimDetail() {
   // accounts.
   const gst = claim.gstAmount != null ? Number(claim.gstAmount) : null;
   const net = gst != null ? Number(claim.amount) - gst : null;
+  // Say "9%" only when the figure actually is 9% — 9/109 of a GST-inclusive
+  // total, give or take a cent of rounding. The record was printing
+  // "incl. GST 9% S$22.13" over a S$168.00 total, stating a rate the number
+  // does not hold; a document that asserts arithmetic must have done it.
+  const gstIsNinePct = (() => {
+    const total = Number(claim.amount);
+    if (gst == null || !Number.isFinite(total) || total <= 0) return false;
+    return Math.abs(gst - (total * 9) / 109) <= 0.011;
+  })();
+  const gstLabel = gstIsNinePct ? "GST 9%" : "GST";
 
   // Five years from the end of the financial year of the transaction, which is
   // the retention the privacy notice and docs/compliance/retention-policy.md
@@ -245,9 +255,11 @@ export default function ClaimDetail() {
   // ones that change nothing a reader would call an update. The two disagreeing
   // on the same sheet is the kind of thing that makes a record untrustworthy.
   const lastEvent = history.length > 0 ? history[0] : null;
-  const updatedOn = lastEvent
-    ? `${lastEvent.date} · ${lastEvent.time}`
-    : stamp(claim.updatedAt);
+  // Through the same stamp() as "Submitted" above — the two sat side by side
+  // reading "14 Aug 2026 · 09:34 PM" and "2026-08-14 · 09:35 PM", two date
+  // languages one row apart on a sheet that calls itself a record.
+  const updatedOn =
+    lastEvent && lastEvent.at ? stamp(lastEvent.at) : stamp(claim.updatedAt);
   // IRAS allows a simplified tax invoice up to S$1,000; above it finance needs
   // the supplier's GST registration number and the invoice serial to claim the
   // input tax. Neither is captured anywhere in this product yet, so the record
@@ -371,7 +383,9 @@ export default function ClaimDetail() {
           <div className="claim-sheet-amount">
             <b>{formatSGD(claim.amount)}</b>
             <span>
-              {gst != null ? `incl. GST 9% ${formatSGD(gst)}` : "no GST recorded"}
+              {gst != null
+                ? `incl. ${gstLabel} ${formatSGD(gst)}`
+                : "no GST recorded"}
             </span>
           </div>
         </header>
@@ -648,7 +662,7 @@ export default function ClaimDetail() {
                           <td>{formatSGD(net)}</td>
                         </tr>
                         <tr>
-                          <th scope="row">GST 9%</th>
+                          <th scope="row">{gstLabel}</th>
                           <td>{formatSGD(gst)}</td>
                         </tr>
                       </>

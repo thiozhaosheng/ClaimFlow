@@ -19,11 +19,31 @@ describe('checkClaimAmounts', () => {
     expect(checkClaimAmounts(20, '')).toBeNull();
   });
 
-  it('accepts GST of exactly zero, and GST equal to the total', () => {
+  it('accepts GST of exactly zero', () => {
     expect(checkClaimAmounts(20, 0)).toBeNull();
-    // Equal is not impossible — a full-value adjustment line reads this way —
-    // so the boundary is rejected only once GST goes above the total.
-    expect(checkClaimAmounts(20, 20)).toBeNull();
+  });
+
+  it('accepts GST at exactly 9/109 of the total, and a cent of rounding', () => {
+    // S$168.00 × 9/109 = S$13.8716… — the cent-rounded figure a receipt prints.
+    expect(checkClaimAmounts(168, 13.87)).toBeNull();
+    expect(checkClaimAmounts(168, 13.88)).toBeNull();
+    expect(checkClaimAmounts(10, 0.83)).toBeNull();
+  });
+
+  it('accepts GST below 9% — zero-rated and exempt items pull it down', () => {
+    expect(checkClaimAmounts(100, 4.5)).toBeNull();
+  });
+
+  it('rejects GST above 9/109 of the total — the stale-GST-after-correction case', () => {
+    // A S$268 claim corrected to S$168 with GST left at the old S$22.13:
+    // arithmetically impossible on a GST-inclusive total, and exactly what an
+    // approver would otherwise have to catch by hand.
+    expect(checkClaimAmounts(168, 22.13)).toBe(
+      "GST looks too high — 9% GST on S$168.00 is S$13.87 at most. Check the receipt's GST line, or leave it blank.",
+    );
+    expect(checkClaimAmounts(20, 20)).toBe(
+      "GST looks too high — 9% GST on S$20.00 is S$1.65 at most. Check the receipt's GST line, or leave it blank.",
+    );
   });
 
   it('rejects GST larger than the total, the case that reached production', () => {
