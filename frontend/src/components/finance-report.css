@@ -1,0 +1,188 @@
+/* ==========================================================================
+   FINANCE REPORT — one printable sheet in the ledger's own language:
+   sections ruled not boxed, money right-aligned and tabular, references in
+   mono, no colour. The browser's print dialog is the PDF exporter.
+   ========================================================================== */
+
+.fin-report-wrap {
+  max-width: 56rem;
+}
+
+.fin-report-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.fin-report {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-panel);
+  background-color: var(--bg-card);
+  padding: 1.5rem 1.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-masthead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.report-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.report-line {
+  margin-top: 0.2rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.report-headline-figure {
+  text-align: right;
+  white-space: nowrap;
+}
+.report-headline-figure b {
+  display: block;
+  font-size: 1.5625rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.report-headline-figure span {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.report-section {
+  padding-top: 1.1rem;
+}
+.report-section + .report-section {
+  margin-top: 1.1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.report-section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0 0 0.6rem;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.report-table th,
+.report-table td {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+.report-table thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.report-table .num {
+  text-align: right;
+}
+.report-table tbody tr:last-child th,
+.report-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Fact pairs: label + figure, two pairs per row. */
+.report-table-facts th[scope="row"] {
+  font-weight: 400;
+  color: var(--text-secondary);
+  width: 28%;
+}
+
+.report-note {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0.35rem 0 0;
+  max-width: 44rem;
+}
+
+.report-points {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  max-width: 46rem;
+}
+
+@media print {
+  /* Paper is white whatever the screen was — same pinning as the claim
+     record, so a dark-mode reader does not print a dark page. */
+  :root,
+  :root.dark {
+    --bg-card: #ffffff;
+    --bg-subtle: #ffffff;
+    --bg-app: #ffffff;
+    --text-primary: #111111;
+    --text-secondary: #333333;
+    --text-tertiary: #555555;
+    --border-default: #cccccc;
+    --border-subtle: #dddddd;
+  }
+
+  /* Navigation does not belong on paper. */
+  .app-rail,
+  .app-topbar,
+  .fin-report-controls,
+  .toast-viewport,
+  #view-finance > header,
+  #view-finance > .border-b {
+    display: none !important;
+  }
+
+  html,
+  body,
+  #root,
+  main {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  .fin-report-wrap { max-width: none; }
+  .fin-report {
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .report-section { break-inside: avoid; }
+
+  /* Where this came from, so the printed page can be traced. */
+  .fin-report::after {
+    content: "Printed from ClaimFlow — computed from the live claim ledger; nothing on this page is typed in by hand.";
+    display: block;
+    padding-top: 0.6rem;
+    margin-top: 1rem;
+    border-top: 1px solid #ddd;
+    font-size: 9pt;
+    color: #555;
+  }
+
+  a[href]::after { content: ""; }
+}

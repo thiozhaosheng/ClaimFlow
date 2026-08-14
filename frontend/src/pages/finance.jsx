@@ -13,8 +13,10 @@ import { useShortcuts } from "../hooks/useShortcuts.js";
 import { escapeHtml, formatSGD } from "../utils/helpers.js";
 import PageHeader from "../components/pageheader.jsx";
 import EmptyState from "../components/emptystate.jsx";
+import ConfirmModal from "../components/confirmmodal.jsx";
 import { exportAuditLogToCsv } from "../utils/export.js";
 import FinanceDashboard from "../components/financedashboard.jsx";
+import FinanceReport from "../components/financereport.jsx";
 import { actionInGroup } from "../lib/auditTrail.js";
 import {
   AlertTriangle,
@@ -22,6 +24,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Download,
+  FileText,
   Filter,
   LayoutDashboard,
   Search,
@@ -159,8 +162,15 @@ export default function Finance() {
       return next;
     });
 
+  // "Release payment" used to fire on the click itself — no summary, no
+  // confirm, no undo. One stray click marked a claim paid and told the
+  // claimant so; with a page of rows selected it could record S$10k of
+  // payments. A payment record needs the same gate a withdrawal has.
+  const [confirmingPayout, setConfirmingPayout] = useState(false);
+
   const runPayout = async () => {
     if (selectedClaims.length === 0 || paying) return;
+    setConfirmingPayout(false);
     setPaying(true);
     const count = selectedClaims.length;
     const total = selectedTotal;
@@ -174,7 +184,10 @@ export default function Finance() {
       addToast({
         variant: "success",
         title: count === 1 ? "Claim paid" : `${count} claims paid`,
-        message: `${formatSGD(total)} released. Each claimant has been told.`,
+        message:
+          count === 1
+            ? `${formatSGD(total)} released. The claimant has been told.`
+            : `${formatSGD(total)} released. Each claimant has been told.`,
       });
     } catch (e) {
       addToast({
@@ -264,7 +277,7 @@ export default function Finance() {
       <PageHeader
         eyebrow="Finance admin"
         title="Finance workspace"
-        subtitle="See spend at a glance, disburse endorsed claims, and review the audit trail. GST 9% is captured per claim where applicable for IRAS reporting."
+        subtitle="See spend at a glance, disburse endorsed claims, print the management report, and review the audit trail. GST 9% is captured per claim where applicable for IRAS reporting."
       />
 
       <div className="border-b border-border-subtle mb-6">
@@ -275,6 +288,7 @@ export default function Finance() {
           {[
             { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
             { key: "payouts", label: "Payouts", icon: Wallet },
+            { key: "report", label: "Report", icon: FileText },
             { key: "audit", label: "Audit trail", icon: ShieldCheck },
           ].map(({ key, label, icon: Icon }) => (
             <button
@@ -314,6 +328,10 @@ export default function Finance() {
         />
       )}
 
+      {activeTab === "report" && (
+        <FinanceReport claims={Object.values(latestMap)} auditLog={claimsDb} />
+      )}
+
 
       {activeTab === "payouts" && (
         <div className="w-full">
@@ -322,7 +340,9 @@ export default function Finance() {
               <h2 className="fin-section-title">Awaiting payment</h2>
               <p className="fin-section-sub">
                 Claims an approving officer has endorsed. Releasing one records
-                the payment and tells the claimant.
+                the payment and tells the claimant — the transfer itself is
+                made by your usual bank or PayNow run. Direct GIRO payout from
+                ClaimFlow is on the roadmap.
               </p>
             </div>
           </div>
@@ -431,7 +451,7 @@ export default function Finance() {
             <button
               className="btn-primary"
               disabled={selectedClaims.length === 0 || paying}
-              onClick={runPayout}
+              onClick={() => setConfirmingPayout(true)}
             >
               {paying
                 ? "Releasing…"
@@ -440,6 +460,24 @@ export default function Finance() {
                   : "Release payment"}
             </button>
           </div>
+
+          <ConfirmModal
+            open={confirmingPayout}
+            title={
+              selectedClaims.length === 1
+                ? `Record 1 payment · ${formatSGD(selectedTotal)}`
+                : `Record ${selectedClaims.length} payments · ${formatSGD(selectedTotal)}`
+            }
+            message={
+              `${selectedClaims.length === 1 ? "The claim" : "Each claim"} will be marked paid and ` +
+              `${selectedClaims.length === 1 ? "its claimant" : "the claimants"} told. ClaimFlow records the payment — ` +
+              "the transfer itself is made outside, by your usual bank or PayNow run. " +
+              "This cannot be undone here."
+            }
+            confirmLabel="Mark as paid"
+            onConfirm={runPayout}
+            onCancel={() => setConfirmingPayout(false)}
+          />
         </div>
       )}
 

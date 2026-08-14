@@ -160,6 +160,22 @@ export function useFinanceInsights(claims, range = "30d", auditLog = []) {
       .map(([category, amount]) => ({ category, amount }))
       .sort((a, b) => b.amount - a.amount);
 
+    // The same tally over the PREVIOUS period, so "Client Entertainment grew
+    // 40%" is a statement about two measured figures, not a feeling. Empty for
+    // ytd/all, where there is no comparable previous window.
+    const byCategoryPrev = new Map();
+    for (const c of prev) {
+      const key = c.type || "Other";
+      byCategoryPrev.set(key, (byCategoryPrev.get(key) || 0) + c.amount);
+    }
+
+    // What the GST column actually holds in range — the figure finance carries
+    // into IRAS reporting, summed from the claims rather than derived.
+    const gstCaptured = filtered.reduce(
+      (s, c) => s + (Number(c.gstAmount) || 0),
+      0,
+    );
+
     // Policy breakdown — the SAME engine and the SAME context every other
     // screen uses. This file carried its own copy of the evaluator, and that
     // copy passed no `details` and forced supplierGstRegNumber to null: six of
@@ -168,6 +184,9 @@ export function useFinanceInsights(claims, range = "30d", auditLog = []) {
     // refuses one with a 422 before anything is written).
     const policyCounts = { "auto-approve": 0, "route-to-human": 0, block: 0 };
     const policyReasons = {};
+    // Which claim got which verdict, kept per id so a figure on the policy
+    // panel can open the exact claims it was counted from.
+    const policyByClaim = new Map();
     for (const c of filtered) {
       const { outcome, ruleId, label } = evaluatePolicies(
         claimContextFromForm({
@@ -179,6 +198,7 @@ export function useFinanceInsights(claims, range = "30d", auditLog = []) {
           supplierGstRegNumber: c.supplierGstRegNumber ?? null,
         }),
       );
+      policyByClaim.set(c.id, { outcome, ruleId, label });
       policyCounts[outcome] = (policyCounts[outcome] || 0) + 1;
       const key = `${outcome}:${ruleId}`;
       // Carry the rule's written name through the tally: the list is read by a
@@ -225,6 +245,37 @@ export function useFinanceInsights(claims, range = "30d", auditLog = []) {
       a.week.localeCompare(b.week),
     );
 
+    // The heaviest week, with what drove it — a trend line that cannot say
+    // which week mattered or why is decoration. Measured from the same claims
+    // the chart's Submitted series counts.
+    let heaviestWeek = null;
+    if (submissionTrend.length > 1) {
+      const top = submissionTrend.reduce(
+        (best, w) => (w.submitted > (best?.submitted || 0) ? w : best),
+        null,
+      );
+      if (top && top.submitted > 0) {
+        const weekClaims = filtered.filter((c) => {
+          const d = parseDate(submittedOn(c));
+          return d && isoWeekKey(d) === top.week;
+        });
+        const weekSpend = weekClaims.reduce((s, c) => s + (c.amount || 0), 0);
+        const catMap = new Map();
+        for (const c of weekClaims) {
+          const key = c.type || "Other";
+          catMap.set(key, (catMap.get(key) || 0) + (c.amount || 0));
+        }
+        const lead = [...catMap.entries()].sort((a, b) => b[1] - a[1])[0];
+        heaviestWeek = {
+          weekLabel: top.weekLabel,
+          submitted: top.submitted,
+          spend: weekSpend,
+          topCategory: lead ? lead[0] : null,
+          topCategoryAmount: lead ? lead[1] : 0,
+        };
+      }
+    }
+
     // top claimants
     const claimantMap = new Map();
     for (const c of filtered) {
@@ -262,9 +313,14 @@ export function useFinanceInsights(claims, range = "30d", auditLog = []) {
       disbursedIds: new Set(disbursed.map((c) => c.id)),
       byDepartment,
       byCategory,
+      byCategoryPrev,
+      gstCaptured,
+      prevTotals: { count: prevCount, spend: prevSpend },
       policyCounts,
+      policyByClaim,
       topPolicyReasons,
       submissionTrend,
+      heaviestWeek,
       topClaimants,
       statusDistribution,
     };

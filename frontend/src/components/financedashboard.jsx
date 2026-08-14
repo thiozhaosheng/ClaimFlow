@@ -35,10 +35,18 @@ import "./finance-workspace.css";
 // beside the words "Client Entertainment", once per row, is a picture of the
 // text next to it, and it was the last thing in the app still pulling from the
 // eleven-hue category palette.
-function CategorySpendRow({ category, amount, max }) {
+function CategorySpendRow({ category, amount, max, onOpen }) {
   const pct = max > 0 ? Math.max(4, Math.round((amount / max) * 100)) : 0;
+  // A real <button>: the figure opens the claims it was summed from. These
+  // rows were the first thing a manager clicked and the click did nothing —
+  // "when I click into the numbers I am to see the details" is the whole ask.
   return (
-    <div className="spend-row">
+    <button
+      type="button"
+      className="spend-row spend-row-open"
+      onClick={onOpen}
+      title="See the claims behind this figure"
+    >
       <div className="spend-row-main">
         <div className="spend-row-head">
           <span className="spend-row-name">{category}</span>
@@ -48,8 +56,15 @@ function CategorySpendRow({ category, amount, max }) {
           <div className="spend-row-fill" style={{ width: `${pct}%` }} />
         </div>
       </div>
-    </div>
+    </button>
   );
+}
+
+/** One computed sentence under a chart: the driver, named, with its figure.
+    A trend that cannot say which week mattered or why is decoration. */
+function PanelStory({ children }) {
+  if (!children) return null;
+  return <p className="fin-story">{children}</p>;
 }
 
 const RANGE_OPTIONS = [
@@ -135,14 +150,20 @@ function MetricItem({ label, value, delta, hint, onClick }) {
   );
 }
 
-function PolicyMeter({ label, value, total, tone }) {
+function PolicyMeter({ label, value, total, tone, onOpen }) {
   const pct = total ? Math.round((value / total) * 100) : 0;
   return (
-    <div className="fin-meter">
+    <button
+      type="button"
+      className="fin-meter fin-meter-open"
+      onClick={onOpen}
+      disabled={!onOpen || value === 0}
+      title={value > 0 ? "See the claims behind this figure" : undefined}
+    >
       <div className="fin-meter-head">
         <span>{label}</span>
         <span className="fin-meter-value">
-          {value} · {pct}%
+          {value} claims · {pct}%
         </span>
       </div>
       <div className="fin-meter-track">
@@ -151,7 +172,7 @@ function PolicyMeter({ label, value, total, tone }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -186,31 +207,14 @@ function PanelHead({ title, note }) {
   );
 }
 
-const DRILL_DEFS = {
-  count: {
-    title: "All claims in range",
-    filter: (c) => true,
-  },
-  spend: {
-    title: "Claims contributing to total spend",
-    filter: (c) => true,
-  },
-  disbursed: {
-    title: "Disbursed (paid) claims",
-    filter: (c) => c.status === "Paid",
-  },
-  inflight: {
-    title: "In-flight claims (Pending or Endorsed)",
-    filter: (c) => c.status === "Pending" || c.status === "Endorsed",
-  },
-};
-
-
 export default function FinanceDashboard({ claims, auditLog = [], loading }) {
   const navigate = useNavigate();
   const [range, setRange] = useState("30d");
   const [subTab, setSubTab] = useState("overview");
-  const [drillKey, setDrillKey] = useState(null);
+  // Every figure on this dashboard opens the claims it was computed from —
+  // a drill is just a titled list of those claims. It used to be four fixed
+  // keys on the metric strip while every other number on the page was dead.
+  const [drill, setDrill] = useState(null);
 
   // unique claims only (latest record per id)
   const uniqueClaims = useMemo(() => {
@@ -231,20 +235,13 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
     return uniqueClaims.filter((c) => claimInRange(c, range, now));
   }, [uniqueClaims, range]);
 
-  const drillClaims = useMemo(() => {
-    if (!drillKey) return [];
-    // Disbursement is counted on the day the money left, so its drill-down is
-    // the same set the figure was computed from — filtering "Paid" out of the
-    // claims SUBMITTED in range would open a list that does not add up to the
-    // number that was clicked.
-    if (drillKey === "disbursed") {
-      return uniqueClaims.filter((c) => view.disbursedIds.has(c.id));
-    }
-    const def = DRILL_DEFS[drillKey];
-    return claimsInRange.filter(def.filter);
-  }, [drillKey, claimsInRange, uniqueClaims, view.disbursedIds]);
+  const openDrill = (title, list) => setDrill({ title, claims: list });
 
+  const drillClaims = drill?.claims || [];
   const drillTotal = drillClaims.reduce((s, c) => s + (c.amount || 0), 0);
+
+  const byCategoryOf = (name) =>
+    claimsInRange.filter((c) => (c.type || "Other") === name);
 
   // Five slices and a remainder. The ramp has six steps; beyond that recharts
   // starts reusing colours, so two categories would be drawn the same. A long
@@ -261,6 +258,91 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
     (view.policyCounts["auto-approve"] || 0) +
     (view.policyCounts["route-to-human"] || 0) +
     (view.policyCounts["block"] || 0);
+
+  // ---- the story each chart owes its reader --------------------------------
+  // One sentence per panel, every number computed from the same data the
+  // chart draws. A chart shows the shape; the line names the driver — without
+  // it the reader is left asking "so what" of a perfectly rendered trend.
+  const pctOf = (part, whole) =>
+    whole > 0 ? Math.round((part / whole) * 100) : 0;
+
+  const categoryStory = useMemo(() => {
+    const cats = view.byCategory || [];
+    if (cats.length === 0 || view.totals.spend <= 0) return null;
+    const lead = cats[0];
+    let line = `${lead.category} leads at ${pctOf(lead.amount, view.totals.spend)}% of spend.`;
+    // The fastest riser vs the previous period — only stated when both
+    // periods hold real figures, and only when the move is worth naming.
+    let riser = null;
+    for (const c of cats) {
+      const before = view.byCategoryPrev?.get(c.category) || 0;
+      if (before <= 0 || c.amount <= before) continue;
+      const growth = (c.amount - before) / before;
+      if (growth >= 0.15 && (!riser || growth > riser.growth)) {
+        riser = { ...c, before, growth };
+      }
+    }
+    if (riser) {
+      line += ` ${riser.category} grew fastest — ${formatSGD(riser.before)} to ${formatSGD(riser.amount)} vs the previous period.`;
+    }
+    return line;
+  }, [view.byCategory, view.byCategoryPrev, view.totals.spend]);
+
+  const trendStory = view.heaviestWeek
+    ? `Week of ${view.heaviestWeek.weekLabel} was the heaviest — ${view.heaviestWeek.submitted} claims for ${formatSGD(view.heaviestWeek.spend)}` +
+      (view.heaviestWeek.topCategory
+        ? `, led by ${view.heaviestWeek.topCategory} (${formatSGD(view.heaviestWeek.topCategoryAmount)}).`
+        : ".")
+    : null;
+
+  const departmentStory = useMemo(() => {
+    const depts = view.byDepartment || [];
+    if (depts.length < 3 || view.totals.spend <= 0) return null;
+    const topTwo = depts.slice(0, 2);
+    const share = pctOf(
+      topTwo.reduce((s, d) => s + d.amount, 0),
+      view.totals.spend,
+    );
+    return `${topTwo[0].department} and ${topTwo[1].department} carry ${share}% of spend across ${depts.length} departments.`;
+  }, [view.byDepartment, view.totals.spend]);
+
+  // What "Other" folds away, named — a manager asking "what did we spend on
+  // meals?" should not find the answer hidden inside a grey slice.
+  const otherCategories = (view.byCategory || []).slice(5);
+  const donutStory =
+    otherCategories.length > 0
+      ? `Other is ${otherCategories.map((c) => c.category).join(" and ")} — ${formatSGD(
+          otherCategories.reduce((s, c) => s + c.amount, 0),
+        )} together.`
+      : null;
+
+  const noRuleCount = useMemo(() => {
+    let n = 0;
+    for (const p of view.policyByClaim?.values() || []) {
+      if (p.ruleId === "default") n += 1;
+    }
+    return n;
+  }, [view.policyByClaim]);
+  const policyStory =
+    policyTotal > 0 && noRuleCount > 0
+      ? `No rule matched ${noRuleCount} of ${policyTotal} claims — those decisions rest entirely on the approving officer.`
+      : null;
+
+  const topFiveCategories = new Set(
+    (view.byCategory || []).slice(0, 5).map((c) => c.category),
+  );
+  const onSliceOpen = (data) => {
+    const name = data?.name ?? data?.payload?.category;
+    if (!name) return;
+    if (String(name).startsWith("Other (")) {
+      openDrill(
+        `${name} — beyond the top five categories`,
+        claimsInRange.filter((c) => !topFiveCategories.has(c.type || "Other")),
+      );
+    } else {
+      openDrill(`${name} — claims in range`, byCategoryOf(name));
+    }
+  };
 
   if (loading) {
     return (
@@ -316,19 +398,29 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
               label="Total claims"
               value={view.totals.count.toLocaleString()}
               delta={view.totals.countDelta}
-              onClick={() => setDrillKey("count")}
+              onClick={() => openDrill("All claims in range", claimsInRange)}
             />
             <MetricItem
               label="Total spend"
               value={formatSGD(view.totals.spend)}
               delta={view.totals.spendDelta}
-              onClick={() => setDrillKey("spend")}
+              onClick={() =>
+                openDrill("Claims contributing to total spend", claimsInRange)
+              }
             />
             <MetricItem
               label="Disbursed"
               value={formatSGD(view.totals.disbursed)}
               hint={`${view.totals.disbursedCount} paid claims`}
-              onClick={() => setDrillKey("disbursed")}
+              onClick={() =>
+                // Disbursement is counted on the day the money left, so its
+                // drill-down is the same set the figure was computed from —
+                // "Paid" claims SUBMITTED in range would not add up to it.
+                openDrill(
+                  "Disbursed (paid) claims",
+                  uniqueClaims.filter((c) => view.disbursedIds.has(c.id)),
+                )
+              }
             />
             <MetricItem
               label="In flight"
@@ -336,7 +428,14 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
                 view.totals.pendingEndorsement + view.totals.awaitingPayout
               ).toString()}
               hint={`${view.totals.pendingEndorsement} pending · ${view.totals.awaitingPayout} awaiting payout`}
-              onClick={() => setDrillKey("inflight")}
+              onClick={() =>
+                openDrill(
+                  "In-flight claims (Pending or Endorsed)",
+                  claimsInRange.filter(
+                    (c) => c.status === "Pending" || c.status === "Endorsed",
+                  ),
+                )
+              }
             />
           </div>
 
@@ -362,10 +461,17 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
                         category={c.category}
                         amount={c.amount}
                         max={view.byCategory[0].amount}
+                        onOpen={() =>
+                          openDrill(
+                            `${c.category} — claims in range`,
+                            byCategoryOf(c.category),
+                          )
+                        }
                       />
                     ))}
                   </div>
                 </div>
+                <PanelStory>{categoryStory}</PanelStory>
               </section>
             )}
 
@@ -444,6 +550,7 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
                   </div>
                 )}
               </div>
+              <PanelStory>{trendStory}</PanelStory>
             </section>
           </div>
         </TabsContent>
@@ -502,12 +609,25 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
                           name="Spend"
                           fill="var(--accent)"
                           radius={[0, 4, 4, 0]}
+                          cursor="pointer"
+                          onClick={(entry) => {
+                            const dept =
+                              entry?.department ?? entry?.payload?.department;
+                            if (!dept) return;
+                            openDrill(
+                              `${dept} — claims in range`,
+                              claimsInRange.filter(
+                                (c) => (c.department || "Other") === dept,
+                              ),
+                            );
+                          }}
                         />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 )}
               </div>
+              <PanelStory>{departmentStory}</PanelStory>
             </section>
 
             <section className="data-panel">
@@ -534,6 +654,8 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
                           paddingAngle={1}
                           stroke="var(--bg-card)"
                           strokeWidth={2}
+                          cursor="pointer"
+                          onClick={onSliceOpen}
                         >
                           {categoryMix.map((_, idx) => (
                             <Cell
@@ -557,6 +679,7 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
                   </div>
                 )}
               </div>
+              <PanelStory>{donutStory}</PanelStory>
             </section>
           </div>
         </TabsContent>
@@ -575,37 +698,59 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2">
-                    <PolicyMeter
-                      label="In policy"
-                      value={view.policyCounts["auto-approve"] || 0}
-                      total={policyTotal}
-                      tone="success"
-                    />
-                    <PolicyMeter
-                      label="Needs review"
-                      value={view.policyCounts["route-to-human"] || 0}
-                      total={policyTotal}
-                      tone="neutral"
-                    />
-                    <PolicyMeter
-                      label="Blocked"
-                      value={view.policyCounts.block || 0}
-                      total={policyTotal}
-                      tone="danger"
-                    />
+                    {[
+                      { key: "auto-approve", label: "In policy", tone: "success" },
+                      { key: "route-to-human", label: "Needs review", tone: "neutral" },
+                      { key: "block", label: "Blocked", tone: "danger" },
+                    ].map(({ key, label, tone }) => (
+                      <PolicyMeter
+                        key={key}
+                        label={label}
+                        value={view.policyCounts[key] || 0}
+                        total={policyTotal}
+                        tone={tone}
+                        onOpen={() =>
+                          openDrill(
+                            `${label} — what the policy would say per claim`,
+                            claimsInRange.filter(
+                              (c) => view.policyByClaim.get(c.id)?.outcome === key,
+                            ),
+                          )
+                        }
+                      />
+                    ))}
                   </div>
                   <div>
                     <div className="fin-subhead">Top rules hit</div>
                     <ul className="fin-list">
                       {view.topPolicyReasons.map((r) => (
                         <li key={`${r.outcome}-${r.ruleId}`}>
-                          <span className="min-w-0 flex items-center gap-2">
-                            <span className="fin-rule-id">{r.label || r.ruleId}</span>
-                            <Badge variant={POLICY_VARIANT[r.outcome]}>
-                              {POLICY_LABELS[r.outcome]}
-                            </Badge>
-                          </span>
-                          <span className="fin-num">{r.count}</span>
+                          <button
+                            type="button"
+                            className="fin-list-open"
+                            title="See the claims this rule matched"
+                            onClick={() =>
+                              openDrill(
+                                `${r.label || r.ruleId} — claims this outcome covers`,
+                                claimsInRange.filter((c) => {
+                                  const p = view.policyByClaim.get(c.id);
+                                  return (
+                                    p &&
+                                    p.outcome === r.outcome &&
+                                    p.ruleId === r.ruleId
+                                  );
+                                }),
+                              )
+                            }
+                          >
+                            <span className="min-w-0 flex items-center gap-2">
+                              <span className="fin-rule-id">{r.label || r.ruleId}</span>
+                              <Badge variant={POLICY_VARIANT[r.outcome]}>
+                                {POLICY_LABELS[r.outcome]}
+                              </Badge>
+                            </span>
+                            <span className="fin-num">{r.count}</span>
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -613,6 +758,7 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
                 </div>
               )}
             </div>
+            <PanelStory>{policyStory}</PanelStory>
           </section>
         </TabsContent>
 
@@ -627,13 +773,27 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
                   <ul className="fin-list">
                     {view.topClaimants.map((c) => (
                       <li key={c.name}>
-                        <span>{c.name}</span>
-                        <span className="flex items-baseline gap-2">
-                          <span className="fin-list-meta">
-                            {c.count} claim{c.count === 1 ? "" : "s"}
+                        <button
+                          type="button"
+                          className="fin-list-open"
+                          title="See this person's claims in range"
+                          onClick={() =>
+                            openDrill(
+                              `${c.name} — claims in range`,
+                              claimsInRange.filter(
+                                (x) => (x.employee || "Unknown") === c.name,
+                              ),
+                            )
+                          }
+                        >
+                          <span>{c.name}</span>
+                          <span className="flex items-baseline gap-2">
+                            <span className="fin-list-meta">
+                              {c.count} claim{c.count === 1 ? "" : "s"}
+                            </span>
+                            <span className="fin-num">{formatSGD(c.total)}</span>
                           </span>
-                          <span className="fin-num">{formatSGD(c.total)}</span>
-                        </span>
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -656,8 +816,20 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
                     };
                     return (
                       <li key={s.status}>
-                        <Badge variant={variantMap[s.status]}>{s.status}</Badge>
-                        <span className="fin-num">{s.count}</span>
+                        <button
+                          type="button"
+                          className="fin-list-open"
+                          title={`See the ${s.status.toLowerCase()} claims`}
+                          onClick={() =>
+                            openDrill(
+                              `${s.status} claims in range`,
+                              claimsInRange.filter((c) => c.status === s.status),
+                            )
+                          }
+                        >
+                          <Badge variant={variantMap[s.status]}>{s.status}</Badge>
+                          <span className="fin-num">{s.count}</span>
+                        </button>
                       </li>
                     );
                   })}
@@ -672,15 +844,16 @@ export default function FinanceDashboard({ claims, auditLog = [], loading }) {
         </TabsContent>
       </Tabs>
 
-      {/* drill-down sheet for the metric strip */}
-      <Sheet open={!!drillKey} onOpenChange={(o) => !o && setDrillKey(null)}>
+      {/* Every figure's drill-down lands here: the claims it was computed
+          from, each row opening its record. */}
+      <Sheet open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
         <SheetContent side="right" className="w-full sm:max-w-md p-0">
-          {drillKey && (
+          {drill && (
             <div className="finance-ws-drill">
               <div className="fin-drill-head">
                 <div className="fin-drill-eyebrow">Breakdown</div>
                 <SheetTitle asChild>
-                  <h2 className="fin-drill-title">{DRILL_DEFS[drillKey].title}</h2>
+                  <h2 className="fin-drill-title">{drill.title}</h2>
                 </SheetTitle>
                 <p className="fin-drill-sub">
                   {drillClaims.length} claim{drillClaims.length === 1 ? "" : "s"}
