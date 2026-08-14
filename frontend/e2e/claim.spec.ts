@@ -176,11 +176,14 @@ test.describe('Employee Claim Submission', () => {
     await page.setInputFiles('input[type="file"]', 'public/test-receipts/real-grab.png');
 
     // The stubbed parse endpoint answers as Azure, so the badge must say the
-    // receipt was read live — not filled with demo data. (`first()` because a
-    // toast with the same title also appears.)
+    // receipt was read live — not filled with demo data. The copy is plain
+    // words now ("Read from your receipt" / "Live scan"): vendor names are
+    // jargon to a claimant, and the badge's job is only to prove liveness.
+    // (`first()` because a toast with the same title also appears.)
     await expect(
-      page.getByText('Read by Azure Document Intelligence').first(),
+      page.getByText('Read from your receipt').first(),
     ).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Live scan').first()).toBeVisible();
     await expect(page.getByText('View uploaded image')).toBeVisible({ timeout: 15000 });
 
     const continueButton = page.getByRole('button', { name: 'Continue', exact: true });
